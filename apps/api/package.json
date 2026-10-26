@@ -1,0 +1,21 @@
+{
+  "name": "@backinit/api",
+  "private": true,
+  "scripts": {
+    "dev": "node ../../scripts/dev-api.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/apps/api/src/main.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nestjs/common": "12.2.0",
+    "@nestjs/core": "12.2.0",
+    "@nestjs/platform-express": "12.2.0",
+    "@nestjs/throttler": "latest",
+    "reflect-metadata": "latest",
+    "rxjs": "latest",
+    "helmet": "latest",
+    "zod": "latest"
+  },
+  "type": "module"
+}
