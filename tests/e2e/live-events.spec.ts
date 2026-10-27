@@ -103,6 +103,7 @@ test("admin sources require verification, match only their fixture, expose retry
   baseURL,
 }) => {
   await real(page, baseURL!);
+  await page.clock.install();
   const origin = baseURL!;
   const email = `live-operator-${Date.now()}@example.test`;
   const password = "backinit-live-operator-password";
@@ -234,7 +235,7 @@ test("admin sources require verification, match only their fixture, expose retry
   expect(
     (await post("/api/admin/sources", { ...current, revoked: true })).status(),
   ).toBe(201);
-  await page.reload();
+  await page.clock.fastForward(61000);
   await expect(page.getByLabel("Stream source", { exact: true })).toHaveValue(
     source.id,
   );

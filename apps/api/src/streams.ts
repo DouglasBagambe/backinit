@@ -183,10 +183,22 @@ export class Streams {
       );
   }
   forEvent(event: SportEvent) {
-    return this.all().filter(
-      (s) =>
-        sourceIsActive(s) && sourceMatchesEvent(s, event) && this.compatible(s),
-    );
+    return this.all()
+      .filter(
+        (s) =>
+          sourceIsActive(s) &&
+          sourceMatchesEvent(s, event) &&
+          this.compatible(s),
+      )
+      .map((s) => ({
+        ...s,
+        validUntil: new Date(
+          Math.min(
+            Date.parse(s.validUntil),
+            Date.parse(this.lastCheck(s.id)!.checkedAt) + 86400000,
+          ),
+        ).toISOString(),
+      }));
   }
   lastCheck(id: string) {
     const row = this.accounts.db

@@ -114,7 +114,7 @@ function setup() {
     rightsOwner: "Event rights holder",
     rightsEvidence: "https://rightsholder.test/agreement",
     validFrom: new Date(Date.now() - 10000).toISOString(),
-    validUntil: new Date(Date.now() + 3600000).toISOString(),
+    validUntil: new Date(Date.now() + 7 * 86400000).toISOString(),
     territory: "WORLD",
     revoked: true,
     version: 1,
@@ -148,6 +148,9 @@ it("publishes an event source only after decoding, matches exact provider refs a
   streams.recordCheck(user, evidence);
   const enabled = streams.save(user, { ...saved, revoked: false });
   expect(streams.forEvent(fixture).map((s) => s.id)).toEqual([source.id]);
+  expect(
+    Date.parse(streams.forEvent(fixture)[0]!.validUntil),
+  ).toBeLessThanOrEqual(Date.now() + 86400000);
   expect(
     sourceMatchesEvent(enabled, {
       ...fixture,

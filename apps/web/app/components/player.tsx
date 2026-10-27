@@ -40,6 +40,8 @@ export function Player({
   const reportRef = useRef(onPlaybackReport);
   reportRef.current = onPlaybackReport;
   const source = sources.find((s) => s.id === selected);
+  const sourcesRef = useRef(sources);
+  sourcesRef.current = sources;
   useEffect(() => {
     setControls({
       fullscreen: !!document.fullscreenEnabled,
@@ -70,9 +72,18 @@ export function Player({
           (s) => sourceIsActive(s) && (!sourceId || s.id === sourceId),
         );
         // Preserve object identity across polling so a healthy playing engine is not restarted.
-        setSources((old) =>
-          JSON.stringify(old) === JSON.stringify(active) ? old : active,
-        );
+        setSources((old) => {
+          const stable = active.map((item) => {
+            const previous = old.find((s) => s.id === item.id);
+            return previous && JSON.stringify(previous) === JSON.stringify(item)
+              ? previous
+              : item;
+          });
+          return old.length === stable.length &&
+            stable.every((s, i) => s === old[i])
+            ? old
+            : stable;
+        });
         select((old) =>
           active.some((s) => s.id === old)
             ? old
@@ -108,6 +119,16 @@ export function Player({
     let disposed = false;
     let transport: Transport | undefined;
     const element = video.current;
+    const withdraw = (message: string) => {
+      const alternatives = sourcesRef.current.filter(
+        (s) => s.id !== source.id && sourceIsActive(s),
+      );
+      setSources(alternatives);
+      select(alternatives[0]?.id || "");
+      start(alternatives.length > 0);
+      setConsent(false);
+      setState(message);
+    };
     const fail = () => {
       if (!disposed)
         setState("Playback unavailable. Retry or choose another source.");
@@ -142,9 +163,7 @@ export function Player({
         .catch((error) => {
           if (disposed) return;
           if (error.message === "revoked") {
-            start(false);
-            setSources((list) => list.filter((s) => s.id !== source.id));
-            setState("Source withdrawn or its playback verification expired.");
+            withdraw("Source withdrawn or its playback verification expired.");
           } else
             setHealth("Availability check failed. Playback may still work.");
         });
@@ -153,9 +172,7 @@ export function Player({
     const healthTimer = setInterval(availability, 60000);
     const expiry = setInterval(() => {
       if (previewSource || sourceIsActive(source)) return;
-      start(false);
-      setSources((list) => list.filter((s) => s.id !== source.id));
-      setState("Source availability window has ended.");
+      withdraw("Source availability window has ended.");
     }, 1000);
     if (source.type !== "embed" && element)
       void attachPlayback(element, source, {
@@ -344,7 +361,9 @@ export function Player({
             </span>
             <h2>
               {eventId
-                ? "No in-page broadcast available"
+                ? source
+                  ? "Watch this event"
+                  : "No in-page broadcast available"
                 : sourceId
                   ? "Video unavailable"
                   : "Test the player"}
