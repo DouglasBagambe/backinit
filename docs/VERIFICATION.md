@@ -66,3 +66,33 @@ CI=1 E2E_BROWSER=firefox E2E_WEB_PORT=3200 E2E_API_PORT=4200 pnpm exec playwrigh
 The preview remains on 3000/4000 while standard production E2E uses 3100/4100. External probes depend on provider/network/territory conditions and remain outside deterministic CI. Screenshots and traces are ignored local evidence, with CI artifacts uploaded independently.
 
 Open limits remain: no direct live sports broadcast sources, universal structured scores/lineups, measured coordinates/momentum, enabled licensed articles, email verification/delivery, background push, reviewed public proxy attribution/shared limiting or production deployment. Code recovery and active-account deletion are now implemented; published retention/operator details and monitored encrypted backups still require launch work. See STREAMS.md and DATABASE.md.
+
+## Event-first live viewing correction — 28 October 2026
+
+Story: discover a genuine fixture → open its event page → resolve only its configured sources → play an authorized source or show an honest unavailable state → administer and withdraw that source safely.
+
+- 39 unit tests pass, including EFL date/time/entity normalization, stale verified-fact fallback, no inferred scores/live status, forbidden test-feed association, exact event/source matching, verification/version checks, invalid host rejection and source revocation/expiry/URL-change handling.
+- Production TypeScript and Next/Nest builds pass. The deterministic browser suite includes real cup fixture discovery, Kampala times, calendar UTC export, event switching, role/origin controls, save/verify/enable/revoke, source mismatch prevention, failure/retry/fallback and desktop/mobile/theme accessibility.
+- Real external review of Watch and Liverpool's event page at 390/1440 in both themes: no serious/critical axe violations, no horizontal overflow and no page errors. The five cup fixtures resolve to **zero in-page sources** and explicit external-information availability. Liverpool kickoff renders 23:00 Africa/Kampala.
+- Actual HLS test decoding: currentTime 1.53 seconds, readyState 4, 320×184, unpaused. Actual DASH VOD: 1.53 seconds, readyState 4, 480×270, unpaused. Both are open testing content, not sports broadcasts.
+- Actual live DASH simulator: advancing epoch-based media time, readyState 4, 640×360, unpaused, infinite duration and a moving seekable window of approximately 60 seconds. “Go live” seeks to within five seconds of the window edge. Fullscreen and picture-in-picture were actually opened and exited on all three transports in Chromium.
+- An isolated production-mode admin/browser test independently played HLS and live DASH, automatically submitted authenticated decoding evidence and verified persisted source checks/audit state. The HLS check recorded 320×184 and >1 second played; live DASH recorded 640×360 and an actual live window. No test source was attached to a sporting fixture. This optional network test passes separately and is skipped in ordinary CI.
+- Supplied Akamai live HLS endpoint could not be connected to from this environment and was not seeded as a working source. Supplied Mux endpoint is reachable and decoded as **VOD**, not claimed live. The DASH-IF simulator is the independently verified live transport test.
+
+Reproduction:
+
+```sh
+pnpm typecheck
+pnpm test
+pnpm build
+CI=1 pnpm test:e2e
+node scripts/probe-live-viewing.mjs
+CI=1 VERIFY_EXTERNAL_MEDIA=true E2E_WEB_PORT=3300 E2E_API_PORT=4300 pnpm exec playwright test tests/e2e/media-verification.spec.ts --output=test-results-media
+CI=1 E2E_BROWSER=firefox E2E_WEB_PORT=3200 E2E_API_PORT=4200 pnpm exec playwright test tests/e2e/live-events.spec.ts tests/e2e/viewing.spec.ts
+```
+
+The deterministic source-management test simulates administrator media evidence to test authorization and state transitions; it is not cited as real media playback. Actual media proof comes from the separate permitted-feed probes and optional admin test. Evidence screenshots include `live-real-*`, `live-proof-*` and `admin-decoded-*` under ignored `artifacts/`.
+
+No Liverpool/Chelsea or other cup video was decoded, since no authorized in-page source exists. No Uganda broadcaster entitlement, generic third-party iframe decoding, Safari/iOS playback or universal multi-sport coverage is claimed. Source checks are authenticated administrator reports, not cryptographic proof of rights or content identity. See LIVE_VIEWING_2026-10-28.md for the fixture table and exact broadcast requirements.
+
+Final local results for this correction: **34 deterministic Chromium browser tests passed** (2.9 minutes), with the optional network test skipped in that run; **eight focused Firefox tests passed** (1.1 minutes). The external admin decoding test separately passed against isolated production servers (26 seconds). The general matrix now covers 24 routes at seven widths in both themes, with additional live discovery/event-page reviews. Source administration, provider-supported detail, account flows and the footer-only theme selector remain verified.

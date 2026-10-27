@@ -33,7 +33,7 @@ Defaults work without an env file. Next reads `apps/web/.env.local`; Nest reads 
 | APP_ORIGIN                | Web        | Exact public origin for mutation checks; set before a reverse proxy deployment                                   |
 | SPORTS_DATA_MODE          | Both       | `real` default; `demo` for deterministic development/tests                                                       |
 | DATABASE_PATH             | API        | Default `.data/backinit.sqlite` relative to API working directory; use an absolute persistent path operationally |
-| SPORTS_PROVIDERS_DISABLED | API        | `true` returns explicit unavailable real-score coverage for maintenance/CI; never inserts demo data              |
+| SPORTS_PROVIDERS_DISABLED | API        | `true` pauses automatic providers while retaining explicitly verified fixture snapshots; never inserts demo data |
 | BBC_FEED_LICENSED         | API        | Set `true` only after obtaining applicable BBC business feed permission; disabled by default                     |
 
 ## Working capabilities and limits
@@ -61,7 +61,7 @@ Use `user` to revoke the role. Role changes revoke all sessions and add an audit
 
 - `GET /health`, `/events?edition=real&sport=Football&q=...`, `/events/:id?edition=real`, `/standings`, `/news`.
 - `/updates` emits connection heartbeats only, not live score notifications. Visible browser feeds refresh every 60 seconds through the cache.
-- `/watch` returns official videos and publisher coverage; `/streams?library=1` returns active official embeds.
+- `/watch` returns fixture/source/availability entries and supports `?date=YYYY-MM-DD`; `/videos` returns the separate official archive library; `/streams?library=1` returns active official embeds.
 - `/account/recover`, `/account/recovery-codes`, `/account/password`, `/account/export`, `/account/delete`, `/account/logout-all`, `/account/notifications`, `/account/notification-preferences`, `/account/notification-read`.
 - `/account/register`, `/account/login`, `/account/logout`, `/account/me`, `/account/favorites`, `DELETE /account/saved-events`.
 - `/streams`, `/streams/:id/health`; role-protected `/admin/sources`, `/admin/audit`.
@@ -72,3 +72,18 @@ API limiter: 120 requests/minute per API connection, authentication 5/minute. Th
 ## Public launch remains gated
 
 No deployment or merge is authorized. TLS, nonce-based CSP, email verification/delivery, published operator and retention policies, monitored backups/restore drills, monitoring, licensing and production abuse controls remain launch work. Search indexing stays disabled pending launch approval. This milestone is usable locally, not a complete global sports service.
+
+## Live event/source workflow
+
+See [the 28 October milestone](LIVE_VIEWING_2026-10-28.md). Watch and home now prioritize real events. `/watch/:id` integrates playback and event information; `/videos` and `/playback` are separate archive/testing pages. EFL official-page ingestion and limited verified other-sport snapshots supplement OpenLigaDB/Jolpica. Snapshot fixtures have `scheduleOnly` metadata and never infer live scores/status.
+
+New direct media hosts require `STREAM_ALLOWED_HOSTS`; publisher frames require `STREAM_EMBED_HOSTS`, both exact public hostnames. Restart the API after changing its environment. No rights are conferred by allowlisting. Sports sources must bind a real event ID or exact provider/fixture reference. Save disabled, verify actual playback in the admin preview, then enable. Verification is audited, expires after 24 hours and is invalidated by URL/format changes. Known test hosts/content cannot bind to real events.
+
+Optional network verification (separate from deterministic CI):
+
+```sh
+node scripts/probe-live-viewing.mjs
+CI=1 VERIFY_EXTERNAL_MEDIA=true E2E_WEB_PORT=3300 E2E_API_PORT=4300 pnpm exec playwright test tests/e2e/media-verification.spec.ts --output=test-results-media
+```
+
+The latter starts isolated production servers/database and verifies authenticated admin checks using actual permitted test-media decoding. It is skipped in ordinary CI because provider/CDN availability varies. Existing CI continues on Chromium; Firefox verification runs locally with separate ports/output. No workflow-scope permission has been added.

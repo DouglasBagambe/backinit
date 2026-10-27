@@ -44,3 +44,11 @@ A one-minute API poll observes real, non-stale provider revisions. Enabled accou
 The shell, bottom navigation, typography and light palette remain; Watch now leads the homepage and navigation. Official footage/artwork replaces promotional filler, and genuine crests replace invented team monograms. DM Sans and Manrope are bundled locally through Fontsource, so rendering does not depend on Google Fonts requests at runtime. Dark surfaces are navy/charcoal with restrained steel accents. Light/Dark/System lives only in the footer and follows system changes when selected. Layout tests cover seven widths and both themes; motion respects reduced-motion preferences.
 
 Metadata and semantic rendering remain, but public indexing is intentionally disabled until approved launch. TLS, strict CSP, operational monitoring, licensing and production security review are outstanding. No merge or public deployment without founder approval.
+
+## Event-first viewing milestone — 28 October 2026
+
+`/watch` joins normalized fixtures to compatible, active sports sources by exact event ID or exact provider/fixture reference. `/watch/:id` places the player beside event switching and above provider-supported information. The archive catalogue moved to `/videos`; public test signals live on `/playback` and cannot bind to sports events.
+
+EFL imports fixed official schedule HTML without executing scripts; validated stale verified facts provide an explicit fallback. Other verified snapshots expose schedule-only/date-only/conditional details. They are neither an exhaustive feed nor inferred live status. Direct sources use operator-reviewed exact hosts; generic iframe adapters are separately reviewed and sandboxed.
+
+`source_checks` stores authenticated administrator-reported playback evidence, source version, URL/format fingerprint, browser and check time. Native verification requires actual decoded playback; live direct broadcasts require a genuine live window. Metadata/manifest reachability is insufficient. Checks expire after 24 hours; edits invalidate compatibility; revocation/expiry withdraw public availability and trigger player cleanup. Generic frames without a trusted SDK use explicit operator observation, not claimed automatic decoding. Rights evidence remains an operator record separate from technical verification.

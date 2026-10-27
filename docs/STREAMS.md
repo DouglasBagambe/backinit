@@ -4,7 +4,9 @@ Checked 28 October 2026. No paid account, broadcast subscription or deployment h
 
 ## Available in BackInIt
 
-Watch discovers selected videos from the official WWE, WWE Vault, UFC, FIBA Basketball, NBA, Australian Open, ICC, FIFA and Formula 1 YouTube channels. Public channel RSS and oEmbed metadata require no API key. Every entry records its publisher, exact official watch URL, category and check time. Titles containing “LIVE” are never treated as proof of a current live broadcast. “Full game highlights” are labelled highlights.
+Watch is now an event-first discovery and viewing flow. Replays/highlights are on `/videos`; testing signals are isolated on `/playback`. See [tonight’s verified fixtures, restrictions and live-player evidence](LIVE_VIEWING_2026-10-28.md).
+
+The separate `/videos` archive library discovers selected videos from the official WWE, WWE Vault, UFC, FIBA Basketball, NBA, Australian Open, ICC, FIFA and Formula 1 YouTube channels. Public channel RSS and oEmbed metadata require no API key. Every entry records its publisher, exact official watch URL, category and check time. Titles containing “LIVE” are never treated as proof of a current live broadcast. “Full game highlights” are labelled highlights.
 
 The browser loads the privacy-enhanced YouTube player only after consent. Provider controls, ads and restrictions remain intact. Regional restrictions, age requirements, removal and embedding decisions can prevent playback. Metadata success is **not playback verification**. Preview artwork contacts YouTube image servers before video consent; this is disclosed on the privacy page. Official-source links remain available when embedding fails.
 

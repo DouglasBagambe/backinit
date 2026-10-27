@@ -84,22 +84,20 @@ try {
       before,
       { timeout: 20000 },
     );
-    const result = await page
-      .locator("video")
-      .evaluate((v) => ({
-        currentTime: v.currentTime,
-        readyState: v.readyState,
-        width: v.videoWidth,
-        height: v.videoHeight,
-        paused: v.paused,
-        live: v.duration === Infinity,
-        seekable: v.seekable.length
-          ? {
-              start: v.seekable.start(0),
-              end: v.seekable.end(v.seekable.length - 1),
-            }
-          : null,
-      }));
+    const result = await page.locator("video").evaluate((v) => ({
+      currentTime: v.currentTime,
+      readyState: v.readyState,
+      width: v.videoWidth,
+      height: v.videoHeight,
+      paused: v.paused,
+      live: v.duration === Infinity,
+      seekable: v.seekable.length
+        ? {
+            start: v.seekable.start(0),
+            end: v.seekable.end(v.seekable.length - 1),
+          }
+        : null,
+    }));
     if (source === "dash-live-simulator") {
       expect(result.live).toBe(true);
       await expect(
