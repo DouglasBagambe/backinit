@@ -586,6 +586,7 @@ export function Experience({
               events={events}
               following={following}
               toggle={follow}
+              busy={!ready || syncing}
             />
           ) : [
               "settings",
@@ -595,7 +596,11 @@ export function Experience({
               "teams",
               "athletes",
             ].includes(route) ? (
-            <Utility route={route} clear={clearEvents} />
+            <Utility
+              route={route}
+              clear={clearEvents}
+              busy={!ready || syncing}
+            />
           ) : (
             <>
               <div className="page-heading">
@@ -828,6 +833,16 @@ export function Experience({
                             aria-label="Search events"
                           />
                         </label>
+                      )}
+                      {route === "search" && (
+                        <nav
+                          className="directory-links"
+                          aria-label="Explore directories"
+                        >
+                          <Link href="/teams">Teams</Link>
+                          <Link href="/athletes">Athletes</Link>
+                          <Link href="/competitions">Competitions</Link>
+                        </nav>
                       )}
                       {real && ["fixtures", "scores"].includes(route) && (
                         <label className="calendar-label">

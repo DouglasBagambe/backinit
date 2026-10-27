@@ -1,21 +1,19 @@
-# Verification — 26 October 2026
+# Verification — 27 October 2026
 
-## Completed locally
+## Local evidence
 
-- Production build: Next.js and NestJS pass.
-- API development startup: verified health response using the TypeScript compiler/watch runner. Direct TSX execution exposed a Nest ESM dependency-resolution mismatch; development now uses the same compiled module graph as production.
-- Strict TypeScript: all three workspace packages pass.
-- Vitest: 10 passing tests, covering demo contracts, sport separation, combined filters, favorites, malformed upstream payloads, HTTP errors and explicit fallback.
-- Playwright: full 15-test suite passed; following the test-source and mobile-label fixes, playback-failure and the additional mobile accessibility/keyboard test also passed. There are now 16 browser tests in the suite.
-- Responsive checks: home and football Match Centre at **360, 390, 430, 768, 1024, 1440 and 1920px**, no document horizontal overflow. Screenshots captured for all widths.
-- Accessibility: no serious/critical axe violations on home, Match Centre, Watch and Settings in light/dark desktop modes; additional mobile checks for home/Match Centre. This is not a full accessibility certification.
-- Functional flows: favorite save/remove/reload, search and empty search, sport filtering, separate wrestling card, tracker replay/step controls, statistics tabs, theme persistence/system changes, expected unknown-route HTTP 404, missing API IDs and invalid filters.
-- Production dependency audit: **no known vulnerabilities** after overriding transitive `multer` to patched 2.5.0. No upload endpoint exists in the app. Re-run the audit before releases.
-- Real external HLS probe: Big Buck Bunny test stream loaded and played in Chromium. Observed `currentTime: 2.02728`, `readyState: 4`, `320×184`, `paused: false`; the selected rendition is adaptive. This verifies actual decoded playback, not just a visible player.
+- Strict TypeScript across all three packages and production Next/Nest builds pass.
+- 26 Vitest tests pass: provider normalization/cache/rate limits/stale fallback, provenance boundaries, accounts/session authorization, source validation/revocation/versioning, RSS parsing and origin checks.
+- Final 26-test Playwright suite passes (1.9 minutes), including administrator source mutation/audit/revocation, account outage preservation, calendar export and the full theme/layout matrix.
+- Layout matrix: 21 routes × seven widths (360, 390, 430, 768, 1024, 1440, 1920) × both themes, checking page overflow, footer-only theme control and persistence. Representative screenshots captured and visually inspected.
+- Real external feed: 312 provider events returned; OpenLigaDB and Jolpica both available. Bundesliga goal detail, 18-team standings and latest F1 classification verified. No demo provenance in the real feed.
+- Real browser smoke: home, football Match Centre and F1 detail at 360/1440 in light/dark (12 reviews), no serious/critical axe violations or page errors. Goal navigation changes the event, real standings render, and real calendar export has valid folded lines without demo labels.
+- Actual decoded external playback: HLS `currentTime=2.018996`, `readyState=4`, `320×184`, playing; DASH `currentTime=2.022844`, `readyState=4`, `768×432`, playing. These are Big Buck Bunny test films, not sports broadcasts.
+- `pnpm audit --prod`: no known vulnerabilities at this check. Formatting and diff whitespace checks pass.
 
-## Defects discovered and fixed
+## Defects caught during this milestone
 
-Initial browser execution began before Chromium installation completed, so browser launch failed; reruns used the installed browser. Subsequent tests found low contrast on light-theme labels, a brand accessible-name mismatch, a streaming not-found response returning 200, and an ambiguous favorites test selector. These were corrected. Mobile inspection found an icon-only search link missing an accessible label; fixed and verified. The original Sintel endpoint returned HTTP 403; replaced with the documented Mux-hosted HLS.js Big Buck Bunny test source. No access restriction was bypassed.
+Fixed real-page demo disclaimer, a stale tracker color caption, server-persistent clearing of account events, origin validation behind Next's internal URL normalization, account outage preservation, keyboard focus on scrollable standings/classification tables, expiry timer behavior and shared-domain Turbo cache invalidation. Source evidence URLs require HTTPS. Browser traces also exposed stalled external Google Fonts responses; the same families now ship locally. Search links expose the team/athlete/competition directories. Player failures/retries and authorization denials are tested rather than inferred from rendering.
 
 ## Reproduce
 
@@ -25,14 +23,20 @@ pnpm typecheck
 pnpm test
 pnpm build
 pnpm exec playwright install chromium
-pnpm test:e2e
+CI=1 pnpm test:e2e
 pnpm audit --prod
+pnpm format:check
 ```
 
-For the optional external playback probe, start production-mode web/API servers, then run `node scripts/probe-playback.mjs`. It requires internet access and is intentionally separate from deterministic CI. Test-stream uptime is outside BackInIt's control.
+Stop existing preview servers before CI-mode browser execution. E2E uses a fresh isolated SQLite path. With built API/web servers running, the following optional network-backed probes exercise current providers and actual media decoding:
 
-Browser captures are generated under `artifacts/` and ignored by Git. The CI workflow uploads browser evidence and failure traces. Mobile and desktop home/Match Centre screenshots and the dark settings screen were visually inspected; the local preview was also opened in the integrated browser.
+```sh
+node scripts/probe-real.mjs
+node scripts/probe-playback.mjs
+```
+
+External probes intentionally remain separate from deterministic CI because provider/CDN uptime is outside this repository's control. Screenshots under ignored `artifacts/` include `review-*`, `real-*` and `playback-*`. CI uploads browser evidence and failure traces.
 
 ## Limits
 
-Chromium only in this environment. Native Safari HLS, iOS fullscreen/PiP, Firefox, Android and assistive-technology testing remain open. No production performance benchmark, load test, penetration test, hosted deployment, real sports API, database or sports broadcast verification is claimed. SSE provides demo heartbeats only. Source-health automation, DASH, embed adapters, accounts and secure admin mutations remain roadmap work. Remote CI status is reported separately in the PR; local success does not imply CI success.
+Chromium only. Native Safari HLS, iOS fullscreen/PiP, Firefox, Android, screen-reader testing, load/performance budgets and a production penetration review remain open. No production deployment, sports broadcast, live positional feed or enabled licensed-news ingestion is claimed. SQLite/cache/limiter behavior is single-instance; no scale or backup guarantee is implied. Remote CI is reported separately from local tests. No merge or public deployment performed.

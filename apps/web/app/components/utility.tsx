@@ -6,9 +6,11 @@ import { Empty } from "./primitives";
 export function Utility({
   route,
   clear,
+  busy,
 }: {
   route: string;
   clear: () => Promise<void>;
+  busy: boolean;
 }) {
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
@@ -37,7 +39,7 @@ export function Utility({
             to save favorites to an account. Notifications are not yet enabled.
           </p>
           <button
-            disabled={pending}
+            disabled={pending || busy}
             onClick={async () => {
               setPending(true);
               try {

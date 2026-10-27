@@ -2,7 +2,7 @@
 
 Every moment matters. A multi-sport platform for following events, exploring match stories, and authorized in-app viewing.
 
-This repository starts with a local-first, explicitly labeled demo. **No real live data or sports broadcasts are configured.** Do not deploy until production access, rights, security and infrastructure have been reviewed.
+BackInIt now defaults to real, provider-reported Bundesliga and Formula 1 data, with persistent accounts/favorites and an authorized-source player registry. The original demo is a separate, explicit edition. **This is not complete global coverage: guaranteed live feeds, most sports, licensed news and sports broadcasts remain unavailable.** Public launch requires further security, rights and infrastructure work and founder approval.
 
 - [Local development and current capabilities](docs/DEVELOPMENT.md)
 - [Architecture and decisions](docs/ARCHITECTURE.md)

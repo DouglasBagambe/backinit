@@ -78,6 +78,12 @@ test("theme persists; system mode responds to preference", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await expect(
+    page.locator("header").getByRole("button", { name: /theme/i }),
+  ).toHaveCount(0);
+  await expect(
+    page.locator("footer").getByRole("button", { name: "dark", exact: true }),
+  ).toHaveCount(1);
   await page.getByRole("button", { name: "system", exact: true }).click();
   await page.emulateMedia({ colorScheme: "light" });
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");

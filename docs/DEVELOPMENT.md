@@ -2,61 +2,70 @@
 
 ## Run locally
 
-Requirements: Node.js 22.23+ and pnpm 10.34.0. Use `corepack enable` and `corepack prepare pnpm@10.34.0 --activate` where Corepack is installed, or `npm install -g pnpm@10.34.0`.
+Node.js 22.23+ (including `node:sqlite`) and pnpm 10.34.0 are required.
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Web: http://127.0.0.1:3000. API: http://127.0.0.1:4000. Both bind to loopback; no deployment or account is required. Demo events are fixed to 26 October 2026, not the user's current date. All scores and results are illustrative. Team names identify the demonstration; letter shields are original UI shapes, not licensed club crests.
+Web: http://127.0.0.1:3000. API: http://127.0.0.1:4000. Both bind to loopback. Real data is the default, with no API key required. The edition control explicitly switches to the separate fictional demo. Demo events are fixed to 26 October 2026. Team monograms are original shapes, not licensed crests.
 
 ```sh
 pnpm typecheck
 pnpm test
 pnpm build
 pnpm exec playwright install chromium
-pnpm test:e2e
+CI=1 pnpm test:e2e
 ```
 
-E2E starts production web/API servers automatically. For a production-mode local preview run `pnpm --filter @backinit/api start` and `pnpm --filter @backinit/web start` in separate terminals after building.
+E2E starts production servers in demo mode with an isolated SQLite database. Stop existing local servers first. A production-mode local preview uses `pnpm --filter @backinit/api start` and `pnpm --filter @backinit/web start` after building.
 
 ## Environment
 
-See [example values](../.env.example). Defaults work with no file. Next reads an optional `apps/web/.env.local`; the API reads exported process variables (it does not automatically load the root example).
+Defaults work without an env file. Next reads `apps/web/.env.local`; Nest reads exported process variables, not the root example automatically.
 
-| Variable              | Consumer        | Default / purpose                                                                |
-| --------------------- | --------------- | -------------------------------------------------------------------------------- |
-| API_URL               | Web server only | `http://127.0.0.1:4000`, server-owned upstream; never accept a URL from visitors |
-| PORT                  | API             | `4000`                                                                           |
-| WEB_ORIGIN            | API             | `http://127.0.0.1:3000`, exact allowed origin                                    |
-| FOOTBALL_DATA_API_KEY | Future adapter  | Not used in this slice; never expose to browser                                  |
+| Variable          | Consumer   | Purpose                                                                                                          |
+| ----------------- | ---------- | ---------------------------------------------------------------------------------------------------------------- |
+| API_URL           | Web server | Fixed upstream, default `http://127.0.0.1:4000`                                                                  |
+| PORT              | API        | Default 4000                                                                                                     |
+| WEB_ORIGIN        | API        | Exact CORS origin, default `http://127.0.0.1:3000`                                                               |
+| APP_ORIGIN        | Web        | Exact public origin for mutation checks; set before a reverse proxy deployment                                   |
+| SPORTS_DATA_MODE  | Both       | `real` default; `demo` for deterministic development/tests                                                       |
+| DATABASE_PATH     | API        | Default `.data/backinit.sqlite` relative to API working directory; use an absolute persistent path operationally |
+| BBC_FEED_LICENSED | API        | Set `true` only after obtaining applicable BBC business feed permission; disabled by default                     |
 
-## Functional status
+## Working capabilities and limits
 
-| Capability                                                                  | Status                                                                  |
-| --------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Home, scores, live filter, sport filters, search                            | Functional with demo data                                               |
-| Next server → Nest API → validated provider → rendered events               | Functional with demo data; explicit local fallback when API unavailable |
-| Football Match Centre stats, timeline, event replay                         | Functional with demo data for Arsenal–Liverpool                         |
-| Other event detail pages                                                    | Score/schedule only; missing detail explicitly labeled                  |
-| Wrestling event and bout cards                                              | Functional with fictional performers                                    |
-| Motorsport event                                                            | Functional schedule demo; no timing/classification                      |
-| Favorite events and theme preferences                                       | Functional browser-local persistence; guest access                      |
-| HLS test film, adaptive quality, native controls, errors/retry              | Implemented; see verification for playback evidence and browser limits  |
-| News                                                                        | Product guides only; no news ingestion                                  |
-| Calendar                                                                    | Fixed demo matchday; arbitrary date browsing not implemented            |
-| User accounts, notifications, synced team/athlete favorites                 | Awaiting implementation                                                 |
-| Admin                                                                       | Closed informational state, no privileged API or mutations              |
-| Real scores, lineups, momentum, standings, H2H, news, authorized broadcasts | Awaiting provider integration and rights                                |
-| DASH, embedded provider adapters, source registry and health monitoring     | Next viewing milestone                                                  |
+- OpenLigaDB Bundesliga fixtures, results, reported goals and standings; Jolpica F1 schedule and latest classification. Provider metadata and stale states are exposed. These are snapshots, **not guaranteed real-time feeds**.
+- Real Match Centre goal replay and timeline, standings and race classification. No inferred coordinates, live clock, momentum, lineups or missing statistics.
+- Search by events, competitions, teams and reported athletes. Directories derive from available events; they are not comprehensive global databases.
+- Registration/login/logout, seven-day opaque sessions, SQLite account favorites, guest local favorites, follows and personalized home. No email verification, password recovery or push notifications yet. Calendar export is available for individual events.
+- Server-authorized administrator source registry with version checks and audit entries. All new users are ordinary members. Sources have rights evidence, time windows, revocation and approved hosts. Operator review of rights remains essential.
+- HLS/DASH player, source selection, availability probes, retry/buffering states and native video controls. Permitted YouTube privacy-enhanced embeds require consent. Only open test films are seeded; **no sports broadcasts are configured**. Availability probes do not prove segment playback or regional entitlement.
+- Footer-only Light/Dark/System preference persists locally; dark uses navy, charcoal and steel-blue.
+- BBC headline adapter is permission-gated. No syndicated news is enabled by default. Unsupported sports show unavailable coverage; fictional demo remains opt-in.
+
+## Accounts and administration
+
+Use the profile page to register. Grant administrator status only to an independently verified account ID, using the same absolute database path as the API:
+
+```sh
+DATABASE_PATH=/absolute/path/backinit.sqlite node scripts/account-role.mjs ACCOUNT_UUID admin
+```
+
+Use `user` to revoke the role. Role changes revoke all sessions and add an audit entry. Sign in again afterward. No password or default administrator is embedded. Back up the SQLite database with a SQLite-aware backup procedure, including WAL consistency. Do not commit databases, credentials or session tokens.
 
 ## API
 
-- `GET /health`: provider health metadata, explicitly `realTime: false`.
-- `GET /events?sport=Football&q=Arsenal`: validated filters, demo provenance.
-- `GET /events/:id`: 404 for unknown IDs.
-- `GET /updates`: SSE heartbeats every 15 seconds; **not live score updates**.
-- Web `GET /api/events`: server-owned backend request, schema validation and explicit fallback source.
+- `GET /health`, `/events?edition=real&sport=Football&q=...`, `/events/:id?edition=real`, `/standings`, `/news`.
+- `/updates` emits connection heartbeats only, not live score notifications. Visible browser feeds refresh every 60 seconds through the cache.
+- `/account/register`, `/account/login`, `/account/logout`, `/account/me`, `/account/favorites`, `DELETE /account/saved-events`.
+- `/streams`, `/streams/:id/health`; role-protected `/admin/sources`, `/admin/audit`.
+- Browser mutations use same-origin Next BFF routes; sessions stay in HttpOnly, SameSite cookies, Secure over HTTPS. API accepts opaque bearer sessions. No tokens appear in browser JSON.
 
-API rate limit: 120 requests per minute per client; one process/in-memory storage only. Never enable proxy trust indiscriminately. Configure the actual trusted proxy topology and a shared limiter before production.
+API limiter: 120 requests/minute per API connection, authentication 5/minute. The BFF currently shares one upstream address, so this is a conservative installation-wide limit. `NODE_ENV=test` raises the general limit solely for the browser matrix. Before public launch, configure trusted proxy attribution, shared rate limiting and abuse controls. Single-process provider caches deduplicate loads, honor Retry-After and retain explicitly stale data up to 24 hours. Multiple replicas require shared ingestion/cache.
+
+## Public launch remains gated
+
+No deployment or merge is authorized. TLS, nonce-based CSP, email verification/recovery, privacy/account deletion policies, backups/restore drills, monitoring, licensing and production abuse controls remain launch work. Search indexing stays disabled pending launch approval. This milestone is usable locally, not a complete global sports service.

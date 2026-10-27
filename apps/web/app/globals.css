@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
 :root {
   --bg: #f7f8fa;
   --surface: #fff;
@@ -9,7 +8,7 @@
   --accent: #13794d;
   --accent-soft: #e8f4ed;
   --hero: #1b3148;
-  --font: "DM Sans", Arial, sans-serif;
+  --font: "DM Sans Variable", Arial, sans-serif;
   color-scheme: light;
 }
 :root[data-theme="dark"] {
@@ -84,7 +83,7 @@ p {
 h1,
 h2,
 h3 {
-  font-family: "Manrope", var(--font);
+  font-family: "Manrope Variable", var(--font);
   letter-spacing: -0.045em;
 }
 h1 {
@@ -141,7 +140,7 @@ i.live-dot,
   z-index: 20;
 }
 .brand {
-  font-family: "Manrope", sans-serif;
+  font-family: "Manrope Variable", sans-serif;
   font-size: 27px;
   font-weight: 800;
   letter-spacing: -1.7px;
@@ -522,7 +521,7 @@ kbd {
   min-width: 0;
 }
 .featured-score > strong {
-  font-family: "Manrope", sans-serif;
+  font-family: "Manrope Variable", sans-serif;
   font-size: 28px;
   display: flex;
   align-items: center;
@@ -550,7 +549,7 @@ kbd {
   border-radius: 5px 5px 9px 9px;
   flex-shrink: 0;
   border: 1px solid #00000012;
-  font-family: "Manrope", sans-serif;
+  font-family: "Manrope Variable", sans-serif;
 }
 .crest.large {
   width: 41px;
@@ -1149,7 +1148,7 @@ footer small {
   align-items: center;
   gap: 24px;
   line-height: 1.1;
-  font-family: "Manrope", sans-serif;
+  font-family: "Manrope Variable", sans-serif;
 }
 .score-main > small {
   color: var(--muted);
@@ -2328,4 +2327,18 @@ thead th {
   .right-rail > .panel {
     grid-column: 1 / -1;
   }
+}
+
+.directory-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--accent);
+}
+.directory-links a {
+  padding: 8px 0;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }

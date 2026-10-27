@@ -1,37 +1,24 @@
-# Implementation plan
+# Implementation status and next work
 
-## 1. Foundation — first PR
+## Delivered foundation and functional milestone
 
-Repository/workspaces, architecture decisions, design tokens, navigation and responsive shell, complete themes, useful homepage, domain contracts, CI and test harness. Deliver a local-first build with no mandatory accounts. Acceptance: build/typecheck pass; home and Match Centre fit all seven required widths; visible controls have real behavior.
+- Approved shell/navigation preserved; navy/charcoal dark theme; footer-only Light/Dark/System preferences.
+- Real default feed with OpenLigaDB Bundesliga and Jolpica F1; validated contracts, cache/deduplication, rate cooldowns, bounded stale fallback and coverage reporting. Demo remains explicitly separate.
+- Football goals/timeline/replay/table, F1 classification, fixture date browsing, search and derived directories. Missing lineups, advanced stats and coordinates remain explicit.
+- HLS/DASH test playback, permitted embed adapter, audited/versioned source registry, availability checks, revocation/expiry and server-authorized administration.
+- Persistent SQLite accounts/sessions, typed favorites, follows, personalized home, guest preferences and calendar export.
+- Permission-gated news adapter and source-linked headline UI. No news license or sports streams configured.
+- Strict TypeScript, production builds, automated provider/auth/source/browser tests and CI evidence capture.
 
-## 2. Sports experience — initial slice plus expansion
+## Next priorities
 
-Delivered: sample multi-sport fixtures, sport filters, search, football score/timeline/statistics/event replay, separate wrestling card and race schedule.
+1. Broaden legitimate free coverage with authorized provider keys and concrete sport-specific contracts. Centralize ingestion budgets before live polling; add persistent event revisions and historical snapshots. Evaluate historical OpenF1 data separately from paid realtime.
+2. Obtain a usable live event/lineup/statistics provider before implementing live timelines, SSE revisions, momentum or positional animation. Do not animate invented coordinates.
+3. Obtain documented sports source permissions. Add territory/entitlement policies before regional sources, provider-supported DRM only where authorized, and Safari/iOS/Android playback verification.
+4. Complete account verification/recovery/deletion, abuse controls and privacy notices. Add opt-in notifications only with a real delivery mechanism and permission management.
+5. Enable licensed news, richer athlete/team profiles, localized times and competition history. Current directories derive only from loaded events.
+6. Production readiness: shared cache/limiter for scale, reviewed database migration path, monitored backup/restore, strict CSP/TLS, error reporting, performance/load testing, broader accessibility/device review and launch SEO.
 
-Next: split sport-specific detail contracts for periods/sets/innings/rounds; fixture date API and timezone preferences; verified team/player/competition profiles, standings, H2H and lineups. Add momentum only with a defensible model and available data. Acceptance: each sport displays correct scoring semantics, absent data is explicit, fixtures persist and reconcile correctly.
+## External decisions and blockers
 
-## 3. Viewing — next implementation milestone
-
-Delivered: isolated HLS test player with native controls, adaptive quality when available, loading/error/retry states and clear source attribution.
-
-Next: source registry, HLS/DASH/embed adapters, capability-based controls, source failover, entitled source selection, expiring rights and territory checks, health probes and secure source administration. Add wide-screen video/tracker composition and mobile picture-in-picture QA. Acceptance: a permitted test source plays inside BackInIt; failures/revocations have deterministic states; no fake sports broadcast claim; iOS Safari and Android validation.
-
-## 4. Real integrations
-
-Select providers only after coverage, commercial display rights, attribution, freshness and rate budgets are validated. Add contract-tested fixtures-only football adapter first; server-side cache and circuit breaker; news metadata ingestion with attribution/canonical URL deduplication and timestamps. Integrate explicit SSE event revisions/reconnect/backfill. Evaluate wrestling data editorial workflow and separate motorsport adapter. Acceptance: actual provider credentials authorized, contract tests pass, unknown/stale/missing values remain truthful, quota monitoring and ingestion diagnostics work.
-
-## 5. Personalization and operations
-
-PostgreSQL/Prisma migrations, authentication/session lifecycle, optional registration, cross-device favorites for teams/athletes/sports/competitions/events, watchlist and granular notification preferences. RBAC-protected admin for editorial/stream/provider operations with audit logs and server-side validation. Acceptance: unauthorized users cannot read privileged data or mutate; sessions revoke; backups restore; preference operations are accessible and tested.
-
-## 6. Verification and launch readiness
-
-Expand unit/integration/E2E matrix to real adapter contracts, auth boundaries, stream failure/failover, SSE reconnection, race conditions and persistence. Audit keyboard/screen-reader flows, Safari/Firefox/Android/iOS, all seven viewport widths, reduced motion, offline behavior, contrast, Core Web Vitals and performance budgets. Run dependency/security scans and load tests. Write operational runbooks, source rights ledger and privacy notices. Founder approves infrastructure cost, public exposure and merge separately.
-
-## Dependencies / blockers
-
-- No licensed live data provider or authorized sports broadcast sources configured.
-- Free data tiers cannot sustain globally competitive polling without ingestion budgets and coverage compromises.
-- Account-based features require an authentication choice and durable database.
-- Repository visibility was reported public despite the original private description; no deployment is implied by source publication.
-- All dates and scores in the initial slice are fixed demo values.
+No paid provisioning, deployment or merge is authorized. Broader free APIs often need registration and credentials. Real-time/global coverage and sports broadcasts are not guaranteed by free tiers. BBC ingestion needs applicable permission. Source rights and public launch must be reviewed; the platform is not complete while these capabilities are absent.

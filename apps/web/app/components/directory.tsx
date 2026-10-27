@@ -12,11 +12,13 @@ export function Directory({
   events,
   following,
   toggle,
+  busy,
 }: {
   route: string;
   events: SportEvent[];
   following: Follow[];
   toggle: (item: Follow) => void;
+  busy: boolean;
 }) {
   const [query, setQuery] = useState("");
   const kind =
@@ -83,6 +85,7 @@ export function Directory({
                   </Link>
                 </div>
                 <button
+                  disabled={busy}
                   className="icon-button"
                   aria-label={`${saved ? "Unfollow" : "Follow"} ${name}`}
                   aria-pressed={saved}

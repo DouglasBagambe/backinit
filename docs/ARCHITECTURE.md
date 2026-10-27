@@ -1,42 +1,40 @@
 # Architecture
 
-## First vertical slice
+## Implemented flow
 
-Browser → Next.js App Router server → NestJS read API → SportsProvider → validated discriminated event model. If the API fails or returns invalid data, Next returns local demo fixtures with an explicit footer/source label. It never silently substitutes demo results for a real provider; this application has only a demo provider.
+Browser → Next App Router/BFF → NestJS → provider adapters → Zod-normalized domain models. Real is the default edition. Provider outages yield explicit unavailable or bounded stale data; real requests never substitute demo scores. The separate demo edition may use a labeled local fallback.
 
-- `apps/web`: custom responsive interface, semantic CSS design tokens, persistent guest state, Match Centre, isolated HLS player.
-- `apps/api`: NestJS HTTP API, Zod validation, rate limiting, Helmet and explicit CORS.
-- `packages/domain`: shared contract, deterministic fixtures, event filtering and provider interface.
-- `tests`: domain invariants, browser flows, responsive and accessibility checks.
+- `apps/web`: preserved responsive shell, semantic CSS tokens, footer theme control, Match Centre, directories, accounts and lazy playback engines.
+- `apps/api`: NestJS controllers, provider cache, SQLite accounts/sessions/favorites/source registry/audit, Helmet and throttling.
+- `packages/domain`: validated discriminated sport models, provenance/coverage contracts, source contracts and explicit demo fixtures.
+- `tests`: provider, account, source, origin and browser behavior checks.
 
-Node 22, pnpm workspaces, Turbo, strict TypeScript, current Next/React, NestJS, Zod, HLS.js, Vitest and Playwright form the initial stack. Versions are locked; update through reviewed PRs and security checks. Next and Nest are ESM-compatible in this repository.
+Strict TypeScript, Next/React, NestJS, Zod, HLS.js, lazy DASH.js, Vitest and Playwright remain the stack. Turbo global inputs include shared domain sources so API cache entries cannot survive domain changes unnoticed.
 
-## Decisions
+## Provider boundary
 
-1. **Vertical slice before infrastructure.** PostgreSQL/Prisma and optional Redis are deliberately deferred until accounts, ingestion and admin introduce durable writes. No empty database abstraction is presented as complete. Local development needs no cloud account.
-2. **Custom semantic CSS instead of Tailwind/shadcn in this slice.** A small cohesive token system plus native controls is sufficient for these screens. This is a documented variation of the recommended baseline, not a framework limitation. Headless primitives can be introduced for dialogs and complex menus later.
-3. **Server-rendered initial feeds.** TanStack Query becomes useful for subscription-backed refresh and invalidation; it is not needed to repeatedly fetch deterministic fixtures. Dynamic-import the player so HLS does not burden the discovery bundle.
-4. **Events are not all matches.** `score`, `card`, and `race` are separate schema variants. Wrestling bouts hold performers/stipulations. The initial score variant represents only a summary; cricket innings/wickets, tennis sets/tiebreaks, baseball innings, basketball periods, combat rounds and race classification must each get separate detail schemas before real integration. Do not add football-only fields to the base model.
-5. **Provenance is mandatory.** Demo provenance is validated, displayed globally and repeated at ambiguous boundaries such as live badges, replay and player. Source timestamps and capabilities belong in real provider envelopes, with explicit stale data states.
-6. **No invented tracking.** The pitch is a symbolic background to discrete event replay. It has no ball coordinate or attack-direction simulation. A positional provider may supply measured coordinates later. Momentum must have a documented derivation; it is not random decorative bars.
-7. **Fail closed for privileged features.** Admin has no mutations or sensitive information. Do not add a client-side password or cosmetic role toggle. Implement authenticated server-side RBAC, CSRF protection and append-only audit records before enabling it.
+OpenLigaDB normalizes Bundesliga schedule/results/goals and current standings. Jolpica normalizes season schedule and the latest race classification. The bounded in-memory cache deduplicates concurrent requests, applies timeouts, rejects redirects, honors provider cooldowns and labels stale snapshots (maximum 24 hours). Cache lifetimes range from five minutes to one hour. No per-visitor direct provider traffic, invented live clocks or synthesized ball coordinates. No-key coverage is deliberately narrow.
 
-## Data and ingestion target
+BBC RSS parses headlines and links only, rejects DTD/entities, validates links and dates, deduplicates URLs and caches responses. It is disabled unless an operator confirms applicable permission through configuration. It is not a substitute for a news license.
 
-Provider adapter → schema validation/normalization → idempotent ingestion job → PostgreSQL snapshot/event log → cache → public read API → SSE notifications → browser query invalidation. Maintain provider ID mappings, capability flags, provenance, observed time and ingest time separately. Use event-version IDs for deduplication and out-of-order reconciliation. Cache keys must include provider, resource, sport and parameters. Expired data must be labeled stale, not silently promoted to live. Rate budgets belong to centralized ingestion, never one provider request per visitor.
+Feed provenance is mandatory. Football goals and race classifications are sport-specific detail fields. Future basketball periods, tennis sets and combat results need dedicated contracts. No generic football-detail placeholders should be presented as real coverage of other sports.
 
-Planned durable entities: User, Session, Role, Favorite (typed target), Sport, Competition, Participant (team/individual), Event, EventParticipant, EventRevision, SportDetail, NewsItem, StreamSource, StreamEntitlement and AuditEntry. Unique provider IDs and transaction boundaries precede ingestion rollout. Redis is optional for a single-node local installation; cross-instance SSE and limiter storage require a shared transport.
+## Persistence and security
 
-## Playback architecture
+SQLite WAL provides real single-installation durability with no paid service. Users, hashed opaque sessions, typed favorites, source records and audit entries are stored server-side. Passwords use salted asynchronous scrypt; session tokens use cryptographic randomness and only SHA-256 token digests are stored. Account roles are server-owned; an explicit local operator script grants/revokes access, revokes sessions and audits changes.
 
-HLS.js handles authorized HLS in Media Source browsers; Safari uses native HLS. Source URLs are fixed in code in this slice; there is no user-controlled fetch proxy. Quality selection is exposed only when levels exist. Browser-native video supplies fullscreen and PiP where supported. Fatal network/media errors surface a retry state, with cleanup on unmount/retry.
+Next BFF mutation routes enforce Origin and fixed upstream destinations. Cookies are HttpOnly, SameSite=Lax, Secure over HTTPS. Source writes require server-side admin authorization and optimistic versions in transactions. Audit is append-only through application endpoints, not tamper-proof against database operators. Production still needs recovery/verification, stronger abuse controls, retention/deletion policy, monitored backups and reviewed password-hash resource parameters.
 
-Next: typed registry discriminating HLS, DASH and permitted embed. Each entry includes rights owner, territory, valid time window, host allowlist, entitlement policy and revocation state. HLS/DASH are first-party _player UI_, not ownership of content. Licensed DRM requires provider-supported EME/license delivery; no circumvention. Provider iframes keep control, UI and telemetry with that provider and may prohibit embedding. Embeds cannot guarantee first-party quality controls or PiP. Do not proxy arbitrary URLs, extract protected streams, or rebroadcast media.
+SQLite, cache and limiter are single-instance choices. Moving to multiple API replicas requires shared durable storage, centralized provider budgets and distributed limiting. PostgreSQL/Prisma and optional Redis remain migration options, not pretend infrastructure.
 
-## Design system
+## Playback
 
-Forest green is the action/live accent; slate and paper surfaces support dense content. Dark mode uses semantic equivalents rather than inversion. Manrope headings and DM Sans body provide editorial hierarchy, with system fallbacks. Source monogram shields avoid unlicensed assets. Desktop uses a restrained navigation rail; mobile has independent bottom navigation and touch-sized actions. Sports and match tabs deliberately scroll within their own containers, without page overflow. Motion respects reduced-motion preference.
+The typed registry distinguishes HLS, DASH and permitted embeds. Records include rights owner/evidence, event mapping, WORLD territory, validity, version and revocation. Only reviewed HTTPS hosts are accepted; no arbitrary fetch proxy or redirect-following health check exists. Sports entries require an event ID. WORLD is the only supported territory: regional entitlement/geolocation is not implemented, so region-restricted sources must not be admitted.
 
-## Security and production gate
+HLS uses native Safari support or HLS.js; DASH.js loads on demand. Engines clean up on source changes, retries and unmount. Health checks recur each minute; revoked sources stop and validity is checked during viewing. Embeds require explicit consent and retain provider controls. Fullscreen/PiP use browser-native controls where supported. Test films are separate from sports sources. No DRM extraction, protected-feed discovery or rebroadcasting is implemented.
 
-No credentials committed. API validates input and provider responses; public routes are read-only. Header controls include nosniff, referrer policy, frame restrictions and permissions policy. A strict nonce-based CSP, production TLS, authenticated write endpoints, distributed rate limiting, audit retention, backup/restore, privacy policy, error reporting, source license review and operational alerts are still required. Public SEO is intentionally disabled for the demo. Hosting or merging requires founder approval.
+## Design and launch
+
+The approved layout, rail, bottom navigation, editorial typography and light palette are preserved. DM Sans and Manrope are bundled locally through Fontsource, so rendering does not depend on Google Fonts requests at runtime. Dark surfaces are navy/charcoal with restrained steel accents. Light/Dark/System lives only in the footer and follows system changes when selected. Layout tests cover seven widths and both themes; motion respects reduced-motion preferences.
+
+Metadata and semantic rendering remain, but public indexing is intentionally disabled until approved launch. TLS, strict CSP, operational monitoring, licensing and production security review are outstanding. No merge or public deployment without founder approval.
