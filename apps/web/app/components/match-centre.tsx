@@ -32,6 +32,11 @@ export function MatchCentre({
         <ArrowLeft size={16} />
         All scores
       </Link>
+      {e.provenance === "provider" && (
+        <Link className="primary event-watch-link" href={`/watch/${e.id}`}>
+          Open event player & viewing options →
+        </Link>
+      )}
       <div className="match-header">
         <div className="match-meta">
           {e.competition}
@@ -121,7 +126,9 @@ export function MatchCentre({
         <section className="panel">
           <h2>The match card</h2>
           <p className="muted">
-            Fictional performers and bookings for interface demonstration.
+            {e.provenance === "demo"
+              ? "Fictional performers and bookings for interface demonstration."
+              : "Official schedule. Detailed card and live results are not connected."}
           </p>
           {e.bouts.map((b) => (
             <div className="bout" key={b.stipulation}>

@@ -68,6 +68,16 @@ export const sports = [
 ] as const;
 export const sportSchema = z.enum(sports);
 export type Sport = z.infer<typeof sportSchema>;
+export const viewingLinkSchema = z.object({
+  label: z.string().max(100),
+  url: z.string().url(),
+  evidenceUrl: z.string().url(),
+  countries: z.array(z.string().regex(/^[A-Z]{2}$/)),
+  access: z.enum(["free-account", "subscription", "information", "audio"]),
+  confirmation: z.enum(["confirmed", "check-schedule"]),
+  note: z.string().max(500),
+  checkedAt: z.string().datetime(),
+});
 export const baseSchema = z.object({
   id: z.string(),
   sport: sportSchema,
@@ -77,6 +87,11 @@ export const baseSchema = z.object({
   provenance: z.enum(["demo", "provider"]),
   source: sourceSchema.optional(),
   detail: liveDetailSchema.optional(),
+  externalId: z.string().optional(),
+  scheduleOnly: z.boolean().optional(),
+  timeConfirmed: z.boolean().optional(),
+  end: z.string().datetime().optional(),
+  viewingLinks: z.array(viewingLinkSchema).optional(),
 });
 export const eventSchema = z.discriminatedUnion("kind", [
   baseSchema.extend({
@@ -301,6 +316,13 @@ export const streamSourceSchema = z
     url: z.string().url().max(2048),
     content: z.enum(["test", "sports", "official"]),
     eventId: z.string().max(80).nullable(),
+    presentation: z.enum(["live", "replay", "highlights"]).optional(),
+    fixtureRef: z
+      .object({
+        provider: z.string().min(1).max(100),
+        externalId: z.string().min(1).max(100),
+      })
+      .optional(),
     rightsOwner: z.string().min(1).max(150),
     rightsEvidence: z.string().url().max(2048),
     validFrom: z.string().datetime(),
@@ -361,6 +383,22 @@ export const testSources: StreamSource[] = [
     version: 1,
   },
 ];
+testSources.push({
+  id: "dash-live-simulator",
+  name: "DASH-IF live simulator · test pattern",
+  type: "dash",
+  url: "https://livesim2.dashif.org/livesim2/testpic_2s/Manifest.mpd",
+  content: "test",
+  eventId: null,
+  presentation: "live",
+  rightsOwner: "DASH-IF",
+  rightsEvidence: "https://github.com/Dash-Industry-Forum/livesim2",
+  validFrom: "2026-01-01T00:00:00Z",
+  validUntil: "2027-01-01T00:00:00Z",
+  territory: "WORLD",
+  revoked: false,
+  version: 1,
+});
 export function sourceIsActive(source: StreamSource, now = Date.now()) {
   return (
     !source.revoked &&
@@ -382,3 +420,42 @@ export const newsFeedSchema = z.object({
   fetchedAt: z.string().datetime().nullable(),
 });
 export type NewsFeed = z.infer<typeof newsFeedSchema>;
+
+export function sourceMatchesEvent(source: StreamSource, event: SportEvent) {
+  if (source.content !== "sports" || event.provenance !== "provider")
+    return false;
+  if (source.eventId) return source.eventId === event.id;
+  return Boolean(
+    source.fixtureRef &&
+    source.fixtureRef.provider === event.source?.provider &&
+    source.fixtureRef.externalId === event.externalId,
+  );
+}
+export const sourceCheckSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9-]{1,80}$/),
+    version: z.number().int().positive(),
+    result: z.enum(["passed", "failed"]),
+    method: z.enum(["native-decoded", "provider-player", "operator-observed"]),
+    currentTime: z.number().nonnegative().max(1e10),
+    width: z.number().int().nonnegative().max(20000),
+    height: z.number().int().nonnegative().max(20000),
+    browser: z.string().min(1).max(300),
+    live: z.boolean().optional(),
+  })
+  .strict();
+export type PlaybackReport = Omit<
+  z.infer<typeof sourceCheckSchema>,
+  "id" | "version" | "browser"
+>;
+export const watchEntrySchema = z.object({
+  event: eventSchema,
+  sources: z.array(streamSourceSchema),
+  availability: z.enum(["in-page", "external-only", "unavailable"]),
+});
+export const watchFeedSchema = z.object({
+  data: z.array(watchEntrySchema),
+  coverage: z.array(coverageSchema),
+  generatedAt: z.string().datetime(),
+});
+export type WatchEntry = z.infer<typeof watchEntrySchema>;

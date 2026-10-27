@@ -4,12 +4,15 @@ import {
   type SportEvent,
   type Coverage,
 } from "../../../../packages/domain/src/index.js";
+import { EflProvider, verifiedCupFixtures } from "./efl.js";
+import { verifiedSportFixtures } from "./verified-sport.js";
 import { ProviderCache } from "./cache.js";
 import { OpenLigaProvider } from "./openliga.js";
 import { JolpicaProvider } from "./jolpica.js";
 export class SportsService {
   private cache = new ProviderCache();
   private football = new OpenLigaProvider(this.cache);
+  private cup = new EflProvider(this.cache);
   private racing = new JolpicaProvider(this.cache);
   async feed(edition: "real" | "demo" = "real"): Promise<EventFeed> {
     if (edition === "demo")
@@ -21,9 +24,10 @@ export class SportsService {
       };
     if (process.env.SPORTS_PROVIDERS_DISABLED === "true")
       return {
-        data: [],
+        data: [...verifiedCupFixtures, ...verifiedSportFixtures],
         edition: "real",
-        source: "Provider ingestion paused",
+        source:
+          "Automatic ingestion paused · verified official fixture snapshots",
         coverage: [
           {
             provider: "Sports providers",
@@ -40,10 +44,16 @@ export class SportsService {
     const results = await Promise.allSettled([
       this.football.events(season),
       this.racing.events(year),
+      this.cup.events(),
     ]);
     const coverage: Coverage[] = results.map((r, index) => ({
-      provider: index === 0 ? "OpenLigaDB" : "Jolpica F1",
-      sport: index === 0 ? "Football" : "Formula 1",
+      provider:
+        index === 0
+          ? "OpenLigaDB"
+          : index === 1
+            ? "Jolpica F1"
+            : "EFL official schedule",
+      sport: index === 1 ? "Formula 1" : "Football",
       status:
         r.status === "fulfilled"
           ? r.value.stale
@@ -53,22 +63,26 @@ export class SportsService {
       message:
         index === 0
           ? "Bundesliga · community fixtures, results and goals. No live clock, lineups or positions."
-          : "Season schedule and latest race classification. No live timing.",
+          : index === 1
+            ? "Season schedule and latest race classification. No live timing."
+            : "Official cup fixtures. Schedule only: live scores, lineups and match events are not connected.",
       fetchedAt: r.status === "fulfilled" ? r.value.fetchedAt : null,
     }));
     coverage.push({
-      provider: "No provider configured",
-      sport: "NBA · WWE · UFC · Tennis · Cricket · Other sports",
-      status: "not-configured",
+      provider: "Verified official fixtures",
+      sport: "Basketball · WWE · MMA · Tennis · Cricket · Baseball",
+      status: "available",
       message:
-        "Real coverage unavailable. These sports are available as clearly labeled UI demos only where supplied.",
-      fetchedAt: null,
+        "Limited official schedule facts, checked 28 October 2026. Not comprehensive coverage or a live score feed.",
+      fetchedAt: verifiedSportFixtures[0]!.source!.fetchedAt,
     });
     return {
       data: results
         .flatMap((r) => (r.status === "fulfilled" ? r.value.value : []))
+        .concat(verifiedSportFixtures)
         .sort((a, b) => a.start.localeCompare(b.start)),
-      source: "OpenLigaDB (ODbL) · Jolpica F1 · Limited real coverage",
+      source:
+        "OpenLigaDB (ODbL) · Jolpica F1 · EFL official schedule · Verified official fixtures",
       edition,
       coverage,
     };
@@ -94,3 +108,5 @@ export class SportsService {
     );
   }
 }
+
+export const service = new SportsService();

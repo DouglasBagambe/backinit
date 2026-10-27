@@ -18,7 +18,7 @@ it("enforces HTTPS, reviewed hosts, embed routes, rights and validity windows", 
   expect(() => validateStream({ ...source, type: "embed" })).toThrow();
   expect(() => validateStream({ ...source, rightsEvidence: "" })).toThrow();
   expect(() => validateStream({ ...source, content: "sports" })).toThrow(
-    "event ID",
+    "testing hosts",
   );
   expect(sourceIsActive({ ...source, revoked: true })).toBe(false);
   expect(

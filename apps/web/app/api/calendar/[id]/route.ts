@@ -34,7 +34,14 @@ export async function GET(
     "BEGIN:VEVENT",
     `UID:${escape(id)}@backinit`,
     `DTSTAMP:${stamp(new Date().toISOString())}`,
-    `DTSTART:${stamp(event.start)}`,
+    event.timeConfirmed === false
+      ? `DTSTART;VALUE=DATE:${event.start.slice(0, 10).replaceAll("-", "")}`
+      : `DTSTART:${stamp(event.start)}`,
+    ...(event.timeConfirmed === false && event.end
+      ? [
+          `DTEND;VALUE=DATE:${new Date(Date.parse(event.end) + 86400000).toISOString().slice(0, 10).replaceAll("-", "")}`,
+        ]
+      : []),
     `SUMMARY:${escape((edition === "demo" ? "DEMO: " : "") + eventTitle(event))}`,
     `DESCRIPTION:${escape(`${event.competition}. Schedule may change. ${event.source?.provider || "Illustrative event"}.`)}`,
     "END:VEVENT",

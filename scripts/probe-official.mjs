@@ -8,7 +8,7 @@ try {
     viewport: { width: 1440, height: 1000 },
   });
   const page = await context.newPage();
-  await page.goto(base + "/watch");
+  await page.goto(base + "/videos");
   await page
     .getByRole("button", { name: "Load official player", exact: true })
     .waitFor({ timeout: 45000 });

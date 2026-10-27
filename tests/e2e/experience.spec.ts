@@ -142,7 +142,7 @@ test("API validates inputs and web uses backend", async ({ request }) => {
 });
 test("unavailable video reports failure and can retry", async ({ page }) => {
   await page.route("https://test-streams.mux.dev/**", (r) => r.abort());
-  await page.goto("/watch");
+  await page.goto("/playback");
   await page.getByRole("button", { name: "Load test player" }).click();
   await expect(page.getByRole("status")).toContainText("Playback unavailable", {
     timeout: 30000,

@@ -35,6 +35,8 @@ import { MatchCentre } from "./match-centre";
 import { News } from "./news";
 import { Utility } from "./utility";
 import { SportMark } from "./marks";
+import { LiveWatch } from "./live-watch";
+import { EventViewing } from "./event-viewing";
 import { WatchHub } from "./watch-hub";
 import { Privacy } from "./privacy";
 import { Account, accountRequest, type AccountUser } from "./account";
@@ -343,9 +345,10 @@ export function Experience({
     ? sports.find((s) => sportUrl(s) === "/" + route)
     : undefined;
   const isHome = route === "";
-  const match = route.startsWith("match/")
-    ? events.find((e) => e.id === route.split("/")[1])
-    : undefined;
+  const match =
+    route.startsWith("match/") || route.startsWith("watch/")
+      ? events.find((e) => e.id === route.split("/")[1])
+      : undefined;
   const filtered = filterEvents(events, {
     sport: activeSport,
     query: route === "search" ? query : undefined,
@@ -379,7 +382,9 @@ export function Experience({
         fixtures: "Make time for the game.",
         favorites: "Your side of sport.",
         search: "Find your next obsession.",
-        watch: "Watch",
+        watch: "Watch live sport",
+        videos: "Replays & highlights",
+        playback: "Playback verification",
         news: "News",
       } as Record<string, string>
     )[route] ||
@@ -407,7 +412,12 @@ export function Experience({
             <Link
               key={path}
               href={"/" + path}
-              className={route === path ? "active" : ""}
+              className={
+                route === path ||
+                (path === "watch" && route.startsWith("watch/"))
+                  ? "active"
+                  : ""
+              }
             >
               {label === "Live" && <i className="live-dot" />}
               {label}
@@ -459,7 +469,9 @@ export function Experience({
       )}
       <nav className="sports-nav" aria-label="Sports">
         <Link
-          href={real && (isHome || route === "watch") ? "/watch" : "/scores"}
+          href={
+            real && (isHome || route.startsWith("watch")) ? "/watch" : "/scores"
+          }
           className={!activeSport ? "chosen" : ""}
         >
           <Globe2 size={16} />
@@ -469,7 +481,7 @@ export function Experience({
           <Link
             className={activeSport === s ? "chosen" : ""}
             href={
-              real && (isHome || route === "watch")
+              real && (isHome || route.startsWith("watch"))
                 ? `/watch?sport=${encodeURIComponent(s)}`
                 : sportUrl(s)
             }
@@ -515,7 +527,7 @@ export function Experience({
               Overview
             </Link>
             <Link
-              className={route === "watch" ? "side-active" : ""}
+              className={route.startsWith("watch") ? "side-active" : ""}
               href="/watch"
             >
               <Play size={18} />
@@ -568,7 +580,13 @@ export function Experience({
         </aside>
         <main id="main" className="main">
           {syncError && <p role="alert">{syncError}</p>}
-          {match ? (
+          {match && route.startsWith("watch/") ? (
+            <EventViewing
+              event={match}
+              events={events}
+              favorite={favorite(match)}
+            />
+          ) : match ? (
             <MatchCentre event={match} favorite={favorite(match)} />
           ) : route === "privacy" ? (
             <Privacy />
@@ -624,11 +642,11 @@ export function Experience({
                         ? "Your saved events, synced to your account."
                         : "Keep the events you care about close. Saved on this device."
                       : route === "watch"
-                        ? "Full matches, replays and highlights from official channels."
+                        ? "Today’s events, upcoming fixtures and verified viewing options."
                         : activeSport
                           ? `Follow the moments that matter in ${activeSport.toLowerCase()}.`
                           : real && isHome
-                            ? "Full matches, free fights and the latest highlights."
+                            ? "Live events first. Your sport, schedule and viewing options in one place."
                             : "From the first whistle to the final moment. Stay in it."}
                   </p>
                 </div>
@@ -638,31 +656,33 @@ export function Experience({
                     {real ? "Your matchday" : "Demo matchday"}
                     <small>
                       {real
-                        ? "Schedules & results · UTC"
+                        ? "Schedules & local viewing times"
                         : "26 October 2026 · UTC"}
                     </small>
                   </span>
                 </Link>
               </div>
-              {route === "watch" && real ? (
+              {route === "watch" ? (
+                <LiveWatch />
+              ) : route === "videos" ? (
                 <WatchHub />
-              ) : route === "watch" ? (
+              ) : route === "playback" ? (
                 <>
+                  <section className="panel">
+                    <h2>Test feeds only</h2>
+                    <p>
+                      This page verifies the player with public testing content,
+                      including a live DASH simulator. None of these feeds is a
+                      sporting broadcast.
+                    </p>
+                  </section>
                   <Player />
-                  <div className="section-heading">
-                    <h2>Sports broadcasts</h2>
-                    <span className="muted">Source availability</span>
-                  </div>
-                  <Empty
-                    title="The stage is set. Rights come first."
-                    text="No authorized sports streams are configured yet. Match scores and event details are still available."
-                  />
                 </>
               ) : route === "news" ? (
                 <News feed={news} real={real} />
               ) : (
                 <>
-                  {isHome && real && <WatchHub preview />}
+                  {isHome && real && <LiveWatch preview />}
                   {(isHome || route === "live") &&
                     (!real || (isHome && featuredEvents.length > 0)) && (
                       <>
@@ -1017,7 +1037,7 @@ export function Experience({
                 Demo edition
               </button>
             )}
-            <small>{feedSource} · No direct live sports streams</small>
+            <small>{feedSource} · Viewing sources vary by event</small>
           </footer>
         </main>
       </div>
@@ -1034,7 +1054,11 @@ export function Experience({
             <Link
               key={p as string}
               href={"/" + p}
-              className={route === p ? "active" : ""}
+              className={
+                route === p || (p === "watch" && route.startsWith("watch/"))
+                  ? "active"
+                  : ""
+              }
             >
               <I size={20} />
               <span>{label as string}</span>

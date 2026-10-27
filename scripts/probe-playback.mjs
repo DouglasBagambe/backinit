@@ -6,7 +6,7 @@ try {
     viewport: { width: 1440, height: 1000 },
   });
   for (const source of ["bbb-hls", "bbb-dash"]) {
-    await page.goto("http://127.0.0.1:3000/watch");
+    await page.goto("http://127.0.0.1:3000/playback");
     await page
       .getByLabel("Stream source", { exact: true })
       .selectOption(source);

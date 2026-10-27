@@ -58,7 +58,7 @@ async function catalog(page: import("@playwright/test").Page, baseURL: string) {
   await page
     .context()
     .addCookies([{ name: "backinit-edition", value: "real", url: baseURL }]);
-  await page.route("**/api/watch", (route) =>
+  await page.route("**/api/videos", (route) =>
     route.fulfill({ json: { data: examples, coverage: [] } }),
   );
   await page.route("**/api/streams?library=1", (route) =>
@@ -83,9 +83,9 @@ test("Watch leads with official sport, filters videos and handles player failure
     requests++;
     return route.abort();
   });
-  await page.goto("/watch");
+  await page.goto("/videos");
   await expect(
-    page.getByRole("heading", { name: "Watch", exact: true }),
+    page.getByRole("heading", { name: "Replays & highlights", exact: true }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Load official player", exact: true }),
@@ -121,7 +121,7 @@ for (const theme of ["light", "dark"]) {
     baseURL,
   }) => {
     await catalog(page, baseURL!);
-    await page.goto("/watch");
+    await page.goto("/videos");
     await page
       .locator("footer")
       .getByRole("button", { name: theme, exact: true })

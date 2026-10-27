@@ -160,6 +160,54 @@
       "source": "https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg",
       "file": "barcelona.svg",
       "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "Chelsea",
+      "source": "https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg",
+      "file": "chelsea.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "Manchester City",
+      "source": "https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg",
+      "file": "manchester-city.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "AFC Bournemouth",
+      "source": "https://upload.wikimedia.org/wikipedia/en/e/e5/AFC_Bournemouth_%282013%29.svg",
+      "file": "afc-bournemouth.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "Fulham",
+      "source": "https://upload.wikimedia.org/wikipedia/en/e/eb/Fulham_FC_%28shield%29.svg",
+      "file": "fulham.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "Sunderland",
+      "source": "https://upload.wikimedia.org/wikipedia/en/7/77/Logo_Sunderland.svg",
+      "file": "sunderland.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "Brentford",
+      "source": "https://upload.wikimedia.org/wikipedia/en/2/2a/Brentford_FC_crest.svg",
+      "file": "brentford.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "LA Clippers",
+      "source": "https://cdn.nba.com/logos/nba/1610612746/global/L/logo.svg",
+      "file": "la-clippers.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "Crystal Palace",
+      "source": "https://upload.wikimedia.org/wikipedia/en/a/a2/Crystal_Palace_FC_logo_%282022%29.svg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=original",
+      "file": "crystal-palace.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
     }
   ]
 }

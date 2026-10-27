@@ -6,9 +6,11 @@ import { Empty } from "./primitives";
 export function RealDetail({
   event,
   tab = "Overview",
+  hidePlayer = false,
 }: {
   event: SportEvent;
   tab?: string;
+  hidePlayer?: boolean;
 }) {
   const goals = event.detail?.goals || [];
   const [index, setIndex] = useState(0);
@@ -18,6 +20,52 @@ export function RealDetail({
       <Empty
         title={`${tab} unavailable for this feed.`}
         text="The provider does not supply these details. No illustrative values are substituted."
+      />
+    );
+  if (event.kind === "card")
+    return (
+      <section className="panel">
+        <h2>
+          {["WWE", "MMA"].includes(event.sport)
+            ? "Event card"
+            : "Event schedule"}
+        </h2>
+        <p>{event.detail?.round || "Detailed event data is not connected."}</p>
+        {event.bouts.length ? (
+          event.bouts.map((b) => (
+            <div className="bout" key={b.stipulation}>
+              <strong>{b.performers.join(" vs ")}</strong>
+              <p>{b.stipulation}</p>
+            </div>
+          ))
+        ) : (
+          <p>
+            {["WWE", "MMA"].includes(event.sport)
+              ? "No verified bout card or live results are connected. Published featured performers are not treated as confirmed match bookings."
+              : "Individual fixtures, live scoring and order of play are not supplied by this schedule snapshot."}
+          </p>
+        )}
+      </section>
+    );
+  if (event.kind === "score" && event.sport !== "Football")
+    return (
+      <section className="panel">
+        <h2>{event.sport} event information</h2>
+        <p>
+          {event.detail?.round} · {event.detail?.venue}
+        </p>
+        <p>
+          Period-by-period scoring, event tracking and detailed statistics are
+          not connected for this fixture. No football timeline or invented
+          values are substituted.
+        </p>
+      </section>
+    );
+  if (event.scheduleOnly && tab !== "Overview")
+    return (
+      <Empty
+        title={`${tab} not connected for this fixture.`}
+        text="This source confirms the schedule only. Live data requires a separate event-data integration."
       />
     );
   if (event.kind === "race")
@@ -80,7 +128,7 @@ export function RealDetail({
   return (
     <>
       <div className={tab === "Overview" ? "real-viewing-grid" : undefined}>
-        {tab === "Overview" && <Player eventId={event.id} />}
+        {tab === "Overview" && !hidePlayer && <Player eventId={event.id} />}
         {(tab === "Overview" || tab === "Tracker") && (
           <section className="panel real-tracker">
             <div className="section-heading">

@@ -27,6 +27,7 @@ export default defineConfig({
       env: {
         SPORTS_DATA_MODE: "demo",
         SPORTS_PROVIDERS_DISABLED: "true",
+        STREAM_ALLOWED_HOSTS: "media.backinit.test",
         PORT: String(apiPort),
         WEB_ORIGIN: webOrigin,
         NODE_ENV: "test",

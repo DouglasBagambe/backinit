@@ -6,7 +6,7 @@ async function handle(
   { params }: { params: Promise<{ action: string }> },
 ) {
   const { action } = await params;
-  if (!["sources", "audit"].includes(action))
+  if (!["sources", "audit", "source-check", "fixtures"].includes(action))
     return new Response("Not found", { status: 404 });
   if (request.method !== "GET" && !validOrigin(request))
     return Response.json(
@@ -24,7 +24,7 @@ async function handle(
     return new Response("Request too large", { status: 413 });
   try {
     const response = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:4000"}/admin/${action}`,
+      `${process.env.API_URL || "http://127.0.0.1:4000"}/admin/${action}${action === "source-check" && request.method === "GET" ? `?id=${encodeURIComponent(request.nextUrl.searchParams.get("id") || "")}` : ""}`,
       {
         method: request.method,
         headers: {
@@ -33,7 +33,7 @@ async function handle(
         },
         body,
         cache: "no-store",
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(15000),
       },
     );
     return Response.json(await response.json(), {

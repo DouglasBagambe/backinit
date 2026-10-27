@@ -79,7 +79,7 @@ test("DASH source selection initializes an in-page video and source failures are
   page,
 }) => {
   await page.route("https://dash.akamaized.net/**", (r) => r.abort());
-  await page.goto("/watch");
+  await page.goto("/playback");
   await page
     .getByLabel("Stream source", { exact: true })
     .selectOption("bbb-dash");
@@ -98,6 +98,8 @@ const pages = [
   "/fixtures",
   "/news",
   "/watch",
+  "/videos",
+  "/playback",
   "/favorites",
   "/search",
   "/settings",
@@ -234,7 +236,13 @@ test("administrator edits, audits and revokes a source through the protected UI"
     ),
   ).toBe(false);
   await expect(
-    page.getByRole("cell", { name: "source.revoke", exact: true }),
+    page
+      .getByRole("row")
+      .filter({ hasText: "browser-test-source" })
+      .filter({
+        has: page.getByRole("cell", { name: "source.revoke", exact: true }),
+      })
+      .first(),
   ).toBeVisible();
 });
 

@@ -10,7 +10,7 @@ try {
     const page = await context.newPage();
     const evidence = { sport };
     try {
-      await page.goto(`${base}/watch?sport=${encodeURIComponent(sport)}`);
+      await page.goto(`${base}/videos?sport=${encodeURIComponent(sport)}`);
       const consent = page.getByRole("button", {
         name: "Load official player",
         exact: true,

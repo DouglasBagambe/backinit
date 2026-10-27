@@ -23,13 +23,12 @@ import {
   filterEvents,
   sportSchema,
 } from "../../../packages/domain/src/index.js";
-import { SportsService } from "./providers/service.js";
+import { service } from "./providers/service.js";
 import { StreamController } from "./stream-controller.js";
 import { AccountController, notifications } from "./account-controller.js";
 import { WatchController } from "./watch-controller.js";
 import { NewsService } from "./providers/news.js";
 const news = new NewsService();
-const service = new SportsService();
 const editionSchema = z
   .enum(["real", "demo"])
   .default(process.env.SPORTS_DATA_MODE === "demo" ? "demo" : "real");

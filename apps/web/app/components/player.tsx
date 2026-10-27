@@ -1,36 +1,61 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-import Hls from "hls.js";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { OfficialEmbed } from "./official-embed";
-import type { MediaPlayerClass } from "dashjs";
 import {
   streamSourceSchema,
   sourceIsActive,
   type StreamSource,
+  type PlaybackReport,
 } from "@backinit/domain";
+import { attachPlayback, type Transport } from "../lib/playback-engine";
 import { z } from "zod";
 export function Player({
   eventId,
   sourceId,
+  previewSource,
+  onPlaybackReport,
 }: {
   eventId?: string;
   sourceId?: string;
+  previewSource?: StreamSource;
+  onPlaybackReport?: (report: PlaybackReport) => void;
 }) {
   const video = useRef<HTMLVideoElement>(null);
-  const engine = useRef<Hls | null>(null);
-  const dash = useRef<MediaPlayerClass | null>(null);
+  const screen = useRef<HTMLDivElement>(null);
+  const engine = useRef<Transport | undefined>(undefined);
   const [sources, setSources] = useState<StreamSource[]>([]);
   const [selected, select] = useState("");
   const [started, start] = useState(false);
   const [attempt, retry] = useState(0);
+  const [registryAttempt, reload] = useState(0);
   const [state, setState] = useState("Loading source registry…");
   const [health, setHealth] = useState("");
   const [levels, setLevels] = useState<{ label: string; index: number }[]>([]);
   const [quality, setQuality] = useState(-1);
-  const [embedConsent, setEmbedConsent] = useState(false);
+  const [consent, setConsent] = useState(false);
+  const [isLive, setLive] = useState(false);
+  const [controls, setControls] = useState({ fullscreen: false, pip: false });
+  const reported = useRef(false);
+  const liveRef = useRef(false);
+  const reportRef = useRef(onPlaybackReport);
+  reportRef.current = onPlaybackReport;
   const source = sources.find((s) => s.id === selected);
   useEffect(() => {
+    setControls({
+      fullscreen: !!document.fullscreenEnabled,
+      pip: !!document.pictureInPictureEnabled,
+    });
+  }, []);
+  useEffect(() => {
+    if (previewSource) {
+      setSources([previewSource]);
+      select(previewSource.id);
+      start(true);
+      setState("Administrator preview · source is not published by this check");
+      return;
+    }
     const controller = new AbortController();
+    let first = true;
     async function load() {
       try {
         const response = await fetch(
@@ -44,144 +69,191 @@ export function Player({
         const active = result.data.filter(
           (s) => sourceIsActive(s) && (!sourceId || s.id === sourceId),
         );
-        setSources(active);
-        select(
-          sourceId && active.some((s) => s.id === sourceId)
-            ? sourceId
-            : active[0]?.id || "",
+        // Preserve object identity across polling so a healthy playing engine is not restarted.
+        setSources((old) =>
+          JSON.stringify(old) === JSON.stringify(active) ? old : active,
         );
-        if (sourceId) start(true);
-        setState(
-          active.length
-            ? "Ready to play"
-            : "No authorized sources are configured.",
+        select((old) =>
+          active.some((s) => s.id === old)
+            ? old
+            : sourceId && active.some((s) => s.id === sourceId)
+              ? sourceId
+              : active[0]?.id || "",
         );
+        if (first) {
+          if (sourceId || eventId) start(true);
+          setState(
+            active.length
+              ? "Ready · press play"
+              : "No in-page broadcast is configured for this event.",
+          );
+          first = false;
+        }
       } catch {
         if (!controller.signal.aborted)
-          setState("Source registry unavailable. Reload to retry.");
+          setState("Source registry unavailable. Retry source discovery.");
       }
     }
     void load();
-    return () => controller.abort();
-  }, [eventId, sourceId]);
+    const timer = setInterval(() => {
+      if (!document.hidden) void load();
+    }, 60000);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [eventId, sourceId, previewSource, registryAttempt]);
   useEffect(() => {
     if (!source || !started) return;
     let disposed = false;
-    const el = video.current;
-    const failure = () => {
+    let transport: Transport | undefined;
+    const element = video.current;
+    const fail = () => {
       if (!disposed)
-        setState("Playback unavailable. Check your connection and retry.");
+        setState("Playback unavailable. Retry or choose another source.");
     };
-    setState(
-      source.content === "test" ? "Loading test stream…" : "Loading stream…",
-    );
-    setHealth("Checking source availability…");
+    reported.current = false;
+    liveRef.current = false;
+    setLive(false);
     setLevels([]);
     setQuality(-1);
+    setState(
+      source.type === "embed"
+        ? "Publisher player requires consent"
+        : "Loading stream…",
+    );
     const check = new AbortController();
-    const checkAvailability = () => {
+    const availability = () => {
+      if (previewSource) {
+        setHealth(
+          "Administrator preview. Playback is checked in this browser; technical playback does not establish distribution rights.",
+        );
+        return;
+      }
       void fetch(`/api/streams/${source.id}/health`, { signal: check.signal })
         .then(async (r) => {
           if (r.status === 404) throw new Error("revoked");
+          if (!r.ok) throw new Error();
           return r.json();
         })
         .then((r) => {
           if (!disposed) setHealth(r.message);
         })
-        .catch((e) => {
+        .catch((error) => {
           if (disposed) return;
-          if (e.message === "revoked") {
-            setState("Source is no longer available.");
+          if (error.message === "revoked") {
             start(false);
             setSources((list) => list.filter((s) => s.id !== source.id));
-            engine.current?.destroy();
-            dash.current?.reset();
-            if (el) {
-              el.pause();
-              el.removeAttribute("src");
-              el.load();
-            }
+            setState("Source withdrawn or its playback verification expired.");
           } else
             setHealth("Availability check failed. Playback may still work.");
         });
     };
-    checkAvailability();
-    const healthTimer = setInterval(checkAvailability, 60000);
+    availability();
+    const healthTimer = setInterval(availability, 60000);
     const expiry = setInterval(() => {
-      if (Date.now() < Date.parse(source.validUntil)) return;
-      failure();
+      if (previewSource || sourceIsActive(source)) return;
       start(false);
       setSources((list) => list.filter((s) => s.id !== source.id));
-      engine.current?.destroy();
-      dash.current?.reset();
-      if (el) {
-        el.pause();
-        el.removeAttribute("src");
-        el.load();
-      }
+      setState("Source availability window has ended.");
     }, 1000);
-    async function attach() {
-      if (source!.type === "embed") {
-        setState(
-          "Provider embed ready · player controls belong to the provider",
-        );
-        return;
-      }
-      if (!el) return;
-      if (source!.type === "dash") {
-        const { MediaPlayer } = await import("dashjs");
-        if (disposed) return;
-        const player = MediaPlayer().create();
-        dash.current = player;
-        player.on(MediaPlayer.events.ERROR, failure);
-        player.initialize(el, source!.url, false);
-      } else if (el.canPlayType("application/vnd.apple.mpegurl"))
-        el.src = source!.url;
-      else if (Hls.isSupported()) {
-        const h = new Hls({ maxBufferLength: 30 });
-        engine.current = h;
-        h.loadSource(source!.url);
-        h.attachMedia(el);
-        h.on(Hls.Events.MANIFEST_PARSED, () => {
-          if (!disposed)
-            setLevels(
-              h.levels.map((l, index) => ({ label: `${l.height}p`, index })),
-            );
-        });
-        h.on(Hls.Events.ERROR, (_, data) => {
-          if (data.fatal) failure();
-        });
-      } else setState("This browser does not support this stream format.");
-    }
-    void attach().catch(failure);
+    if (source.type !== "embed" && element)
+      void attachPlayback(element, source, {
+        cancelled: () => disposed,
+        error: fail,
+        levels: setLevels,
+        live: (value) => {
+          if (!disposed) {
+            setLive(value);
+            liveRef.current = value;
+          }
+        },
+      })
+        .then((value) => {
+          if (disposed) value?.destroy();
+          else {
+            transport = value;
+            engine.current = value;
+          }
+        })
+        .catch(fail);
     return () => {
       disposed = true;
       check.abort();
-      clearInterval(expiry);
       clearInterval(healthTimer);
-      engine.current?.destroy();
-      engine.current = null;
-      dash.current?.reset();
-      dash.current = null;
-      if (el) {
-        el.pause();
-        el.removeAttribute("src");
-        el.load();
+      clearInterval(expiry);
+      transport?.destroy();
+      if (engine.current === transport) engine.current = undefined;
+      if (element) {
+        element.pause();
+        element.removeAttribute("src");
+        element.load();
       }
     };
-  }, [started, attempt, source]);
+  }, [source, started, attempt, previewSource]);
+  const embedState = useCallback((value: string) => {
+    setState(value);
+    if (value === "Playing official video" && !reported.current) {
+      reported.current = true;
+      reportRef.current?.({
+        result: "passed",
+        method: "provider-player",
+        currentTime: 0,
+        width: 0,
+        height: 0,
+      });
+    }
+  }, []);
+  const errorState = async (action: () => Promise<unknown>) => {
+    try {
+      await action();
+    } catch {
+      setState(
+        "This browser could not open that viewing mode. Use the player’s native controls where supported.",
+      );
+    }
+  };
+  const youtube =
+    source && new URL(source.url).hostname === "www.youtube-nocookie.com";
+  const failed =
+    /unavailable|could not|disabled|restrict|withdrawn|expired/i.test(state);
   return (
-    <section className="player">
-      <div className="player-screen">
+    <section
+      className="player"
+      aria-label={
+        previewSource
+          ? "Administrator playback preview"
+          : eventId
+            ? "Event player"
+            : "Video player"
+      }
+    >
+      <div className="player-screen" ref={screen}>
         {started && source ? (
           source.type === "embed" ? (
-            embedConsent ? (
-              <OfficialEmbed
-                key={`${source.id}-${attempt}`}
-                url={source.url}
-                title={source.name}
-                onState={setState}
-              />
+            consent ? (
+              youtube ? (
+                <OfficialEmbed
+                  key={`${source.id}-${attempt}`}
+                  url={source.url}
+                  title={source.name}
+                  onState={embedState}
+                />
+              ) : (
+                <iframe
+                  key={`${source.id}-${attempt}`}
+                  className="permitted-embed"
+                  src={source.url}
+                  title={source.name}
+                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+                  allowFullScreen
+                  sandbox="allow-scripts allow-same-origin allow-presentation"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  onLoad={() =>
+                    setState("Publisher frame loaded · playback unverified")
+                  }
+                />
+              )
             ) : (
               <div className="player-intro player-consent">
                 {source.catalog && (
@@ -194,13 +266,16 @@ export function Player({
                 )}
                 <div className="player-consent-copy">
                   <h2>
-                    Watch with {source.catalog?.publisher || source.rightsOwner}
+                    {source.catalog
+                      ? `Watch with ${source.catalog.publisher}`
+                      : "Publisher player"}
                   </h2>
                   <p>
-                    Loading this embed connects to YouTube. Its privacy policy
-                    and player controls apply.
+                    Loading this embed connects to{" "}
+                    {youtube ? "YouTube" : new URL(source.url).hostname}. The
+                    publisher’s privacy policy and playback restrictions apply.
                   </p>
-                  <button onClick={() => setEmbedConsent(true)}>
+                  <button onClick={() => setConsent(true)}>
                     Load official player
                   </button>
                 </div>
@@ -212,56 +287,97 @@ export function Player({
               controls
               playsInline
               preload="metadata"
+              aria-label={source.name}
               onPlaying={() =>
                 setState(
-                  source.content === "test" ? "Playing test film" : "Playing",
+                  source.content === "test" ? "Playing test signal" : "Playing",
                 )
               }
+              onPause={() => setState("Paused")}
               onWaiting={() => setState("Buffering…")}
               onCanPlay={() => setState("Ready · press play")}
+              onDurationChange={(e) => {
+                if (e.currentTarget.duration === Infinity) {
+                  setLive(true);
+                  liveRef.current = true;
+                }
+              }}
               onError={() =>
                 setState(
-                  "Playback unavailable. Check your connection and retry.",
+                  "Playback unavailable. Retry or choose another source.",
                 )
               }
-              aria-label={
-                source.content === "test"
-                  ? "Big Buck Bunny test film"
-                  : source.name
-              }
+              onTimeUpdate={(e) => {
+                const v = e.currentTarget;
+                if (
+                  !reported.current &&
+                  Array.from(
+                    { length: v.played.length },
+                    (_, i) => v.played.end(i) - v.played.start(i),
+                  ).reduce((total, n) => total + n, 0) > 1 &&
+                  v.currentTime > 1 &&
+                  v.readyState >= 2 &&
+                  v.videoWidth > 0 &&
+                  !v.paused
+                ) {
+                  reported.current = true;
+                  reportRef.current?.({
+                    result: "passed",
+                    method: "native-decoded",
+                    currentTime: v.currentTime,
+                    width: v.videoWidth,
+                    height: v.videoHeight,
+                    live: liveRef.current,
+                  });
+                }
+              }}
             />
           )
         ) : (
           <div className="player-intro">
             <span className="eyebrow">
-              {eventId ? "IN THE FRONT ROW" : "THE PLAYBACK LAB"}
+              {eventId
+                ? "EVENT VIEWING"
+                : sourceId
+                  ? "OFFICIAL VIDEO"
+                  : "PLAYBACK VERIFICATION"}
             </span>
             <h2>
               {eventId
-                ? "Watch this event"
+                ? "No in-page broadcast available"
                 : sourceId
                   ? "Video unavailable"
-                  : "Test playback"}
+                  : "Test the player"}
             </h2>
             <p>
-              {sourceId
-                ? "This video is no longer listed. Choose another video or open its official source."
-                : eventId
-                  ? "Watch here when an authorized source is available."
-                  : "Try integrated playback with Big Buck Bunny, an open movie. This is a test film, not a sports broadcast."}
+              {eventId
+                ? "No verified, authorized source is currently configured. Match information and any official viewing options are below."
+                : sourceId
+                  ? "This video is no longer listed. Choose another video or open its official source."
+                  : "Public test signals verify playback only. They are not sports broadcasts."}
             </p>
-            <button
-              disabled={!source}
-              className="primary"
-              onClick={() => start(true)}
-            >
-              ▶ {eventId ? "Load player" : "Load test player"}
-            </button>
+            {source && (
+              <button className="primary" onClick={() => start(true)}>
+                <span aria-hidden="true">▶</span>{" "}
+                {eventId ? "Load player" : "Load test player"}
+              </button>
+            )}
           </div>
         )}
       </div>
       <div className="player-bar">
         <span role="status">{state}</span>
+        {source && (
+          <span className="pill">
+            {source.content === "test"
+              ? isLive
+                ? "LIVE TEST SIGNAL"
+                : "TEST CONTENT"
+              : source.content === "official"
+                ? source.catalog?.category
+                : (source.presentation || "live").toUpperCase()}
+          </span>
+        )}
         {sources.length > 0 && (
           <label>
             Source{" "}
@@ -270,19 +386,80 @@ export function Player({
               value={selected}
               onChange={(e) => {
                 select(e.target.value);
-                setEmbedConsent(false);
+                setConsent(false);
                 setHealth("");
               }}
             >
               {sources.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
+                  {s.content === "sports"
+                    ? ` · ${s.presentation || "live"}`
+                    : ""}
                 </option>
               ))}
             </select>
           </label>
         )}
-        {started && <button onClick={() => retry((a) => a + 1)}>Retry</button>}
+        {started && source && (
+          <button onClick={() => retry((a) => a + 1)}>Retry</button>
+        )}
+        {failed && sources.length > 1 && (
+          <button
+            onClick={() => {
+              select(
+                sources[
+                  (sources.findIndex((s) => s.id === selected) + 1) %
+                    sources.length
+                ]!.id,
+              );
+              setConsent(false);
+            }}
+          >
+            Try next source
+          </button>
+        )}
+        {!source && (
+          <button onClick={() => reload((a) => a + 1)}>
+            Check sources again
+          </button>
+        )}
+        {started && source?.type !== "embed" && source && (
+          <>
+            {isLive && (
+              <button onClick={() => engine.current?.live()}>Go live</button>
+            )}
+            <button
+              disabled={!controls.fullscreen}
+              onClick={() =>
+                void errorState(() =>
+                  document.fullscreenElement
+                    ? document.exitFullscreen()
+                    : screen.current!.requestFullscreen(),
+                )
+              }
+            >
+              Fullscreen
+            </button>
+            <button
+              disabled={!controls.pip}
+              title={
+                controls.pip
+                  ? "Open picture-in-picture"
+                  : "Picture-in-picture is unavailable in this browser"
+              }
+              onClick={() =>
+                void errorState(() =>
+                  document.pictureInPictureElement
+                    ? document.exitPictureInPicture()
+                    : video.current!.requestPictureInPicture(),
+                )
+              }
+            >
+              Picture-in-picture
+            </button>
+          </>
+        )}
         {levels.length > 0 && (
           <label>
             Quality{" "}
@@ -292,7 +469,7 @@ export function Player({
               onChange={(e) => {
                 const q = Number(e.target.value);
                 setQuality(q);
-                if (engine.current) engine.current.currentLevel = q;
+                engine.current?.quality(q);
               }}
             >
               <option value={-1}>Auto</option>
@@ -309,12 +486,13 @@ export function Player({
       {source && (
         <p className="fine">
           {source.content === "test"
-            ? "Test film · Big Buck Bunny by Blender Foundation · CC BY 3.0. "
+            ? source.id === "dash-live-simulator"
+              ? "DASH-IF live simulator · test pattern. "
+              : "Playback-testing content · not a sports broadcast. "
             : source.content === "official"
-              ? "Official provider embed · availability is set by the provider. "
-              : "Authorized source · "}
-          {source.rightsOwner}. Native controls include fullscreen and
-          picture-in-picture where supported.{" "}
+              ? "Official publisher embed · provider restrictions apply. "
+              : "Event source · availability may vary. "}
+          {source.rightsOwner}.{" "}
           <a href={source.rightsEvidence} target="_blank" rel="noreferrer">
             {source.content === "official"
               ? "Open official source ↗"

@@ -21,7 +21,7 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);
-    void fetch("/api/watch", { signal: controller.signal })
+    void fetch("/api/videos", { signal: controller.signal })
       .then(async (r) => {
         if (!r.ok) throw new Error();
         return z
@@ -158,7 +158,7 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
             <article className="watch-card" key={video.id}>
               <Link
                 className="watch-poster"
-                href={preview ? `/watch?video=${video.id}` : "#watch-player"}
+                href={preview ? `/videos?video=${video.id}` : "#watch-player"}
                 onClick={() => {
                   if (!preview) setSelected(video);
                 }}
@@ -215,8 +215,9 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
           <details className="viewing-notes">
             <summary>Live broadcasts & viewing information</summary>
             <p>
-              No direct live sports broadcasts are configured. The official
-              player controls region, age, sign-in and embedding restrictions.
+              Live event viewing and source availability are listed in Watch.
+              This library contains replays and highlights. The official player
+              controls region, age, sign-in and embedding restrictions.
               Availability can change. If an embed fails, use its official
               source link.
             </p>
@@ -253,10 +254,6 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
               Licensed HLS/DASH sources can be added by an administrator after
               rights review.
             </p>
-          </details>
-          <details className="viewing-notes">
-            <summary>Playback diagnostics · HLS and DASH test film</summary>
-            <Player />
           </details>
         </>
       )}
