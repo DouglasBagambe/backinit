@@ -34,21 +34,12 @@ import { Crest, Empty } from "./primitives";
 import { MatchCentre } from "./match-centre";
 import { News } from "./news";
 import { Utility } from "./utility";
+import { SportMark } from "./marks";
+import { WatchHub } from "./watch-hub";
+import { Privacy } from "./privacy";
 import { Account, accountRequest, type AccountUser } from "./account";
 import { Admin } from "./admin";
 import { Directory, type Follow } from "./directory";
-const sportIcons: Record<string, string> = {
-  Football: "◉",
-  Basketball: "◈",
-  Tennis: "◒",
-  WWE: "W",
-  "Formula 1": "F1",
-  Cricket: "╱",
-  MMA: "◇",
-  "American football": "⬭",
-  Baseball: "◉",
-  Rugby: "⬭",
-};
 const sportUrl = (s: string) =>
   "/sport/" + s.toLowerCase().replaceAll(" ", "-");
 export function Experience({
@@ -388,11 +379,11 @@ export function Experience({
         fixtures: "Make time for the game.",
         favorites: "Your side of sport.",
         search: "Find your next obsession.",
-        watch: "The best seat is yours.",
-        news: "Beyond the score.",
+        watch: "Watch",
+        news: "News",
       } as Record<string, string>
     )[route] ||
-    "Your daily dose of sport.";
+    (real ? "Watch" : "Your daily dose of sport.");
   return (
     <>
       <a className="skip" href="#main">
@@ -407,9 +398,9 @@ export function Experience({
         </Link>
         <nav className="desktop-nav" aria-label="Main navigation">
           {[
+            ["watch", "Watch"],
             ["", "Discover"],
             ["live", "Live"],
-            ["watch", "Watch"],
             ["scores", "Scores"],
             ["news", "News"],
           ].map(([path, label]) => (
@@ -467,36 +458,47 @@ export function Experience({
         </nav>
       )}
       <nav className="sports-nav" aria-label="Sports">
-        <Link href="/scores" className={!activeSport ? "chosen" : ""}>
+        <Link
+          href={real && (isHome || route === "watch") ? "/watch" : "/scores"}
+          className={!activeSport ? "chosen" : ""}
+        >
           <Globe2 size={16} />
           All sports
         </Link>
         {sports.map((s) => (
           <Link
             className={activeSport === s ? "chosen" : ""}
-            href={sportUrl(s)}
+            href={
+              real && (isHome || route === "watch")
+                ? `/watch?sport=${encodeURIComponent(s)}`
+                : sportUrl(s)
+            }
             key={s}
           >
-            <span className="sport-symbol">{sportIcons[s]}</span>
+            <span className="sport-symbol">
+              <SportMark name={s} />
+            </span>
             {s}
           </Link>
         ))}
       </nav>
-      <div className="demo-strip">
-        <span>
-          <ShieldCheck size={13} />{" "}
-          {real ? "REAL DATA · LIMITED COVERAGE" : "DEMO EDITION"}
-        </span>
-        <p>
-          {real
-            ? "Bundesliga fixtures, results and goals · F1 schedule and latest classification. No live clocks or broadcasts."
-            : "Explore the experience. Scores, fixtures and event cards are illustrative."}
-        </p>
-        <button onClick={changeEdition}>
-          {real ? "Explore demo edition" : "Use real sports data"}{" "}
-          <ArrowUpRight size={13} />
-        </button>
-      </div>
+      {!real && (
+        <div className="demo-strip">
+          <span>
+            <ShieldCheck size={13} />{" "}
+            {real ? "REAL DATA · LIMITED COVERAGE" : "DEMO EDITION"}
+          </span>
+          <p>
+            {real
+              ? "Bundesliga fixtures, results and goals · F1 schedule and latest classification. No live clocks or broadcasts."
+              : "Explore the experience. Scores, fixtures and event cards are illustrative."}
+          </p>
+          <button onClick={changeEdition}>
+            {real ? "Explore demo edition" : "Use real sports data"}{" "}
+            <ArrowUpRight size={13} />
+          </button>
+        </div>
+      )}
       {editionError && <p role="alert">{editionError}</p>}
       {offline && (
         <div className="offline" role="status">
@@ -506,11 +508,18 @@ export function Experience({
       )}
       <div className="app-layout">
         <aside className="sidebar">
-          <span className="eyebrow">YOUR SPORT, CLOSER</span>
+          <span className="eyebrow">BACKINIT</span>
           <nav aria-label="Explore">
             <Link className={isHome ? "side-active" : ""} href="/">
               <House size={18} />
               Overview
+            </Link>
+            <Link
+              className={route === "watch" ? "side-active" : ""}
+              href="/watch"
+            >
+              <Play size={18} />
+              Watch
             </Link>
             <Link
               className={route === "live" ? "side-active" : ""}
@@ -545,23 +554,13 @@ export function Experience({
           <nav>
             {sports.slice(0, 7).map((s) => (
               <Link href={sportUrl(s)} key={s}>
-                <span className="sport-symbol">{sportIcons[s]}</span>
+                <span className="sport-symbol">
+                  <SportMark name={s} />
+                </span>
                 {s}
               </Link>
             ))}
           </nav>
-          <div className="sidebar-note">
-            <span className="tiny-brand">b↗</span>
-            <h3>More than a result.</h3>
-            <p>
-              The moments. The rivalries.
-              <br />
-              The reason you’re a fan.
-            </p>
-            <Link href="/favorites">
-              Make it yours <ArrowUpRight size={14} />
-            </Link>
-          </div>
           <Link className="settings-link" href="/settings">
             <Settings size={16} />
             Settings & preferences
@@ -571,6 +570,8 @@ export function Experience({
           {syncError && <p role="alert">{syncError}</p>}
           {match ? (
             <MatchCentre event={match} favorite={favorite(match)} />
+          ) : route === "privacy" ? (
+            <Privacy />
           ) : route === "admin" ? (
             <Admin />
           ) : route === "profile" ? (
@@ -612,7 +613,9 @@ export function Experience({
                         : "DEMO MATCHDAY"
                       : route === "favorites"
                         ? "MADE FOR YOU"
-                        : "THE WORLD OF SPORT, IN ONE PLACE"}
+                        : real
+                          ? "BACKINIT"
+                          : "THE WORLD OF SPORT, IN ONE PLACE"}
                   </div>
                   <h1>{title}</h1>
                   <p>
@@ -621,10 +624,12 @@ export function Experience({
                         ? "Your saved events, synced to your account."
                         : "Keep the events you care about close. Saved on this device."
                       : route === "watch"
-                        ? "An integrated player. A seamless matchday."
+                        ? "Full matches, replays and highlights from official channels."
                         : activeSport
                           ? `Follow the moments that matter in ${activeSport.toLowerCase()}.`
-                          : "From the first whistle to the final moment. Stay in it."}
+                          : real && isHome
+                            ? "Full matches, free fights and the latest highlights."
+                            : "From the first whistle to the final moment. Stay in it."}
                   </p>
                 </div>
                 <Link className="date-chip" href="/fixtures">
@@ -639,7 +644,9 @@ export function Experience({
                   </span>
                 </Link>
               </div>
-              {route === "watch" ? (
+              {route === "watch" && real ? (
+                <WatchHub />
+              ) : route === "watch" ? (
                 <>
                   <Player />
                   <div className="section-heading">
@@ -655,6 +662,7 @@ export function Experience({
                 <News feed={news} real={real} />
               ) : (
                 <>
+                  {isHome && real && <WatchHub preview />}
                   {(isHome || route === "live") &&
                     (!real || (isHome && featuredEvents.length > 0)) && (
                       <>
@@ -720,7 +728,7 @@ export function Experience({
                         </div>
                       </>
                     )}
-                  {isHome && editorialEvent && (
+                  {isHome && !real && editorialEvent && (
                     <Link
                       href={"/match/" + editorialEvent.id}
                       className="editorial-banner"
@@ -899,7 +907,7 @@ export function Experience({
                     </section>
                     <aside className="right-rail">
                       <div className="section-heading">
-                        <h2>On the horizon</h2>
+                        <h2>{real ? "Match information" : "On the horizon"}</h2>
                         <CalendarDays size={17} />
                       </div>
                       {!real && (
@@ -940,10 +948,13 @@ export function Experience({
                         </>
                       )}
                       {real && (
-                        <section className="panel">
-                          <h3>Coverage, honestly.</h3>
+                        <details className="panel coverage-panel">
+                          <summary>Sports data coverage</summary>
                           {coverage.map((c) => (
-                            <div className="coverage-item" key={c.provider}>
+                            <div
+                              className="coverage-item"
+                              key={`${c.provider}-${c.sport}-${c.message}`}
+                            >
                               <span className="pill">{c.status}</span>
                               <h4>{c.sport}</h4>
                               <p>{c.message}</p>
@@ -959,22 +970,26 @@ export function Experience({
                               )}
                             </div>
                           ))}
-                        </section>
+                        </details>
                       )}
-                      <div className="rail-note">
-                        <Heart size={19} />
-                        <h3>Built around your passion.</h3>
-                        <p>
-                          Save an event to shape your own matchday. No account
-                          needed.
-                        </p>
-                        <Link href="/favorites">
-                          Your favorites <ChevronRight size={14} />
-                        </Link>
-                      </div>
+                      {!real && (
+                        <div className="rail-note">
+                          <Heart size={19} />
+                          <h3>Built around your passion.</h3>
+                          <p>
+                            Save an event to shape your own matchday. No account
+                            needed.
+                          </p>
+                          <Link href="/favorites">
+                            Your favorites <ChevronRight size={14} />
+                          </Link>
+                        </div>
+                      )}
                     </aside>
                   </div>
-                  {isHome && <News compact feed={news} real={real} />}
+                  {isHome && (!real || Boolean(news?.data.length)) && (
+                    <News compact feed={news} real={real} />
+                  )}
                 </>
               )}
             </>
@@ -983,7 +998,8 @@ export function Experience({
             <Link className="footer-brand" href="/">
               backinit.
             </Link>
-            <span>Every moment matters.</span>
+            <span>Sport, on your terms.</span>
+            <Link href="/privacy">Privacy</Link>
             <fieldset className="footer-theme">
               <legend>Appearance</legend>
               {["light", "dark", "system"].map((value) => (
@@ -996,7 +1012,12 @@ export function Experience({
                 </button>
               ))}
             </fieldset>
-            <small>{feedSource} · No sports broadcasts configured</small>
+            {real && (
+              <button className="text-button" onClick={changeEdition}>
+                Demo edition
+              </button>
+            )}
+            <small>{feedSource} · No direct live sports streams</small>
           </footer>
         </main>
       </div>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WatchHub } from "./watch-hub";
 import { ArrowUpRight, Globe2 } from "lucide-react";
 import type { NewsFeed } from "@backinit/domain";
 export function News({
@@ -12,7 +13,14 @@ export function News({
 }) {
   return (
     <section className="news-section">
-      {feed && (
+      {real && !compact && <WatchHub preview />}
+      {real && !compact && !feed?.data.length && (
+        <p>
+          Written news is not available here yet. The videos above come directly
+          from official sports channels.
+        </p>
+      )}
+      {feed && (!real || feed.data.length > 0) && (
         <>
           <div className="section-heading">
             <h2>From the sports desk</h2>
@@ -50,49 +58,53 @@ export function News({
           )}
         </>
       )}
-      <div className="section-heading">
-        <h2>{compact ? "Inside the experience" : "The reading room"}</h2>
-        <span className="pill">BACKINIT GUIDES</span>
-      </div>
-      <div className="news-grid">
-        {[
-          {
-            n: "01",
-            tag: "MATCHDAY",
-            title: "The story behind the scoreboard",
-            body: real
-              ? "Explore reported goals and results in the Match Centre."
-              : "Explore event replay and a statistical snapshot in our demo Match Centre.",
-            href: real ? "/scores" : "/match/north-london",
-          },
-          {
-            n: "02",
-            tag: "WATCH",
-            title: "Your screen. Your front row.",
-            body: "Try integrated HLS playback with a clearly labeled open-movie test source.",
-            href: "/watch",
-          },
-          {
-            n: "03",
-            tag: "YOUR WORLD",
-            title: "Sport feels better when it’s yours.",
-            body: "Keep favorite events close, with no account required.",
-            href: "/favorites",
-          },
-        ].map((a) => (
-          <Link href={a.href} className="news-card" key={a.n}>
-            <div className="news-graphic" aria-hidden="true">
-              <span>{a.n}</span>
-              <ArrowUpRight size={25} />
-            </div>
-            <span className="eyebrow">{a.tag}</span>
-            <h3>{a.title}</h3>
-            <p>{a.body}</p>
-            <small>BackInIt · Product guide</small>
-          </Link>
-        ))}
-      </div>
-      {!compact && (
+      {!real && (
+        <>
+          <div className="section-heading">
+            <h2>{compact ? "Inside the experience" : "The reading room"}</h2>
+            <span className="pill">BACKINIT GUIDES</span>
+          </div>
+          <div className="news-grid">
+            {[
+              {
+                n: "01",
+                tag: "MATCHDAY",
+                title: "The story behind the scoreboard",
+                body: real
+                  ? "Explore reported goals and results in the Match Centre."
+                  : "Explore event replay and a statistical snapshot in our demo Match Centre.",
+                href: real ? "/scores" : "/match/north-london",
+              },
+              {
+                n: "02",
+                tag: "WATCH",
+                title: "Your screen. Your front row.",
+                body: "Try integrated HLS playback with a clearly labeled open-movie test source.",
+                href: "/watch",
+              },
+              {
+                n: "03",
+                tag: "YOUR WORLD",
+                title: "Sport feels better when it’s yours.",
+                body: "Keep favorite events close, with no account required.",
+                href: "/favorites",
+              },
+            ].map((a) => (
+              <Link href={a.href} className="news-card" key={a.n}>
+                <div className="news-graphic" aria-hidden="true">
+                  <span>{a.n}</span>
+                  <ArrowUpRight size={25} />
+                </div>
+                <span className="eyebrow">{a.tag}</span>
+                <h3>{a.title}</h3>
+                <p>{a.body}</p>
+                <small>BackInIt · Product guide</small>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+      {!compact && !real && (
         <div className="availability">
           <Globe2 />
           <p>

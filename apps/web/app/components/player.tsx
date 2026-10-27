@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
+import { OfficialEmbed } from "./official-embed";
 import type { MediaPlayerClass } from "dashjs";
 import {
   streamSourceSchema,
@@ -8,7 +9,13 @@ import {
   type StreamSource,
 } from "@backinit/domain";
 import { z } from "zod";
-export function Player({ eventId }: { eventId?: string }) {
+export function Player({
+  eventId,
+  sourceId,
+}: {
+  eventId?: string;
+  sourceId?: string;
+}) {
   const video = useRef<HTMLVideoElement>(null);
   const engine = useRef<Hls | null>(null);
   const dash = useRef<MediaPlayerClass | null>(null);
@@ -27,16 +34,23 @@ export function Player({ eventId }: { eventId?: string }) {
     async function load() {
       try {
         const response = await fetch(
-          `/api/streams${eventId ? `?event=${encodeURIComponent(eventId)}` : ""}`,
+          `/api/streams${eventId ? `?event=${encodeURIComponent(eventId)}` : sourceId ? "?library=1" : ""}`,
           { signal: controller.signal },
         );
         if (!response.ok) throw new Error();
         const result = z
           .object({ data: z.array(streamSourceSchema) })
           .parse(await response.json());
-        const active = result.data.filter((s) => sourceIsActive(s));
+        const active = result.data.filter(
+          (s) => sourceIsActive(s) && (!sourceId || s.id === sourceId),
+        );
         setSources(active);
-        select(active[0]?.id || "");
+        select(
+          sourceId && active.some((s) => s.id === sourceId)
+            ? sourceId
+            : active[0]?.id || "",
+        );
+        if (sourceId) start(true);
         setState(
           active.length
             ? "Ready to play"
@@ -49,7 +63,7 @@ export function Player({ eventId }: { eventId?: string }) {
     }
     void load();
     return () => controller.abort();
-  }, [eventId]);
+  }, [eventId, sourceId]);
   useEffect(() => {
     if (!source || !started) return;
     let disposed = false;
@@ -162,24 +176,34 @@ export function Player({ eventId }: { eventId?: string }) {
         {started && source ? (
           source.type === "embed" ? (
             embedConsent ? (
-              <iframe
+              <OfficialEmbed
+                key={`${source.id}-${attempt}`}
+                url={source.url}
                 title={source.name}
-                src={source.url}
-                allow="fullscreen; picture-in-picture; encrypted-media"
-                allowFullScreen
-                referrerPolicy="strict-origin-when-cross-origin"
-                sandbox="allow-scripts allow-same-origin allow-presentation"
+                onState={setState}
               />
             ) : (
-              <div className="player-intro">
-                <h2>Watch with the provider.</h2>
-                <p>
-                  Loading this embed connects to YouTube. Its privacy policy and
-                  player controls apply.
-                </p>
-                <button onClick={() => setEmbedConsent(true)}>
-                  Load permitted embed
-                </button>
+              <div className="player-intro player-consent">
+                {source.catalog && (
+                  <img
+                    className="player-poster"
+                    src={source.catalog.thumbnail}
+                    alt=""
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <div className="player-consent-copy">
+                  <h2>
+                    Watch with {source.catalog?.publisher || source.rightsOwner}
+                  </h2>
+                  <p>
+                    Loading this embed connects to YouTube. Its privacy policy
+                    and player controls apply.
+                  </p>
+                  <button onClick={() => setEmbedConsent(true)}>
+                    Load official player
+                  </button>
+                </div>
               </div>
             )
           ) : (
@@ -212,11 +236,19 @@ export function Player({ eventId }: { eventId?: string }) {
             <span className="eyebrow">
               {eventId ? "IN THE FRONT ROW" : "THE PLAYBACK LAB"}
             </span>
-            <h2>A front-row experience.</h2>
-            <p>
+            <h2>
               {eventId
-                ? "Watch here when an authorized source is available."
-                : "Try integrated playback with Big Buck Bunny, an open movie. This is a test film, not a sports broadcast."}
+                ? "Watch this event"
+                : sourceId
+                  ? "Video unavailable"
+                  : "Test playback"}
+            </h2>
+            <p>
+              {sourceId
+                ? "This video is no longer listed. Choose another video or open its official source."
+                : eventId
+                  ? "Watch here when an authorized source is available."
+                  : "Try integrated playback with Big Buck Bunny, an open movie. This is a test film, not a sports broadcast."}
             </p>
             <button
               disabled={!source}
@@ -278,11 +310,15 @@ export function Player({ eventId }: { eventId?: string }) {
         <p className="fine">
           {source.content === "test"
             ? "Test film · Big Buck Bunny by Blender Foundation · CC BY 3.0. "
-            : "Authorized source · "}
+            : source.content === "official"
+              ? "Official provider embed · availability is set by the provider. "
+              : "Authorized source · "}
           {source.rightsOwner}. Native controls include fullscreen and
           picture-in-picture where supported.{" "}
           <a href={source.rightsEvidence} target="_blank" rel="noreferrer">
-            Source & rights ↗
+            {source.content === "official"
+              ? "Open official source ↗"
+              : "Source & rights ↗"}
           </a>
         </p>
       )}

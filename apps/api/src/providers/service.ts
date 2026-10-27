@@ -19,6 +19,21 @@ export class SportsService {
         edition,
         coverage: [],
       };
+    if (process.env.SPORTS_PROVIDERS_DISABLED === "true")
+      return {
+        data: [],
+        edition: "real",
+        source: "Provider ingestion paused",
+        coverage: [
+          {
+            provider: "Sports providers",
+            sport: "All",
+            status: "unavailable",
+            message: "Provider ingestion is paused on this installation.",
+            fetchedAt: null,
+          },
+        ],
+      };
     const now = new Date();
     const year = now.getUTCFullYear();
     const season = now.getUTCMonth() >= 6 ? year : year - 1;

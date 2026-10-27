@@ -1,0 +1,165 @@
+{
+  "purpose": "Identifying teams and organizations in sports coverage. Trademarks belong to their owners; no affiliation or endorsement is implied.",
+  "provider": "Team marks from OpenLigaDB image URLs, Wikimedia-hosted identifying artwork and NBA official CDN. Exact sources are recorded below.",
+  "sources": [
+    {
+      "name": "VfB Stuttgart",
+      "source": "https://i.imgur.com/v0tkpNx.png",
+      "file": "eefa56725bca.png"
+    },
+    {
+      "name": "RB Leipzig",
+      "source": "https://i.imgur.com/Rpwsjz1.png",
+      "file": "8e398c8d6745.png"
+    },
+    {
+      "name": "Borussia Mönchengladbach",
+      "source": "https://i.imgur.com/KSIk0Eu.png",
+      "file": "952637f794e6.png"
+    },
+    {
+      "name": "1. FSV Mainz 05",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Logo_Mainz_05.svg",
+      "file": "3a6a223b0709.svg"
+    },
+    {
+      "name": "SC Paderborn 07",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/e/e3/SC_Paderborn_07_Logo.svg",
+      "file": "49824e4d729e.svg"
+    },
+    {
+      "name": "Eintracht Frankfurt",
+      "source": "https://i.imgur.com/X8NFkOb.png",
+      "file": "d461dcead736.png"
+    },
+    {
+      "name": "1. FC Köln",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/0/01/1._FC_Koeln_Logo_2014%E2%80%93.svg",
+      "file": "c0aa5ca8e706.svg"
+    },
+    {
+      "name": "TSG Hoffenheim",
+      "source": "https://i.imgur.com/gF0PfEl.png",
+      "file": "e47fbf854231.png"
+    },
+    {
+      "name": "SV 07 Elversberg",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/3/35/SV_Elversberg_Logo.svg/500px-SV_Elversberg_Logo.svg.png",
+      "file": "ec59f811d5bb.png"
+    },
+    {
+      "name": "Bayer 04 Leverkusen",
+      "source": "https://upload.wikimedia.org/wikipedia/de/f/f7/Bayer_Leverkusen_Logo.svg",
+      "file": "fd132e086d02.svg"
+    },
+    {
+      "name": "Borussia Dortmund",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Borussia_Dortmund_logo.svg/960px-Borussia_Dortmund_logo.svg.png",
+      "file": "56723566c413.png"
+    },
+    {
+      "name": "Hamburger SV",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/f/f7/Hamburger_SV_logo.svg",
+      "file": "142d7be0752d.svg"
+    },
+    {
+      "name": "SC Freiburg",
+      "source": "https://i.imgur.com/r3mvi0h.png",
+      "file": "a36a41ea8600.png"
+    },
+    {
+      "name": "SV Werder Bremen",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/b/be/SV-Werder-Bremen-Logo.svg",
+      "file": "15aad3f10598.svg"
+    },
+    {
+      "name": "FC Augsburg",
+      "source": "https://i.imgur.com/sdE62e2.png",
+      "file": "c3b8f48e86dd.png"
+    },
+    {
+      "name": "FC Schalke 04",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/9/97/FC_Schalke_04_Logo.png",
+      "file": "4425dfdd6b25.png"
+    },
+    {
+      "name": "WWE",
+      "file": "wwe.svg",
+      "source": "https://commons.wikimedia.org/wiki/File:WWE_official_logo.svg"
+    },
+    {
+      "name": "1. FC Union Berlin",
+      "file": "union-berlin.jpg",
+      "source": "https://assets.dfb.de/uploads/000/018/232/small_union-Berlin.jpg"
+    },
+    {
+      "name": "FC Bayern München",
+      "file": "bayern.svg",
+      "source": "https://www.openligadb.de/"
+    },
+    {
+      "name": "FIFA",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/a/aa/FIFA_logo_without_slogan.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "file": "fifa.svg"
+    },
+    {
+      "name": "Formula 1",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/2/2d/Formula_One_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "file": "formula-1.svg"
+    },
+    {
+      "name": "MMA",
+      "file": "mma.svg",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/0/0d/UFC_logo.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original"
+    },
+    {
+      "name": "NBA",
+      "file": "nba.svg",
+      "source": "https://cdn.nba.com/logos/leagues/logo-nba.svg"
+    },
+    {
+      "name": "Boston Celtics",
+      "source": "https://cdn.nba.com/logos/nba/1610612738/global/L/logo.svg",
+      "file": "celtics.svg"
+    },
+    {
+      "name": "LA Lakers",
+      "source": "https://cdn.nba.com/logos/nba/1610612747/global/L/logo.svg",
+      "file": "lakers.svg"
+    },
+    {
+      "name": "AC Milan",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Logo_of_AC_Milan.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "file": "ac-milan.svg"
+    },
+    {
+      "name": "Inter Milan",
+      "source": "https://upload.wikimedia.org/wikipedia/commons/0/05/FC_Internazionale_Milano_2021.svg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+      "file": "inter-milan.svg"
+    },
+    {
+      "name": "Arsenal",
+      "source": "https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg",
+      "file": "arsenal.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "Liverpool",
+      "source": "https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg",
+      "file": "liverpool.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "Real Madrid",
+      "source": "https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg",
+      "file": "real-madrid.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    },
+    {
+      "name": "Barcelona",
+      "source": "https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg",
+      "file": "barcelona.svg",
+      "rights": "Identifying trademark; no free-license claim or affiliation implied."
+    }
+  ]
+}

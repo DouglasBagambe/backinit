@@ -22,3 +22,9 @@
 ## External decisions and blockers
 
 No paid provisioning, deployment or merge is authorized. Broader free APIs often need registration and credentials. Real-time/global coverage and sports broadcasts are not guaranteed by free tiers. BBC ingestion needs applicable permission. Source rights and public launch must be reviewed; the platform is not complete while these capabilities are absent.
+
+## Subsequent milestone — 28 October 2026
+
+Delivered: Watch-first home/navigation, searchable official-video catalogue (nine publishers/seven sports), provider-controlled consent-gated embeds with failure handling, real imagery/crests, brighter dark text, removal of promotional filler, recovery codes/password changes/all-session revocation, privacy export/deletion, opt-in persisted in-app updates, administrator session expiry, persistent account attempt limits and a verified online backup tool. Browser tests now use separate ports so the founder preview remains available.
+
+The earlier “next priorities” list is historical: code recovery, active-account deletion and in-app notification delivery are now implemented. Email verification/reset delivery, background push and published operator/retention details remain open. Global structured scores/lineups/coordinates, licensed syndicated articles, regional direct-stream entitlement and premium sports rights are still absent. Official replays/highlights do not resolve those gaps. See DATABASE.md for supported single-instance operation and the PostgreSQL migration plan; no production database service is provisioned.

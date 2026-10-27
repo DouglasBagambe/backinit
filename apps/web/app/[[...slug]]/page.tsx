@@ -26,6 +26,7 @@ export default async function Page({
     "competitions",
     "teams",
     "athletes",
+    "privacy",
   ];
   const selected = (await cookies()).get("backinit-edition")?.value;
   const [feed, news] = await Promise.all([

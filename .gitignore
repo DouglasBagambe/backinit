@@ -6,7 +6,7 @@ dist/
 !.env.example
 *.tsbuildinfo
 playwright-report/
-test-results/
+test-results*/
 artifacts/
 .DS_Store
 

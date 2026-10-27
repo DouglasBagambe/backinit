@@ -106,6 +106,7 @@ const pages = [
   "/competitions",
   "/teams",
   "/athletes",
+  "/privacy",
   "/sport/football",
   "/sport/wwe",
   "/sport/formula-1",
@@ -177,7 +178,7 @@ test("administrator edits, audits and revokes a source through the protected UI"
   const email = `operator-${Date.now()}@example.test`;
   const password = "backinit-operator-test-password";
   const registration = await page.request.post("/api/account/register", {
-    headers: { Origin: "http://127.0.0.1:3000" },
+    headers: { Origin: String(test.info().project.use.baseURL) },
     data: { email, password },
   });
   expect(registration.status()).toBe(201);

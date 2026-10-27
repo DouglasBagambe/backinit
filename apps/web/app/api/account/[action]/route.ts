@@ -8,6 +8,15 @@ const actions = new Set([
   "me",
   "favorites",
   "saved-events",
+  "recover",
+  "recovery-codes",
+  "password",
+  "export",
+  "delete",
+  "logout-all",
+  "notifications",
+  "notification-preferences",
+  "notification-read",
 ]);
 async function handle(
   request: NextRequest,
@@ -50,12 +59,20 @@ async function handle(
     if (session && upstream.ok)
       response.cookies.set("backinit-session", session, {
         httpOnly: true,
-        secure: request.nextUrl.protocol === "https:",
+        secure: (process.env.APP_ORIGIN || request.nextUrl.origin).startsWith(
+          "https:",
+        ),
         sameSite: "lax",
         path: "/",
-        maxAge: 7 * 86400,
+        maxAge:
+          typeof result.expiresIn === "number" ? result.expiresIn : 7 * 86400,
       });
-    if (action === "logout" && upstream.ok)
+    if (
+      ["logout", "logout-all", "password", "recover", "delete"].includes(
+        action,
+      ) &&
+      upstream.ok
+    )
       response.cookies.delete("backinit-session");
     return response;
   } catch {

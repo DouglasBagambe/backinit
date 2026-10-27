@@ -118,14 +118,24 @@ test("core pages pass serious/critical accessibility checks in both themes", asy
   }
 });
 test("API validates inputs and web uses backend", async ({ request }) => {
-  const health = await request.get("http://127.0.0.1:4000/health");
+  const health = await request.get(
+    `http://127.0.0.1:${process.env.E2E_API_PORT || 4100}/health`,
+  );
   expect(health.status()).toBe(200);
   expect((await health.json()).provider).toBe("demo");
   expect(
-    (await request.get("http://127.0.0.1:4000/events?sport=INVALID")).status(),
+    (
+      await request.get(
+        `http://127.0.0.1:${process.env.E2E_API_PORT || 4100}/events?sport=INVALID`,
+      )
+    ).status(),
   ).toBe(400);
   expect(
-    (await request.get("http://127.0.0.1:4000/events/missing")).status(),
+    (
+      await request.get(
+        `http://127.0.0.1:${process.env.E2E_API_PORT || 4100}/events/missing`,
+      )
+    ).status(),
   ).toBe(404);
   const feed = await request.get("/api/events");
   expect((await feed.json()).source).toBe("Demo API connected");

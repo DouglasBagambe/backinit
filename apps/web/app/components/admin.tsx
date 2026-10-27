@@ -49,8 +49,8 @@ export function Admin() {
           <span className="eyebrow">BACKINIT OPERATIONS</span>
           <h1>Source management.</h1>
           <p>
-            Publish only sources with documented worldwide rights.
-            Territory-restricted streams are not supported yet.
+            Direct streams require documented worldwide rights. Official embeds
+            retain the provider’s regional and playback restrictions.
           </p>
         </div>
       </div>
@@ -180,6 +180,9 @@ export function Admin() {
                   >
                     <option value="sports">Sports broadcast</option>
                     <option value="test">Test content</option>
+                    {selected.catalog && (
+                      <option value="official">Official channel embed</option>
+                    )}
                   </select>
                 </label>
                 <label className="check-label">

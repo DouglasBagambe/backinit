@@ -9,6 +9,8 @@ import {
   sourceIsActive,
   type StreamSource,
 } from "../../../packages/domain/src/index.js";
+import { ProviderCache } from "./providers/cache.js";
+import { z } from "zod";
 import type { Accounts, User } from "./accounts.js";
 const allowed = new Set([
   "test-streams.mux.dev",
@@ -47,11 +49,53 @@ export function validateStream(input: unknown): StreamSource {
     throw new BadRequestException("Invalid player URL");
   if (Date.parse(source.validUntil) <= Date.parse(source.validFrom))
     throw new BadRequestException("Invalid validity window");
+  if (
+    source.content === "official" &&
+    (source.type !== "embed" ||
+      source.territory !== "PROVIDER" ||
+      !source.catalog)
+  )
+    throw new BadRequestException(
+      "Official catalog entries require a provider-controlled embed and metadata.",
+    );
+  if (source.type !== "embed" && source.territory !== "WORLD")
+    throw new BadRequestException(
+      "Direct streams require documented worldwide rights.",
+    );
   if (source.content === "sports" && !source.eventId)
     throw new BadRequestException("Sports sources require an event ID");
   return source;
 }
 export class Streams {
+  private metadata = new ProviderCache();
+  admit(source: StreamSource) {
+    validateStream(source);
+    for (const duplicate of this.all().filter(
+      (s) =>
+        s.id !== source.id &&
+        s.url === source.url &&
+        s.content === "official" &&
+        s.version === 1 &&
+        !s.revoked,
+    ))
+      this.accounts.db
+        .prepare("DELETE FROM sources WHERE id=? AND version=1")
+        .run(duplicate.id);
+    const old = this.all().find((s) => s.id === source.id);
+    if (!old)
+      this.accounts.db
+        .prepare("INSERT INTO sources VALUES (?,?,1)")
+        .run(source.id, JSON.stringify(source));
+    else if (old.version === 1 && !old.revoked && old.content === "official")
+      this.accounts.db
+        .prepare("UPDATE sources SET body=? WHERE id=? AND version=1")
+        .run(JSON.stringify(source), source.id);
+  }
+  library() {
+    return this.all().filter(
+      (s) => s.content === "official" && sourceIsActive(s),
+    );
+  }
   private checks = new Map<
     string,
     {
@@ -74,7 +118,8 @@ export class Streams {
       .all()
       .map((row) => streamSourceSchema.parse(JSON.parse(row.body as string)));
   }
-  public(event?: string) {
+  public(event?: string, library = false) {
+    if (library) return this.library();
     return this.all()
       .sort((a, b) => (a.type === "hls" ? 0 : 1) - (b.type === "hls" ? 0 : 1))
       .filter(
@@ -123,13 +168,32 @@ export class Streams {
     if (old && Date.now() - old.at < 60000) return old.promise;
     const promise = (async () => {
       const checkedAt = new Date().toISOString();
-      if (source.type === "embed")
-        return {
-          status: "unknown",
-          checkedAt,
-          message:
-            "Embed availability depends on provider, viewer territory and consent.",
-        };
+      if (source.type === "embed") {
+        try {
+          const id = new URL(source.url).pathname.split("/").pop()!;
+          await this.metadata.json(
+            `https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${id}`)}&format=json`,
+            60000,
+            (raw) =>
+              z
+                .object({ title: z.string(), author_name: z.string() })
+                .parse(raw),
+          );
+          return {
+            status: "metadata-available",
+            checkedAt,
+            message:
+              "Provider metadata is available. Playback and regional restrictions are checked by the embedded player.",
+          };
+        } catch {
+          return {
+            status: "unavailable",
+            checkedAt,
+            message:
+              "The provider is not confirming this video. It may be removed, restricted or temporarily unreachable.",
+          };
+        }
+      }
       try {
         validateStream(source);
         const response = await fetch(source.url, {

@@ -48,14 +48,15 @@ export class ProviderCache {
                 : retry
                   ? Date.parse(retry) - this.now()
                   : 60000;
-            this.blockedUntil.set(
-              new URL(url).host,
-              this.now() +
-                Math.min(
-                  3600000,
-                  Math.max(60000, Number.isFinite(seconds) ? seconds : 60000),
-                ),
-            );
+            if (response.status === 429 || response.status >= 500)
+              this.blockedUntil.set(
+                new URL(url).host,
+                this.now() +
+                  Math.min(
+                    3600000,
+                    Math.max(60000, Number.isFinite(seconds) ? seconds : 60000),
+                  ),
+              );
             throw new Error(`Provider HTTP ${response.status}`);
           }
           const data = parse(await read(response));

@@ -40,3 +40,29 @@ External probes intentionally remain separate from deterministic CI because prov
 ## Limits
 
 Chromium only. Native Safari HLS, iOS fullscreen/PiP, Firefox, Android, screen-reader testing, load/performance budgets and a production penetration review remain open. No production deployment, sports broadcast, live positional feed or enabled licensed-news ingestion is claimed. SQLite/cache/limiter behavior is single-instance; no scale or backup guarantee is implied. Remote CI is reported separately from local tests. No merge or public deployment performed.
+
+## Viewing and account milestone — 28 October 2026
+
+- Strict TypeScript and production Next/Nest builds pass. 34 unit tests pass, including single-use recovery/rotation/session invalidation, legacy password upgrades, persistent attempt limits, privacy deletion/export boundaries, notification opt-in/deduplication/ownership, operator source revocation surviving catalogue refresh, and WAL-consistent backup/restore.
+- Full 30-test Chromium suite passes (2.2 minutes), including the 22-route × seven-width × two-theme layout matrix, source management, search, favorites, consent/retry and account recovery/privacy flows.
+- Four focused Firefox browser tests pass: video filtering/consent/retry, both themes at 360/390/768/1440, recovery/export/notification opt-in/account deletion. This supplements Chromium; it is not a Safari/iOS or full Firefox device certification.
+- External official catalogue: 18 videos, nine publishers, seven sports; all publisher feeds/metadata checked in this probe. Metadata success does not guarantee playback. Real artwork and locally served identifying crests/marks were visually reviewed on desktop/mobile in both themes. The real Watch review found no serious/critical axe violations or horizontal overflow.
+- Actual Chromium decoded sports playback: UFC fight advanced to 7.77 seconds, readyState 4, unpaused; Australian Open match to 4.58 seconds, readyState 4, unpaused; ICC highlights to 4.51 seconds, readyState 4, unpaused. No inference from a thumbnail, iframe or metadata was used as playback proof.
+- The sampled WWE/WWE Vault, FIBA, FIFA and F1 embeds returned provider restrictions. These failures show a clear provider-controlled availability message and preserve an outbound official link. Their broadcasts are **not** claimed to work in-page. Availability in other territories remains unverified.
+- Real score probe: 312 events, real goals, 18-team standings and F1 classification; 12 desktop/mobile/theme reviews, calendar behavior and no page errors. A transient Jolpica network failure first produced honest unavailable coverage (306 football events); retry recovered F1 without substituting demo data.
+- Production dependency audit found no known vulnerabilities at this check. Formatting and whitespace checks pass.
+
+Browser defects caught and corrected included invalid fixture URL contracts, accessible video-card names missing visible category text, async checkbox state, registration mode surviving sign-out and stale selection when a requested source disappears. Concurrent browser runs initially collided over trace output; Firefox now has a separate output directory and port pair.
+
+Optional reproduction with local preview running:
+
+```sh
+node scripts/probe-official.mjs
+node scripts/probe-sports-playback.mjs WWE Basketball Tennis Cricket Football 'Formula 1'
+pnpm exec playwright install firefox
+CI=1 E2E_BROWSER=firefox E2E_WEB_PORT=3200 E2E_API_PORT=4200 pnpm exec playwright test tests/e2e/viewing.spec.ts
+```
+
+The preview remains on 3000/4000 while standard production E2E uses 3100/4100. External probes depend on provider/network/territory conditions and remain outside deterministic CI. Screenshots and traces are ignored local evidence, with CI artifacts uploaded independently.
+
+Open limits remain: no direct live sports broadcast sources, universal structured scores/lineups, measured coordinates/momentum, enabled licensed articles, email verification/delivery, background push, reviewed public proxy attribution/shared limiting or production deployment. Code recovery and active-account deletion are now implemented; published retention/operator details and monitored encrypted backups still require launch work. See STREAMS.md and DATABASE.md.

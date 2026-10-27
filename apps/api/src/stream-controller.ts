@@ -9,11 +9,14 @@ import {
 } from "@nestjs/common";
 import { accounts } from "./account-controller.js";
 import { Streams } from "./streams.js";
-const streams = new Streams(accounts);
+export const streams = new Streams(accounts);
 @Controller()
 export class StreamController {
-  @Get("streams") list(@Query("event") event?: string) {
-    return { data: streams.public(event) };
+  @Get("streams") list(
+    @Query("event") event?: string,
+    @Query("library") library?: string,
+  ) {
+    return { data: streams.public(event, library === "1") };
   }
   @Get("streams/:id/health") health(@Param("id") id: string) {
     return streams.health(id);

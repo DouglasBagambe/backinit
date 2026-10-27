@@ -299,13 +299,31 @@ export const streamSourceSchema = z
     name: z.string().min(1).max(100),
     type: z.enum(["hls", "dash", "embed"]),
     url: z.string().url().max(2048),
-    content: z.enum(["test", "sports"]),
+    content: z.enum(["test", "sports", "official"]),
     eventId: z.string().max(80).nullable(),
     rightsOwner: z.string().min(1).max(150),
     rightsEvidence: z.string().url().max(2048),
     validFrom: z.string().datetime(),
     validUntil: z.string().datetime(),
-    territory: z.literal("WORLD"),
+    territory: z.enum(["WORLD", "PROVIDER"]),
+    catalog: z
+      .object({
+        sport: sportSchema,
+        publisher: z.string(),
+        channelId: z.string(),
+        publishedAt: z.string().datetime().nullable(),
+        thumbnail: z.string().url(),
+        watchUrl: z.string().url(),
+        category: z.enum([
+          "Full match",
+          "Full fight",
+          "Full game",
+          "Highlights",
+          "Official video",
+        ]),
+        checkedAt: z.string().datetime(),
+      })
+      .optional(),
     revoked: z.boolean(),
     version: z.number().int().min(1),
   })

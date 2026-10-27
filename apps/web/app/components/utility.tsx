@@ -36,7 +36,7 @@ export function Utility({
           <h2>Local preferences</h2>
           <p>
             Guest favorites are saved in this browser. Sign in from your profile
-            to save favorites to an account. Notifications are not yet enabled.
+            to save favorites to an account and opt in to in-app match updates.
           </p>
           <button
             disabled={pending || busy}

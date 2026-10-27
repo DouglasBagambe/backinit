@@ -8,6 +8,10 @@ import {
   NotFoundException,
   BadRequestException,
   Sse,
+  Injectable,
+  type OnModuleInit,
+  type OnModuleDestroy,
+  Logger,
 } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import { APP_GUARD } from "@nestjs/core";
@@ -21,7 +25,8 @@ import {
 } from "../../../packages/domain/src/index.js";
 import { SportsService } from "./providers/service.js";
 import { StreamController } from "./stream-controller.js";
-import { AccountController } from "./account-controller.js";
+import { AccountController, notifications } from "./account-controller.js";
+import { WatchController } from "./watch-controller.js";
 import { NewsService } from "./providers/news.js";
 const news = new NewsService();
 const service = new SportsService();
@@ -54,6 +59,7 @@ class SportsController {
     if (!parsed.success) throw new BadRequestException("Invalid event filters");
     const { sport, q: query, edition } = parsed.data;
     const feed = await service.feed(edition);
+    if (edition === "real") notifications.ingest(feed.data);
     return { ...feed, data: filterEvents(feed.data, { sport, query }) };
   }
   @Get("events/:id") async one(
@@ -84,20 +90,54 @@ class SportsController {
     );
   }
 }
+@Injectable()
+class SportsUpdates implements OnModuleInit, OnModuleDestroy {
+  private timer?: ReturnType<typeof setInterval>;
+  private running = false;
+  onModuleInit() {
+    if (process.env.SPORTS_DATA_MODE === "demo") return;
+    void this.poll();
+    this.timer = setInterval(() => void this.poll(), 60000);
+    this.timer.unref();
+  }
+  private async poll() {
+    if (this.running) return;
+    this.running = true;
+    try {
+      notifications.ingest((await service.feed("real")).data);
+    } catch {
+      Logger.warn(
+        "Sports update ingestion failed; the next poll will retry.",
+        "SportsUpdates",
+      );
+    } finally {
+      this.running = false;
+    }
+  }
+  onModuleDestroy() {
+    if (this.timer) clearInterval(this.timer);
+  }
+}
 @Module({
   imports: [
     ThrottlerModule.forRoot([
       { ttl: 60000, limit: process.env.NODE_ENV === "test" ? 10000 : 120 },
     ]),
   ],
-  controllers: [SportsController, AccountController, StreamController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  controllers: [
+    SportsController,
+    AccountController,
+    StreamController,
+    WatchController,
+  ],
+  providers: [SportsUpdates, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 class AppModule {}
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ["error", "warn", "log"],
   });
+  app.enableShutdownHooks();
   app.use(helmet());
   app.enableCors({ origin: process.env.WEB_ORIGIN || "http://127.0.0.1:3000" });
   await app.listen(Number(process.env.PORT || 4000), "127.0.0.1");
