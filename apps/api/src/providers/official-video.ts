@@ -213,11 +213,11 @@ export class OfficialVideoCatalog {
       }),
     );
     const priority = [
-      "WWE",
       "MMA",
-      "Basketball",
       "Tennis",
       "Cricket",
+      "WWE",
+      "Basketball",
       "Football",
       "Formula 1",
     ];
