@@ -1,20 +1,17 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { Moon, Sun, Heart, ShieldCheck } from "lucide-react";
+import { Heart, ShieldCheck } from "lucide-react";
 import { Empty } from "./primitives";
 export function Utility({
   route,
-  theme,
-  setTheme,
   clear,
 }: {
   route: string;
-  theme: string;
-  setTheme: (t: string) => void;
-  clear: () => void;
+  clear: () => Promise<void>;
 }) {
-  const [cleared, setCleared] = useState(false);
+  const [message, setMessage] = useState("");
+  const [pending, setPending] = useState(false);
   return (
     <>
       <div className="page-heading">
@@ -33,39 +30,35 @@ export function Utility({
       </div>
       {route === "settings" ? (
         <div className="panel settings-panel">
-          <h2>Appearance</h2>
-          <p>Choose a theme, or follow your device.</p>
-          <div className="theme-options">
-            {["system", "light", "dark"].map((t) => (
-              <button
-                className={theme === t ? "selected" : ""}
-                aria-pressed={theme === t}
-                key={t}
-                onClick={() => setTheme(t)}
-              >
-                {t === "dark" ? <Moon size={20} /> : <Sun size={20} />} {t}
-              </button>
-            ))}
-          </div>
+          <p>Theme preferences are available in the footer on every page.</p>
           <h2>Local preferences</h2>
           <p>
-            Favorites are saved in this browser. Cloud sync and notifications
-            are not connected yet.
+            Guest favorites are saved in this browser. Sign in from your profile
+            to save favorites to an account. Notifications are not yet enabled.
           </p>
           <button
-            onClick={() => {
-              clear();
-              setCleared(true);
+            disabled={pending}
+            onClick={async () => {
+              setPending(true);
+              try {
+                await clear();
+                setMessage("Saved events cleared.");
+              } catch (error) {
+                setMessage((error as Error).message);
+              } finally {
+                setPending(false);
+              }
             }}
           >
             Clear saved events
           </button>
-          {cleared && <p role="status">Saved events cleared.</p>}
+          {message && <p role="status">{message}</p>}
           <h2>About this preview</h2>
           <p>
-            This is a functional demo. Fixtures and scores are illustrative. The
-            video player uses an open film test stream. No sports broadcast
-            rights or real-time data feeds are configured.
+            Real coverage currently includes Bundesliga fixtures, results and
+            goals, plus F1 schedules and the latest classification. Demo edition
+            is separate and clearly labeled. The player uses open film test
+            streams; no sports broadcasts are configured.
           </p>
         </div>
       ) : route === "profile" ? (

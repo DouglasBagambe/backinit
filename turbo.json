@@ -1,4 +1,5 @@
 {
+  "globalDependencies": ["packages/domain/src/**"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

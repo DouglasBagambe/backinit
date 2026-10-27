@@ -1,4 +1,59 @@
 import { z } from "zod";
+
+export const sourceSchema = z.object({
+  provider: z.string(),
+  url: z.string().url(),
+  license: z.string(),
+  fetchedAt: z.string().datetime(),
+  stale: z.boolean(),
+});
+export const goalSchema = z.object({
+  id: z.string(),
+  minute: z.number().nullable(),
+  player: z.string().nullable(),
+  team: z.string().nullable(),
+  homeScore: z.number(),
+  awayScore: z.number(),
+  penalty: z.boolean(),
+  ownGoal: z.boolean(),
+});
+export const classificationSchema = z.object({
+  position: z.number(),
+  driver: z.string(),
+  team: z.string(),
+  laps: z.number(),
+  points: z.number(),
+  status: z.string(),
+  time: z.string().nullable(),
+});
+export const standingSchema = z.object({
+  team: z.string(),
+  played: z.number(),
+  won: z.number(),
+  drawn: z.number(),
+  lost: z.number(),
+  goalsFor: z.number(),
+  goalsAgainst: z.number(),
+  points: z.number(),
+});
+export const liveDetailSchema = z.object({
+  venue: z.string().nullable().optional(),
+  round: z.string().optional(),
+  goals: z.array(goalSchema).optional(),
+  classification: z.array(classificationSchema).optional(),
+  standings: z.array(standingSchema).optional(),
+});
+export const coverageSchema = z.object({
+  provider: z.string(),
+  sport: z.string(),
+  status: z.enum(["available", "stale", "unavailable", "not-configured"]),
+  message: z.string(),
+  fetchedAt: z.string().datetime().nullable(),
+});
+export type Coverage = z.infer<typeof coverageSchema>;
+export type Source = z.infer<typeof sourceSchema>;
+export type LiveDetail = z.infer<typeof liveDetailSchema>;
+
 export const sports = [
   "Football",
   "Basketball",
@@ -19,7 +74,9 @@ export const baseSchema = z.object({
   competition: z.string(),
   start: z.string().datetime(),
   status: z.enum(["live", "upcoming", "finished"]),
-  provenance: z.literal("demo"),
+  provenance: z.enum(["demo", "provider"]),
+  source: sourceSchema.optional(),
+  detail: liveDetailSchema.optional(),
 });
 export const eventSchema = z.discriminatedUnion("kind", [
   baseSchema.extend({
@@ -41,7 +98,7 @@ export const eventSchema = z.discriminatedUnion("kind", [
     kind: z.literal("race"),
     title: z.string(),
     session: z.string(),
-    laps: z.number(),
+    laps: z.number().nullable(),
   }),
 ]);
 export type SportEvent = z.infer<typeof eventSchema>;
@@ -169,7 +226,7 @@ export function filterEvents(
       (!options.live || e.status === "live") &&
       (!options.ids || options.ids.includes(e.id)) &&
       (!options.query ||
-        `${eventTitle(e)} ${e.competition} ${e.sport}`
+        `${eventTitle(e)} ${e.competition} ${e.sport} ${(e.detail?.goals || []).map((g) => g.player || "").join(" ")} ${(e.detail?.classification || []).map((r) => `${r.driver} ${r.team}`).join(" ")} ${e.kind === "card" ? e.bouts.flatMap((b) => b.performers).join(" ") : ""}`
           .toLowerCase()
           .includes(options.query.toLowerCase())),
   );
@@ -229,3 +286,81 @@ export const stats = [
   ["Corners", 7, 3],
   ["Fouls", 8, 10],
 ] as const;
+export const feedSchema = z.object({
+  data: z.array(eventSchema),
+  source: z.string(),
+  edition: z.enum(["real", "demo"]),
+  coverage: z.array(coverageSchema),
+});
+export type EventFeed = z.infer<typeof feedSchema>;
+export const streamSourceSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9-]{1,80}$/),
+    name: z.string().min(1).max(100),
+    type: z.enum(["hls", "dash", "embed"]),
+    url: z.string().url().max(2048),
+    content: z.enum(["test", "sports"]),
+    eventId: z.string().max(80).nullable(),
+    rightsOwner: z.string().min(1).max(150),
+    rightsEvidence: z.string().url().max(2048),
+    validFrom: z.string().datetime(),
+    validUntil: z.string().datetime(),
+    territory: z.literal("WORLD"),
+    revoked: z.boolean(),
+    version: z.number().int().min(1),
+  })
+  .strict();
+export type StreamSource = z.infer<typeof streamSourceSchema>;
+export const testSources: StreamSource[] = [
+  {
+    id: "bbb-hls",
+    name: "Big Buck Bunny · HLS test",
+    type: "hls",
+    url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+    content: "test",
+    eventId: null,
+    rightsOwner: "Blender Foundation",
+    rightsEvidence: "https://peach.blender.org/",
+    validFrom: "2026-01-01T00:00:00Z",
+    validUntil: "2027-01-01T00:00:00Z",
+    territory: "WORLD",
+    revoked: false,
+    version: 1,
+  },
+  {
+    id: "bbb-dash",
+    name: "Big Buck Bunny · DASH test",
+    type: "dash",
+    url: "https://dash.akamaized.net/akamai/bbb_30fps/bbb_30fps.mpd",
+    content: "test",
+    eventId: null,
+    rightsOwner: "Blender Foundation",
+    rightsEvidence: "https://peach.blender.org/",
+    validFrom: "2026-01-01T00:00:00Z",
+    validUntil: "2027-01-01T00:00:00Z",
+    territory: "WORLD",
+    revoked: false,
+    version: 1,
+  },
+];
+export function sourceIsActive(source: StreamSource, now = Date.now()) {
+  return (
+    !source.revoked &&
+    Date.parse(source.validFrom) <= now &&
+    Date.parse(source.validUntil) > now
+  );
+}
+export const newsItemSchema = z.object({
+  title: z.string(),
+  url: z.string().url(),
+  publishedAt: z.string().datetime(),
+  source: z.string(),
+  category: z.string(),
+});
+export const newsFeedSchema = z.object({
+  data: z.array(newsItemSchema),
+  status: z.enum(["available", "stale", "unavailable", "not-configured"]),
+  message: z.string(),
+  fetchedAt: z.string().datetime().nullable(),
+});
+export type NewsFeed = z.infer<typeof newsFeedSchema>;

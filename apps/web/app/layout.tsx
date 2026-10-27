@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     template: "%s · BackInIt",
   },
   description:
-    "Your home for scores, match stories and the sports you love. Explore the BackInIt demo.",
+    "Your home for scores, match stories and the sports you love. Follow provider-reported football results and Formula 1 weekends.",
   robots: { index: false, follow: false },
 };
 export default function Layout({ children }: { children: React.ReactNode }) {

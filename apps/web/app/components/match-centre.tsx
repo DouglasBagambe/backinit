@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { ArrowLeft, Play, Activity, ShieldCheck } from "lucide-react";
 import { timeline, stats, type SportEvent } from "@backinit/domain";
+import { RealDetail } from "./real-detail";
 import { Crest, Empty } from "./primitives";
 import { LazyPlayer as Player } from "./lazy-player";
 export function MatchCentre({
@@ -34,7 +35,13 @@ export function MatchCentre({
       <div className="match-header">
         <div className="match-meta">
           {e.competition}
-          <span>ILLUSTRATIVE EVENT</span>
+          <span>
+            {e.provenance === "demo"
+              ? "ILLUSTRATIVE EVENT"
+              : e.source?.stale
+                ? "STALE SNAPSHOT"
+                : "PROVIDER DATA"}
+          </span>
         </div>
         {e.kind === "score" ? (
           <div className="scoreboard">
@@ -52,7 +59,11 @@ export function MatchCentre({
                 {e.awayScore ?? "–"}
               </strong>
               <small>
-                {e.status === "live" ? "Simulated match state" : "Demo fixture"}
+                {e.provenance === "provider"
+                  ? "Provider snapshot · not a live clock"
+                  : e.status === "live"
+                    ? "Simulated match state"
+                    : "Demo fixture"}
               </small>
             </div>
             <div>
@@ -62,24 +73,50 @@ export function MatchCentre({
           </div>
         ) : (
           <div className="event-title">
-            <span className="eyebrow">{e.sport} · UPCOMING DEMO</span>
+            <span className="eyebrow">
+              {e.sport} ·{" "}
+              {e.provenance === "demo"
+                ? "UPCOMING DEMO"
+                : e.status.toUpperCase()}
+            </span>
             <h1>{e.title}</h1>
             <p>
               {e.kind === "card"
                 ? `${e.bouts.length} matches on the card`
-                : `${e.session} · ${e.laps} laps`}
+                : `${e.session}${e.laps === null ? "" : ` · ${e.laps} laps`}`}
             </p>
           </div>
         )}
         <div className="match-bottom">
           <span>
-            {detail
-              ? "London · Demo stadium · Matchweek 9"
-              : "26 October 2026 · Illustrative schedule"}
+            {e.provenance === "provider"
+              ? `${new Date(e.start).toLocaleString("en-GB", { timeZone: "UTC" })} UTC · ${e.detail?.venue || "Venue not supplied"}`
+              : detail
+                ? "London · Demo stadium · Matchweek 9"
+                : "26 October 2026 · Illustrative schedule"}
           </span>
+          <a className="back-link" href={`/api/calendar/${e.id}`}>
+            Add to calendar ↗
+          </a>
           {favorite}
         </div>
       </div>
+      {e.source && (
+        <p className="fine provenance">
+          {e.source.stale ? "Stale data · " : "Fetched "}
+          <time dateTime={e.source.fetchedAt}>
+            {new Date(e.source.fetchedAt).toLocaleString("en-GB", {
+              timeZone: "UTC",
+            })}{" "}
+            UTC
+          </time>{" "}
+          ·{" "}
+          <a href={e.source.url} target="_blank" rel="noreferrer">
+            {e.source.provider} ↗
+          </a>{" "}
+          · {e.source.license}
+        </p>
+      )}
       {e.kind === "card" ? (
         <section className="panel">
           <h2>The match card</h2>
@@ -94,6 +131,8 @@ export function MatchCentre({
             </div>
           ))}
         </section>
+      ) : e.kind === "race" && e.provenance === "provider" ? (
+        <RealDetail event={e} />
       ) : e.kind === "race" ? (
         <section className="panel">
           <h2>Race weekend</h2>
@@ -167,7 +206,9 @@ export function MatchCentre({
             id="match-tab-panel"
             aria-labelledby={`tab-${tab}`}
           >
-            {tab === "Watch" ? (
+            {tab === "Watch" && e.provenance === "provider" ? (
+              <Player eventId={e.id} />
+            ) : tab === "Watch" ? (
               <>
                 <div className="availability">
                   <Play />
@@ -181,6 +222,8 @@ export function MatchCentre({
                 </div>
                 <Player />
               </>
+            ) : e.provenance === "provider" ? (
+              <RealDetail event={e} tab={tab} />
             ) : !detail ? (
               <Empty
                 title="More detail is on the way."
@@ -334,7 +377,7 @@ export function MatchCentre({
                       </div>
                     ))}
                     <p className="fine">
-                      Arsenal in green · Liverpool in slate. Illustrative
+                      Arsenal on the left · Liverpool on the right. Illustrative
                       values, not provider measurements.
                     </p>
                   </section>
@@ -365,8 +408,9 @@ export function MatchCentre({
       <div className="availability">
         <ShieldCheck size={20} />
         <p>
-          All event details on this page are demo content. No connection to a
-          real live fixture is implied.
+          {e.provenance === "demo"
+            ? "All event details on this page are demo content. No connection to a real live fixture is implied."
+            : "Provider-reported data may be delayed or incomplete. Broadcast availability is managed separately from match data."}
         </p>
       </div>
     </>

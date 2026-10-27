@@ -1,8 +1,55 @@
 import Link from "next/link";
 import { ArrowUpRight, Globe2 } from "lucide-react";
-export function News({ compact = false }: { compact?: boolean }) {
+import type { NewsFeed } from "@backinit/domain";
+export function News({
+  compact = false,
+  feed,
+  real = false,
+}: {
+  compact?: boolean;
+  feed?: NewsFeed | null;
+  real?: boolean;
+}) {
   return (
     <section className="news-section">
+      {feed && (
+        <>
+          <div className="section-heading">
+            <h2>From the sports desk</h2>
+            <span className="pill">{feed.status}</span>
+          </div>
+          <p>{feed.message}</p>
+          {feed.data.length > 0 && (
+            <div className="news-grid">
+              {feed.data.slice(0, compact ? 3 : 24).map((item) => (
+                <a
+                  className="news-card panel"
+                  key={item.url}
+                  href={item.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <span className="eyebrow">
+                    {item.category} ·{" "}
+                    {feed.status === "stale" ? "STALE SNAPSHOT" : "NEWS"}
+                  </span>
+                  <h3>{item.title}</h3>
+                  <p>
+                    {item.source} ·{" "}
+                    <time dateTime={item.publishedAt}>
+                      {new Date(item.publishedAt).toLocaleString("en-GB", {
+                        timeZone: "UTC",
+                      })}{" "}
+                      UTC
+                    </time>
+                  </p>
+                  <small>Read original reporting ↗</small>
+                </a>
+              ))}
+            </div>
+          )}
+        </>
+      )}
       <div className="section-heading">
         <h2>{compact ? "Inside the experience" : "The reading room"}</h2>
         <span className="pill">BACKINIT GUIDES</span>
@@ -13,8 +60,10 @@ export function News({ compact = false }: { compact?: boolean }) {
             n: "01",
             tag: "MATCHDAY",
             title: "The story behind the scoreboard",
-            body: "Explore event replay and a statistical snapshot in our demo Match Centre.",
-            href: "/match/north-london",
+            body: real
+              ? "Explore reported goals and results in the Match Centre."
+              : "Explore event replay and a statistical snapshot in our demo Match Centre.",
+            href: real ? "/scores" : "/match/north-london",
           },
           {
             n: "02",
@@ -47,9 +96,9 @@ export function News({ compact = false }: { compact?: boolean }) {
         <div className="availability">
           <Globe2 />
           <p>
-            News ingestion is not connected yet. These are product guides, not
-            sports reporting. Future news includes source attribution,
-            publication dates and original links.
+            These BackInIt guides explain the product. Publisher headlines, when
+            licensed and configured, appear separately with attribution and
+            original links.
           </p>
         </div>
       )}

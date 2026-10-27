@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
-import { events, sports } from "@backinit/domain";
-import { loadEvents } from "../lib/feed";
+import { sports } from "@backinit/domain";
+import { cookies } from "next/headers";
+import { loadEvents, loadEvent } from "../lib/feed";
+import { loadNews } from "../lib/news";
 import { Experience } from "../components/experience";
 export default async function Page({
   params,
@@ -25,12 +27,24 @@ export default async function Page({
     "teams",
     "athletes",
   ];
+  const selected = (await cookies()).get("backinit-edition")?.value;
+  const [feed, news] = await Promise.all([
+    loadEvents(
+      selected === "demo" ? "demo" : selected === "real" ? "real" : undefined,
+    ),
+    route === "" || route === "news" ? loadNews() : Promise.resolve(null),
+  ]);
+  const match =
+    slug[0] === "match" && slug.length === 2
+      ? await loadEvent(slug[1]!, feed.edition)
+      : null;
+  if (match) feed.data = feed.data.map((e) => (e.id === match.id ? match : e));
   if (
     !pages.includes(route) &&
     !(
       slug[0] === "match" &&
       slug.length === 2 &&
-      events.some((e) => e.id === slug[1])
+      feed.data.some((e) => e.id === slug[1])
     ) &&
     !(
       slug[0] === "sport" &&
@@ -39,12 +53,14 @@ export default async function Page({
     )
   )
     notFound();
-  const feed = await loadEvents();
   return (
     <Experience
       route={route}
       initialEvents={feed.data}
       feedSource={feed.source}
+      edition={feed.edition}
+      coverage={feed.coverage}
+      news={news}
     />
   );
 }
