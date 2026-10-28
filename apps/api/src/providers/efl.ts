@@ -9,6 +9,35 @@ export const clubEvidence =
   "https://www.chelseafc.com/en/news/article/date-and-kick-off-time-for-liverpool-carabao-cup-tie-confirmed";
 export const checkedAt = "2026-10-27T22:15:00Z";
 const partners = "https://www.efl.com/how-to-watch/broadcast-partners/";
+/** A public destination, never an authorized BackInIt playback source. */
+export function externalMatchLinks(
+  home: string,
+  away: string,
+  start: string,
+  now = Date.now(),
+) {
+  const url = "https://sportsframe.site/10745/0/epl/5";
+  if (
+    home !== "Liverpool" ||
+    away !== "Chelsea" ||
+    Date.parse(start) !== Date.parse("2026-10-28T20:00:00Z") ||
+    now < Date.parse("2026-10-28T21:18:00Z") ||
+    now >= Date.parse("2026-10-29T00:00:00Z")
+  )
+    return [];
+  return [
+    {
+      label: "Sportsframe · unverified external player",
+      url,
+      evidenceUrl: url,
+      countries: [],
+      access: "information" as const,
+      confirmation: "check-schedule" as const,
+      note: "Video played in one test. Match content, regional availability and distribution permission are unconfirmed. Opens an external site; not a BackInIt broadcast.",
+      checkedAt: "2026-10-28T21:18:00Z",
+    },
+  ];
+}
 const months = [
   "January",
   "February",
@@ -100,6 +129,7 @@ export function footballFixture(
                   : null,
     },
     viewingLinks: [
+      ...externalMatchLinks(home, away, start),
       {
         label: priority ? "ITV / ITVX · UK" : "Sky Sports · UK",
         url: priority

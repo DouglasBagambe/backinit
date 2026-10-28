@@ -6,6 +6,7 @@ import {
   parseEflSchedule,
   londonKickoff,
   verifiedCupFixtures,
+  externalMatchLinks,
 } from "../apps/api/src/providers/efl";
 import { ProviderCache } from "../apps/api/src/providers/cache";
 import {
@@ -19,6 +20,38 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 const page = `<title>Carabao Cup Round Four referee appointments</title><strong>Wednesday, 28th October 2026</strong><strong>Manchester City v Brighton &amp; Hove Albion (19:30)</strong><strong>AFC Bournemouth v Aston Villa (19:45)</strong><strong>Fulham v Crystal Palace (19:45)</strong><strong>Sunderland v Brentford (19:45)</strong><strong>Liverpool v Chelsea (20:00)</strong>`;
+it("scopes the unverified external destination to the reviewed match and expires it", () => {
+  const start = "2026-10-28T20:00:00Z";
+  const now = Date.parse("2026-10-28T21:25:00Z");
+  const links = externalMatchLinks("Liverpool", "Chelsea", start, now);
+  expect(links).toHaveLength(1);
+  expect(links[0]).toMatchObject({
+    url: "https://sportsframe.site/10745/0/epl/5",
+    confirmation: "check-schedule",
+    access: "information",
+    countries: [],
+  });
+  expect(externalMatchLinks("Chelsea", "Liverpool", start, now)).toEqual([]);
+  expect(
+    externalMatchLinks("Liverpool", "Chelsea", "2026-11-28T20:00:00Z", now),
+  ).toEqual([]);
+  expect(
+    externalMatchLinks(
+      "Liverpool",
+      "Chelsea",
+      start,
+      Date.parse("2026-10-29T00:00:00Z"),
+    ),
+  ).toEqual([]);
+  expect(
+    externalMatchLinks(
+      "Liverpool",
+      "Chelsea",
+      start,
+      Date.parse("2026-10-28T21:00:00Z"),
+    ),
+  ).toEqual([]);
+});
 it("ingests official fixture facts, decodes team names, preserves stable IDs and never invents scores/live status", () => {
   const fixtures = parseEflSchedule(page, "2026-10-28T01:00:00Z");
   expect(fixtures).toHaveLength(5);
