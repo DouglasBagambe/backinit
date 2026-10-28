@@ -1,3 +1,4 @@
+import { apiUrl } from "./api-url";
 import {
   DemoProvider,
   feedSchema,
@@ -10,10 +11,10 @@ export async function loadEvents(
     : "real",
 ): Promise<EventFeed> {
   try {
-    const response = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:4000"}/events?edition=${edition}`,
-      { signal: AbortSignal.timeout(10000), cache: "no-store" },
-    );
+    const response = await fetch(apiUrl(`/events?edition=${edition}`), {
+      signal: AbortSignal.timeout(10000),
+      cache: "no-store",
+    });
     if (!response.ok) throw new Error("Provider unavailable");
     const body = feedSchema.parse(await response.json());
     if (
@@ -51,7 +52,7 @@ export async function loadEvents(
 export async function loadEvent(id: string, edition: "real" | "demo") {
   try {
     const response = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:4000"}/events/${encodeURIComponent(id)}?edition=${edition}`,
+      apiUrl(`/events/${encodeURIComponent(id)}?edition=${edition}`),
       { signal: AbortSignal.timeout(10000), cache: "no-store" },
     );
     if (!response.ok) return null;

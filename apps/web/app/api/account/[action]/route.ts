@@ -1,3 +1,4 @@
+import { apiUrl } from "../../../lib/api-url";
 import { validOrigin } from "../../../lib/origin";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -36,19 +37,16 @@ async function handle(
     const body = request.method === "GET" ? undefined : await request.text();
     if (body && body.length > 4096)
       return new Response("Request too large", { status: 413 });
-    const upstream = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:4000"}/account/${action}`,
-      {
-        method: request.method,
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body,
-        cache: "no-store",
-        signal: AbortSignal.timeout(10000),
+    const upstream = await fetch(apiUrl(`/account/${action}`), {
+      method: request.method,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-    );
+      body,
+      cache: "no-store",
+      signal: AbortSignal.timeout(10000),
+    });
     const result = await upstream.json();
     const session = result.token;
     delete result.token;

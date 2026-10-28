@@ -1,3 +1,4 @@
+import { apiUrl } from "../../../lib/api-url";
 import { NextRequest } from "next/server";
 export async function GET(
   request: NextRequest,
@@ -11,10 +12,10 @@ export async function GET(
   )
     return new Response("Not found", { status: 404 });
   try {
-    const response = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:4000"}/streams/${path[0]}/health`,
-      { cache: "no-store", signal: AbortSignal.timeout(6000) },
-    );
+    const response = await fetch(apiUrl(`/streams/${path[0]}/health`), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(6000),
+    });
     return Response.json(await response.json(), {
       status: response.status,
       headers: { "Cache-Control": "no-store" },

@@ -1,11 +1,12 @@
+import { apiUrl } from "../../lib/api-url";
 import { streamSourceSchema } from "@backinit/domain";
 import { z } from "zod";
 export async function GET() {
   try {
-    const response = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:4000"}/videos`,
-      { cache: "no-store", signal: AbortSignal.timeout(20000) },
-    );
+    const response = await fetch(apiUrl(`/videos`), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(20000),
+    });
     if (!response.ok) throw new Error();
     const body = z
       .object({
