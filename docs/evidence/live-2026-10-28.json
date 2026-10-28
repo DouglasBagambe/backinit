@@ -1,0 +1,171 @@
+{
+  "scope": "Local localhost playback only; no global availability or distribution-rights conclusion. Three distinct court sessions, not three sources of one match.",
+  "broadcasts": [
+    {
+      "id": "epxkdYuTSqU",
+      "sourceId": "bwf-court-1",
+      "at": "2026-10-28T10:48:08.246Z",
+      "first": {
+        "time": 10122.886503,
+        "width": 1280,
+        "height": 720,
+        "paused": false,
+        "ready": 4
+      },
+      "second": {
+        "time": 10126.899383,
+        "width": 1280,
+        "height": 720,
+        "paused": false,
+        "ready": 4
+      },
+      "check": {
+        "id": "bwf-court-1",
+        "version": 5,
+        "result": "passed",
+        "method": "provider-player",
+        "currentTime": 10118.926450026704,
+        "width": 0,
+        "height": 0,
+        "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "fingerprint": "3563e1d370cfe215ef41288d6141beadcc0997900b892a7ad2985fa196661eac",
+        "checkedAt": "2026-10-28T10:48:00.284Z"
+      }
+    },
+    {
+      "id": "RuP1j8VdMzA",
+      "sourceId": "bwf-court-2",
+      "at": "2026-10-28T10:49:47.606Z",
+      "first": {
+        "time": 10166.332338,
+        "width": 854,
+        "height": 480,
+        "paused": false,
+        "ready": 4
+      },
+      "second": {
+        "time": 10170.347686,
+        "width": 854,
+        "height": 480,
+        "paused": false,
+        "ready": 4
+      },
+      "check": {
+        "id": "bwf-court-2",
+        "version": 6,
+        "result": "passed",
+        "method": "provider-player",
+        "currentTime": 10163.490525011444,
+        "width": 0,
+        "height": 0,
+        "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "fingerprint": "004af89c5c6741f964fc1bd44690e86e461527dc2adb3766c8c6be2b91adcd2c",
+        "checkedAt": "2026-10-28T10:49:40.834Z"
+      }
+    },
+    {
+      "id": "VjHaBVMydKQ",
+      "sourceId": "bwf-court-3",
+      "at": "2026-10-28T10:50:12.230Z",
+      "first": {
+        "time": 10143.471199,
+        "width": 1280,
+        "height": 720,
+        "paused": false,
+        "ready": 4
+      },
+      "second": {
+        "time": 10147.478552,
+        "width": 1280,
+        "height": 720,
+        "paused": false,
+        "ready": 4
+      },
+      "check": {
+        "id": "bwf-court-3",
+        "version": 6,
+        "result": "passed",
+        "method": "provider-player",
+        "currentTime": 10138.698524977111,
+        "width": 0,
+        "height": 0,
+        "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.8078.4 Safari/537.36",
+        "fingerprint": "fe084361d84ac1585c1681a6798f5acd8c116024a98621f407266c37c70e5e48",
+        "checkedAt": "2026-10-28T10:50:03.438Z"
+      }
+    }
+  ],
+  "scoreChange": {
+    "first": {
+      "matchId": "185168",
+      "fileCapturedAt": "2026-10-28T10:27:19.303312+00:00",
+      "providerState": "in",
+      "competitors": [
+        {
+          "id": "11568-650",
+          "games": [3],
+          "name": "Constantin Frantzén / Robin Haase",
+          "homeAway": "away"
+        },
+        {
+          "id": "9992-2970",
+          "games": [1],
+          "name": "Mariano Navone / Alejandro Tabilo",
+          "homeAway": "home"
+        }
+      ]
+    },
+    "later": {
+      "id": "espn-tennis-atp-185168",
+      "status": "live",
+      "home": "Mariano Navone / Alejandro Tabilo",
+      "away": "Constantin Frantzén / Robin Haase",
+      "periods": [
+        {
+          "label": "Set 1",
+          "home": "3",
+          "away": "5"
+        }
+      ],
+      "fetchedAt": "2026-10-28T10:44:17.815Z"
+    }
+  },
+  "publicPlaybackAfterSdkReadyFix": [
+    {
+      "at": "2026-10-28T13:24:34.714Z",
+      "viewport": 1365,
+      "first": {
+        "time": 0,
+        "width": 0,
+        "height": 0,
+        "paused": false
+      },
+      "second": {
+        "time": 0,
+        "width": 0,
+        "height": 0,
+        "paused": false
+      },
+      "overflow": false,
+      "errors": []
+    },
+    {
+      "at": "2026-10-28T13:24:59.612Z",
+      "viewport": 390,
+      "first": {
+        "time": 19533.887664,
+        "width": 854,
+        "height": 480,
+        "paused": false
+      },
+      "second": {
+        "time": 19536.893031,
+        "width": 854,
+        "height": 480,
+        "paused": false
+      },
+      "overflow": false,
+      "errors": []
+    }
+  ]
+}

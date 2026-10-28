@@ -208,12 +208,14 @@ export function Player({
   }, [source, started, attempt, previewSource]);
   const embedState = useCallback((value: string) => {
     setState(value);
-    if (value === "Playing official video" && !reported.current) {
+  }, []);
+  const embedProgress = useCallback((seconds: number) => {
+    if (!reported.current) {
       reported.current = true;
       reportRef.current?.({
         result: "passed",
         method: "provider-player",
-        currentTime: 0,
+        currentTime: seconds,
         width: 0,
         height: 0,
       });
@@ -270,6 +272,7 @@ export function Player({
                   url={source.url}
                   title={source.name}
                   onState={embedState}
+                  onProgress={embedProgress}
                 />
               ) : (
                 <iframe

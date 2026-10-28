@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
       apiUrl(
         `/streams${event ? `?event=${event}` : library ? "?library=1" : ""}`,
       ),
-      { cache: "no-store", signal: AbortSignal.timeout(2000) },
+      { cache: "no-store", signal: AbortSignal.timeout(15000) },
     );
     if (!upstream.ok) throw new Error();
     return Response.json(

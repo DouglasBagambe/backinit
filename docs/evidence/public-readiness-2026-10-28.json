@@ -1,0 +1,63 @@
+{
+  "publicOrigin": "https://www.backinit.live",
+  "capturedDate": "2026-10-28",
+  "scope": "Read-only deployed origin observation before these changes; no public playback verified",
+  "responses": [
+    {
+      "path": "/",
+      "status": 200
+    },
+    {
+      "path": "/watch",
+      "status": 200
+    },
+    {
+      "path": "/scores",
+      "status": 200
+    },
+    {
+      "path": "/news",
+      "status": 200
+    },
+    {
+      "path": "/api/events",
+      "status": 200,
+      "edition": "real",
+      "count": 0,
+      "source": "Sports API unavailable \u00b7 no demo substitution",
+      "coverage": [
+        {
+          "provider": "Sports API",
+          "sport": "All",
+          "status": "unavailable",
+          "message": "Cannot reach the sports API. Try again shortly.",
+          "fetchedAt": null
+        }
+      ]
+    },
+    {
+      "path": "/api/watch",
+      "status": 503,
+      "count": 0,
+      "coverage": [],
+      "message": "Event discovery is temporarily unavailable. Please retry."
+    },
+    {
+      "path": "/api/streams?event=efl-20261028-liverpool-chelsea",
+      "status": 503,
+      "count": 0,
+      "message": "Source registry unavailable"
+    }
+  ],
+  "isolatedPublicModeProbe": {
+    "at": "2026-10-28T18:05:10.187Z",
+    "oldDemoCookieIgnored": true,
+    "demoApiRejected": true,
+    "demoSwitcherHidden": true,
+    "testPlayerNotFound": true,
+    "testStreamsHidden": true,
+    "demoCalendarNotFound": true,
+    "disabledProvidersReturnNoSnapshots": true,
+    "offlineBackendReturns503": true
+  }
+}

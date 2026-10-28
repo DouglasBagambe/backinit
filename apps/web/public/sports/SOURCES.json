@@ -68,5 +68,25 @@
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
     "author": "DanDectis; original photograph by Tage Olsin",
     "changes": "Resized to 96px WebP. Derivatives retain the stated source license."
+  },
+  {
+    "sport": "Badminton",
+    "file": "/sports/badminton.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Shuttlecock.png",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/5/5c/Shuttlecock.png",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "Aiolos; updated by Meidosensei",
+    "changes": "Resized to 96px WebP. Derivative retains the stated source license."
+  },
+  {
+    "sport": "Ice hockey",
+    "file": "/sports/ice-hockey.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Ice_hockey_stick_and_puck_20181220.jpg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/5/57/Ice_hockey_stick_and_puck_20181220.jpg",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "author": "Santeri Viinam\u00e4ki",
+    "changes": "Cropped square and resized to 96px WebP. Derivative retains the stated source license."
   }
 ]

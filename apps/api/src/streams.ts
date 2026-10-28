@@ -188,6 +188,10 @@ export class Streams {
         (s) =>
           sourceIsActive(s) &&
           sourceMatchesEvent(s, event) &&
+          !(
+            (s.presentation || "live") === "live" &&
+            ["finished", "cancelled"].includes(event.status)
+          ) &&
           this.compatible(s),
       )
       .map((s) => ({
@@ -262,6 +266,14 @@ export class Streams {
     )
       throw new BadRequestException(
         "No playback SDK is available for this source. Use operator observation for permitted frames.",
+      );
+    if (
+      body.data.result === "passed" &&
+      body.data.method === "provider-player" &&
+      body.data.currentTime <= 1
+    )
+      throw new BadRequestException(
+        "Advancing provider playback evidence is required.",
       );
     const report = {
       ...body.data,

@@ -1,19 +1,40 @@
 "use client";
 import { useEffect, useRef } from "react";
-import { youtube } from "../lib/youtube";
+import { youtube, type YouTubePlayer } from "../lib/youtube";
 export function OfficialEmbed({
   url,
   title,
   onState,
+  onProgress,
 }: {
   url: string;
   title: string;
   onState: (state: string) => void;
+  onProgress: (seconds: number) => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let disposed = false;
-    let player: { destroy(): void } | undefined;
+    let ready = false;
+    let player: YouTubePlayer | undefined;
+    let previous: number | undefined;
+    let advanced = 0;
+    const timer = setInterval(() => {
+      if (!player || !ready || disposed || player.getPlayerState() !== 1) {
+        previous = undefined;
+        advanced = 0;
+        return;
+      }
+      const seconds = player.getCurrentTime();
+      if (
+        previous !== undefined &&
+        seconds > previous &&
+        seconds - previous < 5
+      )
+        advanced += seconds - previous;
+      previous = seconds;
+      if (advanced >= 2) onProgress(seconds);
+    }, 1000);
     const container = host.current;
     void youtube()
       .then((api) => {
@@ -26,6 +47,7 @@ export function OfficialEmbed({
           playerVars: { playsinline: 1, origin: location.origin },
           events: {
             onReady: () => {
+              ready = true;
               if (!disposed) {
                 const frame = container.querySelector("iframe");
                 if (frame) {
@@ -63,9 +85,10 @@ export function OfficialEmbed({
       });
     return () => {
       disposed = true;
+      clearInterval(timer);
       player?.destroy();
       container?.replaceChildren();
     };
-  }, [url, title, onState]);
+  }, [url, title, onState, onProgress]);
   return <div className="official-embed" ref={host} aria-label={title} />;
 }

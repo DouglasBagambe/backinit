@@ -42,6 +42,36 @@ export const liveDetailSchema = z.object({
   goals: z.array(goalSchema).optional(),
   classification: z.array(classificationSchema).optional(),
   standings: z.array(standingSchema).optional(),
+  statistics: z
+    .array(z.object({ label: z.string(), home: z.string(), away: z.string() }))
+    .optional(),
+  periods: z
+    .array(z.object({ label: z.string(), home: z.string(), away: z.string() }))
+    .optional(),
+  lineups: z
+    .array(
+      z.object({
+        team: z.string(),
+        players: z.array(
+          z.object({
+            name: z.string(),
+            position: z.string().optional(),
+            starter: z.boolean().optional(),
+          }),
+        ),
+      }),
+    )
+    .optional(),
+  timeline: z
+    .array(
+      z.object({
+        id: z.string(),
+        clock: z.string(),
+        text: z.string(),
+        team: z.string().optional(),
+      }),
+    )
+    .optional(),
 });
 export const coverageSchema = z.object({
   provider: z.string(),
@@ -65,6 +95,8 @@ export const sports = [
   "American football",
   "Baseball",
   "Rugby",
+  "Badminton",
+  "Ice hockey",
 ] as const;
 export const sportSchema = z.enum(sports);
 export type Sport = z.infer<typeof sportSchema>;
@@ -83,7 +115,15 @@ export const baseSchema = z.object({
   sport: sportSchema,
   competition: z.string(),
   start: z.string().datetime(),
-  status: z.enum(["live", "upcoming", "finished"]),
+  status: z.enum([
+    "live",
+    "upcoming",
+    "finished",
+    "postponed",
+    "cancelled",
+    "suspended",
+    "unknown",
+  ]),
   provenance: z.enum(["demo", "provider"]),
   source: sourceSchema.optional(),
   detail: liveDetailSchema.optional(),

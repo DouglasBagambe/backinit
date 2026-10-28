@@ -25,8 +25,23 @@ it("keeps local development working without a binding", () => {
 });
 
 it("does not silently use localhost or a manually configured upstream on Vercel", () => {
+  vi.stubEnv("API_BACKEND", "");
   vi.stubEnv("VERCEL", "1");
   vi.stubEnv("API_INTERNAL_URL", "");
   vi.stubEnv("API_URL", "https://old-deployment.example");
   expect(() => apiUrl("events")).toThrow("Missing api service binding");
+});
+
+it("uses the explicitly selected external backend instead of an old binding", () => {
+  vi.stubEnv("VERCEL", "1");
+  vi.stubEnv("API_BACKEND", "external");
+  vi.stubEnv("API_INTERNAL_URL", "https://old-api.example/");
+  vi.stubEnv("API_URL", "https://backinit-api.onrender.com");
+  expect(apiUrl("/watch?date=2026-10-28").href).toBe(
+    "https://backinit-api.onrender.com/watch?date=2026-10-28",
+  );
+  vi.stubEnv("API_URL", "http://127.0.0.1:4000");
+  expect(() => apiUrl("events")).toThrow("Invalid API address");
+  vi.stubEnv("API_URL", "");
+  expect(() => apiUrl("events")).toThrow("Missing external API_URL");
 });

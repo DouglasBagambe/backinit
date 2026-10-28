@@ -56,7 +56,7 @@ export function Utility({
             <p>
               Coverage varies by sport. Schedule-only events have no connected
               live scores. Streams require a permitted source; listings do not
-              guarantee availability. Demo edition is separate.
+              guarantee availability.
             </p>
           </details>
         </div>

@@ -1,0 +1,263 @@
+{
+  "capturedAt": "2026-10-28T13:21:14.379Z",
+  "sports": [
+    "Football",
+    "Tennis",
+    "Formula 1",
+    "Badminton",
+    "Basketball",
+    "Ice hockey",
+    "Baseball",
+    "WWE",
+    "American football",
+    "Rugby",
+    "MMA"
+  ],
+  "recordCount": 1054,
+  "live": [
+    {
+      "id": "bwf-epxkdyutsqu",
+      "sport": "Badminton",
+      "title": "HYLO Open 2026 | Day 2 | Court 1 | Round of 32",
+      "fetchedAt": "2026-10-28T13:21:03.244Z"
+    },
+    {
+      "id": "bwf-rup1j8vdmza",
+      "sport": "Badminton",
+      "title": "HYLO Open 2026 | Day 2 | Court 2 | Round of 32",
+      "fetchedAt": "2026-10-28T13:21:03.318Z"
+    },
+    {
+      "id": "bwf-vjhabvmydkq",
+      "sport": "Badminton",
+      "title": "HYLO Open 2026 | Day 2 | Court 3 | Round of 32",
+      "fetchedAt": "2026-10-28T13:21:03.485Z"
+    },
+    {
+      "id": "espn-tennis-atp-185191",
+      "sport": "Tennis",
+      "title": "Tallon Griekspoor vs Brandon Nakashima",
+      "fetchedAt": "2026-10-28T13:21:04.399Z"
+    },
+    {
+      "id": "espn-tennis-atp-185189",
+      "sport": "Tennis",
+      "title": "Daniel Merida vs Daniil Medvedev",
+      "fetchedAt": "2026-10-28T13:21:04.399Z"
+    },
+    {
+      "id": "espn-tennis-wta-185833",
+      "sport": "Tennis",
+      "title": "Laura Mair vs Katarina Zavatska",
+      "fetchedAt": "2026-10-28T13:21:02.590Z"
+    },
+    {
+      "id": "espn-tennis-atp-185142",
+      "sport": "Tennis",
+      "title": "Remy Bertola vs Denis Shapovalov",
+      "fetchedAt": "2026-10-28T13:21:04.399Z"
+    },
+    {
+      "id": "espn-tennis-atp-185145",
+      "sport": "Tennis",
+      "title": "Nuno Borges vs Casper Ruud",
+      "fetchedAt": "2026-10-28T13:21:04.399Z"
+    },
+    {
+      "id": "espn-tennis-wta-185838",
+      "sport": "Tennis",
+      "title": "Elsa Jacquemot vs Caroline Werner",
+      "fetchedAt": "2026-10-28T13:21:02.590Z"
+    },
+    {
+      "id": "espn-tennis-wta-185745",
+      "sport": "Tennis",
+      "title": "Janice Tjen / Venus Williams vs Lyudmyla Kichenok / Makoto Ninomiya",
+      "fetchedAt": "2026-10-28T13:21:02.590Z"
+    }
+  ],
+  "coverage": [
+    {
+      "provider": "OpenLigaDB",
+      "sport": "Football",
+      "status": "available",
+      "message": "Bundesliga fixtures, results and goal events.",
+      "fetchedAt": "2026-10-28T13:19:07.100Z"
+    },
+    {
+      "provider": "Jolpica F1",
+      "sport": "Formula 1",
+      "status": "available",
+      "message": "Race schedule and latest classification; no live timing.",
+      "fetchedAt": "2026-10-28T13:21:04.207Z"
+    },
+    {
+      "provider": "EFL official schedule",
+      "sport": "Football",
+      "status": "available",
+      "message": "Official cup schedule; scores supplemented by ESPN when available.",
+      "fetchedAt": "2026-10-28T13:19:33.435Z"
+    },
+    {
+      "provider": "WWE official schedule",
+      "sport": "WWE",
+      "status": "available",
+      "message": "Automated official schedule only; no live results feed.",
+      "fetchedAt": "2026-10-28T13:20:04.668Z"
+    },
+    {
+      "provider": "BWF TV",
+      "sport": "Badminton",
+      "status": "available",
+      "message": "Official court-session broadcasts and publisher-reported live status; individual match scoring unavailable.",
+      "fetchedAt": "2026-10-28T13:21:03.125Z"
+    },
+    {
+      "provider": "ESPN:hockey/nhl",
+      "sport": "Ice hockey",
+      "status": "available",
+      "message": "NHL scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:02.318Z"
+    },
+    {
+      "provider": "ESPN:soccer/eng.league_cup",
+      "sport": "Football",
+      "status": "available",
+      "message": "Carabao Cup scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:02.329Z"
+    },
+    {
+      "provider": "ESPN:soccer/eng.1",
+      "sport": "Football",
+      "status": "available",
+      "message": "Premier League scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:02.012Z"
+    },
+    {
+      "provider": "ESPN:soccer/esp.1",
+      "sport": "Football",
+      "status": "available",
+      "message": "La Liga scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:01.983Z"
+    },
+    {
+      "provider": "ESPN:soccer/uefa.champions",
+      "sport": "Football",
+      "status": "available",
+      "message": "Champions League scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:01.987Z"
+    },
+    {
+      "provider": "ESPN:basketball/nba",
+      "sport": "Basketball",
+      "status": "available",
+      "message": "NBA scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:02.554Z"
+    },
+    {
+      "provider": "ESPN:basketball/wnba",
+      "sport": "Basketball",
+      "status": "available",
+      "message": "WNBA scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:01.982Z"
+    },
+    {
+      "provider": "ESPN:football/nfl",
+      "sport": "American football",
+      "status": "available",
+      "message": "NFL scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:02.306Z"
+    },
+    {
+      "provider": "ESPN:baseball/mlb",
+      "sport": "Baseball",
+      "status": "available",
+      "message": "MLB scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:02.328Z"
+    },
+    {
+      "provider": "ESPN:mma/ufc",
+      "sport": "MMA",
+      "status": "available",
+      "message": "UFC scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:02.287Z"
+    },
+    {
+      "provider": "ESPN:tennis/atp",
+      "sport": "Tennis",
+      "status": "available",
+      "message": "ATP scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:04.399Z"
+    },
+    {
+      "provider": "ESPN:tennis/wta",
+      "sport": "Tennis",
+      "status": "available",
+      "message": "WTA scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:02.590Z"
+    },
+    {
+      "provider": "ESPN:rugby/267979",
+      "sport": "Rugby",
+      "status": "available",
+      "message": "Premiership Rugby scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:02.301Z"
+    },
+    {
+      "provider": "ESPN:rugby/270559",
+      "sport": "Rugby",
+      "status": "available",
+      "message": "Top 14 scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T13:21:02.323Z"
+    },
+    {
+      "provider": "Cricket / boxing",
+      "sport": "Cricket · Boxing",
+      "status": "not-configured",
+      "message": "No reliable free live feed connected. No manually maintained fixtures are presented as current coverage.",
+      "fetchedAt": null
+    }
+  ],
+  "cup": [
+    {
+      "id": "efl-20261028-manchester-city-brighton-hove-albion",
+      "start": "2026-10-28T19:30:00.000Z",
+      "home": "Manchester City",
+      "away": "Brighton & Hove Albion",
+      "status": "upcoming",
+      "provider": "ESPN:soccer/eng.league_cup"
+    },
+    {
+      "id": "efl-20261028-bournemouth-aston-villa",
+      "start": "2026-10-28T19:45:00.000Z",
+      "home": "AFC Bournemouth",
+      "away": "Aston Villa",
+      "status": "upcoming",
+      "provider": "ESPN:soccer/eng.league_cup"
+    },
+    {
+      "id": "efl-20261028-fulham-crystal-palace",
+      "start": "2026-10-28T19:45:00.000Z",
+      "home": "Fulham",
+      "away": "Crystal Palace",
+      "status": "upcoming",
+      "provider": "ESPN:soccer/eng.league_cup"
+    },
+    {
+      "id": "efl-20261028-sunderland-brentford",
+      "start": "2026-10-28T19:45:00.000Z",
+      "home": "Sunderland",
+      "away": "Brentford",
+      "status": "upcoming",
+      "provider": "ESPN:soccer/eng.league_cup"
+    },
+    {
+      "id": "efl-20261028-liverpool-chelsea",
+      "start": "2026-10-28T20:00:00.000Z",
+      "home": "Liverpool",
+      "away": "Chelsea",
+      "status": "upcoming",
+      "provider": "ESPN:soccer/eng.league_cup"
+    }
+  ]
+}

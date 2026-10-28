@@ -26,6 +26,7 @@ export default defineConfig({
       command: "pnpm --filter @backinit/api start",
       env: {
         SPORTS_DATA_MODE: "demo",
+        ALLOW_DEMO_MODE: "true",
         SPORTS_PROVIDERS_DISABLED: "true",
         STREAM_ALLOWED_HOSTS: "media.backinit.test",
         PORT: String(apiPort),
@@ -40,6 +41,7 @@ export default defineConfig({
       command: `pnpm --filter @backinit/web start --port ${webPort}`,
       env: {
         SPORTS_DATA_MODE: "demo",
+        ALLOW_DEMO_MODE: "true",
         API_URL: apiOrigin,
         APP_ORIGIN: webOrigin,
       },

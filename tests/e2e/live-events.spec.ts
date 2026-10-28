@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { execFileSync } from "node:child_process";
+import { sports } from "../../packages/domain/src/index";
 import { verifiedCupFixtures } from "../../apps/api/src/providers/efl";
 const priority = "efl-20261028-liverpool-chelsea";
 async function real(page: Page, baseURL: string) {
@@ -118,7 +119,7 @@ test("compact discovery shows matches immediately and every sport stays reachabl
     expect(visibleRows).toBeGreaterThanOrEqual(3);
     await expect(page.locator(".sidebar")).toHaveCount(0);
     const images = page.locator(".sports-nav img");
-    await expect(images).toHaveCount(13);
+    await expect(images).toHaveCount(sports.length + 3);
     await expect
       .poll(() =>
         images.evaluateAll((nodes) =>
@@ -132,18 +133,7 @@ test("compact discovery shows matches immediately and every sport stays reachabl
       .toBe(true);
     await page.locator(".sports-picker > summary").click();
     const picker = page.getByRole("navigation", { name: "Choose sport" });
-    for (const sport of [
-      "Football",
-      "Basketball",
-      "Tennis",
-      "WWE",
-      "Formula 1",
-      "Cricket",
-      "MMA",
-      "American football",
-      "Baseball",
-      "Rugby",
-    ])
+    for (const sport of sports)
       await expect(
         picker.getByRole("link", { name: sport, exact: true }),
       ).toBeVisible();
@@ -199,7 +189,42 @@ test("admin sources require verification, match only their fixture, expose retry
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  // Isolated discovery candidate: exercises review without publishing or claiming live playback.
+  const candidate = {
+    id: "discovered-ci-court",
+    name: "Discovered CI court",
+    type: "embed",
+    url: "https://www.youtube-nocookie.com/embed/epxkdYuTSqU",
+    content: "sports",
+    eventId: priority,
+    presentation: "live",
+    rightsOwner: "CI publisher",
+    rightsEvidence: "https://example.test/rights",
+    validFrom: new Date(Date.now() - 1000).toISOString(),
+    validUntil: new Date(Date.now() + 3600000).toISOString(),
+    territory: "PROVIDER",
+    revoked: true,
+    version: 1,
+  };
+  await page.route("**/api/admin/fixtures", (route) =>
+    route.fulfill({
+      json: { data: verifiedCupFixtures, candidates: [candidate] },
+    }),
+  );
   await page.goto("/admin");
+  await page
+    .getByRole("button", { name: "Review Discovered CI court", exact: true })
+    .click();
+  await expect(page.getByLabel("Player URL", { exact: true })).toHaveValue(
+    candidate.url,
+  );
+  await expect(page.getByLabel("Event fixture", { exact: true })).toHaveValue(
+    priority,
+  );
+  const unsaved = await (await page.request.get("/api/admin/sources")).json();
+  expect(
+    unsaved.data.some((source: { id: string }) => source.id === candidate.id),
+  ).toBe(false);
   await page.getByRole("button", { name: "Add source", exact: true }).click();
   for (const [label, value] of Object.entries({
     "Source ID": "event-browser-a",
@@ -320,4 +345,45 @@ test("admin sources require verification, match only their fixture, expose retry
       await (await page.request.get(`/api/streams?event=${priority}`)).json()
     ).data.some((s: { id: string }) => s.id === fallback.id),
   ).toBe(false);
+});
+
+test("long-running provider-confirmed broadcasts remain discoverable across midnight", async ({
+  page,
+  baseURL,
+}) => {
+  await real(page, baseURL!);
+  await page.clock.setFixedTime(new Date("2026-10-28T12:00:00Z"));
+  const event = {
+    id: "live-long-court",
+    externalId: "court",
+    kind: "card",
+    sport: "Badminton",
+    competition: "Test contract only",
+    title: "Long-running court session",
+    start: "2026-10-27T21:00:00Z",
+    status: "live",
+    provenance: "provider",
+    bouts: [],
+    source: {
+      provider: "Browser test fixture",
+      url: "https://example.test/court",
+      license: "CI fixture only",
+      fetchedAt: "2026-10-28T12:00:00Z",
+      stale: false,
+    },
+  };
+  await page.route("**/api/watch*", (route) =>
+    route.fulfill({
+      json: {
+        data: [{ event, sources: [], availability: "unavailable" }],
+        coverage: [],
+        generatedAt: "2026-10-28T12:00:00Z",
+      },
+    }),
+  );
+  await page.goto("/watch");
+  await expect(page.locator(".live-event-list")).toContainText(event.title);
+  await page.getByRole("button", { name: "Live", exact: true }).click();
+  await expect(page.locator(".live-event-list")).toContainText(event.title);
+  await expect(page.locator(".live-event-list")).toContainText("No stream");
 });
