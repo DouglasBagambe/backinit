@@ -1,3 +1,4 @@
+import { demoEnabled } from "../../lib/edition";
 import { validOrigin } from "../../lib/origin";
 import { NextRequest, NextResponse } from "next/server";
 export async function POST(request: NextRequest) {
@@ -9,6 +10,11 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   if (body?.edition !== "demo" && body?.edition !== "real")
     return new Response("Invalid edition", { status: 400 });
+  if (body.edition === "demo" && !demoEnabled())
+    return Response.json(
+      { message: "Demo mode is disabled." },
+      { status: 403 },
+    );
   const response = NextResponse.json({ ok: true });
   response.cookies.set("backinit-edition", body.edition, {
     httpOnly: true,

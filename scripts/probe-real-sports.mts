@@ -4,6 +4,7 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { SportsService } from "../apps/api/src/providers/service.js";
+import { sourceCandidates } from "../apps/api/src/providers/source-candidates.js";
 const feed = await new SportsService().feed("real");
 const generatedAt = new Date().toISOString();
 const today = generatedAt.slice(0, 10);
@@ -18,29 +19,7 @@ const data = {
   live,
   coverage: feed.coverage,
   // Discovery is intentionally separate from playback verification/publication.
-  disabledSourceCandidates: live
-    .filter(
-      (e) =>
-        e.source?.provider === "BWF TV" &&
-        /^[\w-]{11}$/.test(e.externalId || ""),
-    )
-    .map((e) => ({
-      id: e.id,
-      name: e.kind === "card" ? e.title : e.id,
-      type: "embed",
-      url: `https://www.youtube-nocookie.com/embed/${e.externalId}`,
-      content: "sports",
-      eventId: e.id,
-      presentation: "live",
-      rightsOwner: "Badminton World Federation",
-      rightsEvidence:
-        "https://www.youtube.com/channel/UChh-akEbUM8_6ghGVnJd6cQ",
-      validFrom: generatedAt,
-      validUntil: new Date(Date.now() + 4 * 3600000).toISOString(),
-      territory: "PROVIDER",
-      revoked: true,
-      version: 1,
-    })),
+  disabledSourceCandidates: sourceCandidates(feed.data),
   warning:
     "A publisher live flag and an embed URL do not prove in-app playback. Source candidates require operator review and an actual browser playback check. Country restrictions remain enforced by the publisher.",
 };

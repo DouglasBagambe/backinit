@@ -1,19 +1,20 @@
+import { apiUrl } from "./api-url";
 import {
   DemoProvider,
   feedSchema,
   eventSchema,
   type EventFeed,
 } from "@backinit/domain";
+import { resolveEdition } from "./edition";
 export async function loadEvents(
-  edition: "real" | "demo" = process.env.SPORTS_DATA_MODE === "demo"
-    ? "demo"
-    : "real",
+  edition: "real" | "demo" = resolveEdition(),
 ): Promise<EventFeed> {
+  edition = resolveEdition(edition);
   try {
-    const response = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:4000"}/events?edition=${edition}`,
-      { signal: AbortSignal.timeout(20000), cache: "no-store" },
-    );
+    const response = await fetch(apiUrl(`/events?edition=${edition}`), {
+      signal: AbortSignal.timeout(20000),
+      cache: "no-store",
+    });
     if (!response.ok) throw new Error("Provider unavailable");
     const body = feedSchema.parse(await response.json());
     if (
@@ -49,9 +50,10 @@ export async function loadEvents(
   }
 }
 export async function loadEvent(id: string, edition: "real" | "demo") {
+  edition = resolveEdition(edition);
   try {
     const response = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:4000"}/events/${encodeURIComponent(id)}?edition=${edition}`,
+      apiUrl(`/events/${encodeURIComponent(id)}?edition=${edition}`),
       { signal: AbortSignal.timeout(20000), cache: "no-store" },
     );
     if (!response.ok) return null;

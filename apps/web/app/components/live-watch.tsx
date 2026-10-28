@@ -117,7 +117,8 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
       return (
         (!date || (day <= date && endDay >= date)) &&
         (range !== "today" ||
-          (day <= (date || today) && endDay >= (date || today))) &&
+          (day <= (date || today) && endDay >= (date || today)) ||
+          (!date && e.status === "live")) &&
         (range !== "live" || e.status === "live") &&
         (!available ||
           sources.some((s) => (s.presentation || "live") === "live")) &&
@@ -128,6 +129,7 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
         e.status !== "finished" &&
         (!!date || endDay >= today || e.status === "live") &&
         (!!date ||
+          e.status === "live" ||
           sources.length > 0 ||
           Date.parse(e.end || e.start) > Date.now() - 6 * 3600000)
       );

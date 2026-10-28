@@ -27,6 +27,31 @@ export function pageJson(html: string, marker: string): unknown {
   }
   throw new Error("Publisher metadata incomplete");
 }
+/** Keep only public event metadata in cache; discard playback payloads and tracking data. */
+export function broadcastMetadata(raw: unknown) {
+  const root = record(raw),
+    video = record(root.videoDetails);
+  const live = record(
+    record(record(root.microformat).playerMicroformatRenderer)
+      .liveBroadcastDetails,
+  );
+  return {
+    videoDetails: {
+      channelId: video.channelId,
+      title: video.title,
+      isUpcoming: video.isUpcoming,
+    },
+    microformat: {
+      playerMicroformatRenderer: {
+        liveBroadcastDetails: {
+          isLiveNow: live.isLiveNow,
+          startTimestamp: live.startTimestamp,
+          endTimestamp: live.endTimestamp,
+        },
+      },
+    },
+  };
+}
 function record(v: unknown): Record<string, unknown> {
   return v !== null && typeof v === "object"
     ? (v as Record<string, unknown>)
@@ -121,7 +146,8 @@ export class BwfProvider {
         const r = await this.cache.json(
           `https://www.youtube.com/watch?v=${id}`,
           30000,
-          (raw) => pageJson(String(raw), "ytInitialPlayerResponse"),
+          (raw) =>
+            broadcastMetadata(pageJson(String(raw), "ytInitialPlayerResponse")),
           { "User-Agent": "Mozilla/5.0" },
           (response) => response.text(),
         );

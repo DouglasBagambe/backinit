@@ -52,6 +52,7 @@ export function Experience({
   edition,
   coverage,
   news,
+  demoAvailable = false,
 }: {
   route: string;
   initialEvents: SportEvent[];
@@ -59,6 +60,7 @@ export function Experience({
   edition: "real" | "demo";
   coverage: Coverage[];
   news: NewsFeed | null;
+  demoAvailable?: boolean;
 }) {
   const events = initialEvents;
   const router = useRouter();
@@ -878,7 +880,7 @@ export function Experience({
                           text={
                             route === "favorites"
                               ? "Tap the star on any event to save it here."
-                              : "Try another date, search or sport. Real coverage is currently limited to Bundesliga and Formula 1."
+                              : "Try another date, search or sport. Check data coverage for provider availability."
                           }
                         />
                       ) : (
@@ -1008,7 +1010,7 @@ export function Experience({
                 </button>
               ))}
             </fieldset>
-            {real && (
+            {real && demoAvailable && (
               <button className="text-button" onClick={changeEdition}>
                 Demo edition
               </button>

@@ -1,3 +1,4 @@
+import { apiUrl } from "../../../lib/api-url";
 import { validOrigin } from "../../../lib/origin";
 import { cookies } from "next/headers";
 import { NextRequest } from "next/server";
@@ -24,7 +25,9 @@ async function handle(
     return new Response("Request too large", { status: 413 });
   try {
     const response = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:4000"}/admin/${action}${action === "source-check" && request.method === "GET" ? `?id=${encodeURIComponent(request.nextUrl.searchParams.get("id") || "")}` : ""}`,
+      apiUrl(
+        `/admin/${action}${action === "source-check" && request.method === "GET" ? `?id=${encodeURIComponent(request.nextUrl.searchParams.get("id") || "")}` : ""}`,
+      ),
       {
         method: request.method,
         headers: {

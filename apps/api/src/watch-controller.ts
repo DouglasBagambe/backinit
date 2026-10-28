@@ -18,7 +18,8 @@ export class WatchController {
     const data = feed.data
       .filter(
         (e) =>
-          Date.parse(e.end || e.start) >= now - 86400000 &&
+          (e.status === "live" ||
+            Date.parse(e.end || e.start) >= now - 86400000) &&
           Date.parse(e.start) <= now + 14 * 86400000,
       )
       .map((event) => {

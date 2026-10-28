@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   eventTitle,
+  sourceIsActive,
   type SportEvent,
   type StreamSource,
   type PlaybackReport,
@@ -34,6 +35,7 @@ export function Admin() {
   const [sources, setSources] = useState<StreamSource[]>([]);
   const [fixtures, setFixtures] = useState<SportEvent[]>([]);
   const [checks, setChecks] = useState<Record<string, Check | null>>({});
+  const [candidates, setCandidates] = useState<StreamSource[]>([]);
   const [selected, setSelected] = useState<StreamSource | null>(null);
   const [preview, setPreview] = useState<StreamSource | null>(null);
   const [probe, setProbe] = useState("");
@@ -59,7 +61,11 @@ export function Admin() {
       fetch("/api/admin/fixtures", { cache: "no-store" }),
     ]);
     if (log.ok) setAudit((await log.json()).data);
-    if (events.ok) setFixtures((await events.json()).data);
+    if (events.ok) {
+      const feed = await events.json();
+      setFixtures(feed.data);
+      setCandidates(feed.candidates || []);
+    }
   }, []);
   useEffect(() => {
     void load().catch(() => setMessage("Administration service unavailable."));
@@ -93,6 +99,15 @@ export function Admin() {
     },
     [preview],
   );
+  const reviewCandidates = candidates.flatMap((candidate) => {
+    const existing = sources.find((source) => source.url === candidate.url);
+    if (existing && sourceIsActive(existing)) return [];
+    return [
+      existing
+        ? { ...candidate, id: existing.id, version: existing.version }
+        : candidate,
+    ];
+  });
   const saved = sources.find((s) => s.id === selected?.id);
   const canEnable =
     !!selected &&
@@ -143,6 +158,34 @@ export function Admin() {
         </section>
       ) : (
         <>
+          {reviewCandidates.length > 0 && (
+            <section
+              className="panel"
+              aria-label="Discovered broadcast candidates"
+            >
+              <h2>Discovered broadcasts</h2>
+              <p>
+                Publisher listings. Review rights, save disabled, then verify
+                playback.
+              </p>
+              {reviewCandidates.map((candidate) => (
+                <div className="source-row" key={candidate.id}>
+                  <div>
+                    <strong>{candidate.name}</strong>
+                    <p>Unverified · {candidate.rightsOwner}</p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelected(candidate);
+                      setPreview(null);
+                    }}
+                  >
+                    Review {candidate.name}
+                  </button>
+                </div>
+              ))}
+            </section>
+          )}
           <section className="panel">
             <div className="section-heading">
               <h2>Configured sources</h2>

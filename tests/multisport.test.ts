@@ -275,3 +275,78 @@ it("resolves an older match from a summary header without requiring scoreboard-o
   expect(await p.lookup("espn-unknown-host-42")).toBeUndefined();
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it("offers only fresh publisher-identified live broadcasts as disabled candidates", async () => {
+  const { sourceCandidates } =
+    await import("../apps/api/src/providers/source-candidates");
+  const now = Date.parse(at);
+  const live = normalizeBwf(
+    {
+      videoDetails: {
+        title: "Live court",
+        channelId: "UChh-akEbUM8_6ghGVnJd6cQ",
+      },
+      microformat: {
+        playerMicroformatRenderer: {
+          liveBroadcastDetails: { isLiveNow: true, startTimestamp: at },
+        },
+      },
+    },
+    "epxkdYuTSqU",
+    at,
+    false,
+  )!;
+  expect(sourceCandidates([live], now)).toMatchObject([
+    {
+      content: "sports",
+      eventId: live.id,
+      fixtureRef: { externalId: "epxkdYuTSqU", provider: "BWF TV" },
+      type: "embed",
+      revoked: true,
+      territory: "PROVIDER",
+      url: "https://www.youtube-nocookie.com/embed/epxkdYuTSqU",
+    },
+  ]);
+  expect(sourceCandidates([live], now + 121000)).toEqual([]);
+  for (const status of ["finished", "unknown", "upcoming"] as const)
+    expect(sourceCandidates([{ ...live, status }], now)).toEqual([]);
+  expect(
+    sourceCandidates(
+      [{ ...live, source: { ...live.source!, stale: true } }],
+      now,
+    ),
+  ).toEqual([]);
+  expect(
+    sourceCandidates(
+      [
+        {
+          ...live,
+          source: { ...live.source!, url: "https://example.test/impostor" },
+        },
+      ],
+      now,
+    ),
+  ).toEqual([]);
+});
+it("retains only event metadata from publisher pages", async () => {
+  const { broadcastMetadata } = await import("../apps/api/src/providers/bwf");
+  const meta = broadcastMetadata({
+    videoDetails: {
+      title: "Court",
+      channelId: "official",
+      tracking: "discard",
+    },
+    streamingData: { ignored: true },
+    microformat: {
+      playerMicroformatRenderer: {
+        liveBroadcastDetails: { isLiveNow: true, startTimestamp: at },
+      },
+    },
+  });
+  expect(meta.videoDetails).toMatchObject({
+    title: "Court",
+    channelId: "official",
+  });
+  expect(JSON.stringify(meta)).not.toContain("streamingData");
+  expect(JSON.stringify(meta)).not.toContain("tracking");
+});

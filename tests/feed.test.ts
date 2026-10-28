@@ -1,7 +1,11 @@
-import { afterEach, describe, it, expect, vi } from "vitest";
+import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 import { loadEvents, loadEvent } from "../apps/web/app/lib/feed";
 import { events } from "../packages/domain/src/index";
-afterEach(() => vi.unstubAllGlobals());
+beforeEach(() => vi.stubEnv("ALLOW_DEMO_MODE", "true"));
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
+});
 describe("server feed boundary", () => {
   it("uses validated API events when available", async () => {
     vi.stubGlobal(
@@ -55,4 +59,19 @@ it("never substitutes demo data in the real edition", async () => {
 it("rejects demo provenance on real event detail requests", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(Response.json(events[0])));
   expect(await loadEvent(events[0]!.id, "real")).toBeNull();
+});
+it("forces real data for an old demo preference on a public installation", async () => {
+  vi.stubEnv("ALLOW_DEMO_MODE", undefined);
+  const fetcher = vi.fn().mockResolvedValue(
+    Response.json({
+      data: events,
+      source: "Wrong demo server",
+      edition: "demo",
+      coverage: [],
+    }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const result = await loadEvents("demo");
+  expect(result).toMatchObject({ edition: "real", data: [] });
+  expect(String(fetcher.mock.calls[0][0])).toContain("edition=real");
 });

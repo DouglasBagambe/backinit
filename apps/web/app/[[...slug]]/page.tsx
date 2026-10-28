@@ -1,3 +1,4 @@
+import { demoEnabled } from "../lib/edition";
 import { notFound } from "next/navigation";
 import { sports } from "@backinit/domain";
 import { cookies } from "next/headers";
@@ -11,6 +12,7 @@ export default async function Page({
 }) {
   const { slug = [] } = await params;
   const route = slug.join("/");
+  if (route === "playback" && !demoEnabled()) notFound();
   const pages = [
     "",
     "live",
@@ -73,6 +75,7 @@ export default async function Page({
       edition={feed.edition}
       coverage={feed.coverage}
       news={news}
+      demoAvailable={demoEnabled()}
     />
   );
 }

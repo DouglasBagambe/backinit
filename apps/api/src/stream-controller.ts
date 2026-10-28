@@ -11,6 +11,7 @@ import { service } from "./providers/service.js";
 import { NotFoundException, BadRequestException } from "@nestjs/common";
 import { accounts } from "./account-controller.js";
 import { Streams } from "./streams.js";
+import { sourceCandidates } from "./providers/source-candidates.js";
 export const streams = new Streams(accounts);
 @Controller()
 export class StreamController {
@@ -22,7 +23,12 @@ export class StreamController {
       const fixture = await service.fixture(event, "real");
       return { data: fixture ? streams.forEvent(fixture) : [] };
     }
-    return { data: streams.public(undefined, library === "1") };
+    return {
+      data:
+        library === "1" || process.env.ALLOW_DEMO_MODE === "true"
+          ? streams.public(undefined, library === "1")
+          : [],
+    };
   }
   @Get("streams/:id/health") health(@Param("id") id: string) {
     return streams.health(id);
@@ -65,7 +71,8 @@ export class StreamController {
     @Headers("authorization") auth?: string,
   ) {
     accounts.admin(auth);
-    return service.feed("real");
+    const feed = await service.feed("real");
+    return { ...feed, candidates: sourceCandidates(feed.data) };
   }
   @Get("admin/source-check") check(
     @Query("id") id: string,

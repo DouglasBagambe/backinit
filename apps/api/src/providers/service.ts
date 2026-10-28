@@ -1,3 +1,4 @@
+import { ForbiddenException } from "@nestjs/common";
 import {
   DemoProvider,
   type EventFeed,
@@ -25,12 +26,33 @@ export class SportsService {
     edition: "real" | "demo" = "real",
     date = new Date().toISOString().slice(0, 10),
   ): Promise<EventFeed> {
+    if (edition === "demo" && process.env.ALLOW_DEMO_MODE !== "true")
+      throw new ForbiddenException("Demo mode is disabled.");
     if (edition === "demo")
       return {
         data: await new DemoProvider().getEvents(),
         source: "Demo API connected",
         edition,
         coverage: [],
+      };
+    if (
+      process.env.SPORTS_PROVIDERS_DISABLED === "true" &&
+      process.env.NODE_ENV !== "test"
+    )
+      return {
+        data: [],
+        edition: "real",
+        source: "Provider ingestion disabled",
+        coverage: [
+          {
+            provider: "Sports providers",
+            sport: "All",
+            status: "unavailable",
+            message:
+              "Provider ingestion is disabled. No fixture snapshots are substituted.",
+            fetchedAt: null,
+          },
+        ],
       };
     if (process.env.SPORTS_PROVIDERS_DISABLED === "true")
       return {

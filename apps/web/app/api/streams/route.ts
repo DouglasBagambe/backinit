@@ -1,3 +1,4 @@
+import { apiUrl } from "../../lib/api-url";
 import { streamSourceSchema } from "@backinit/domain";
 import { NextRequest } from "next/server";
 import { z } from "zod";
@@ -8,7 +9,9 @@ export async function GET(request: NextRequest) {
     return new Response("Invalid event", { status: 400 });
   try {
     const upstream = await fetch(
-      `${process.env.API_URL || "http://127.0.0.1:4000"}/streams${event ? `?event=${event}` : library ? "?library=1" : ""}`,
+      apiUrl(
+        `/streams${event ? `?event=${event}` : library ? "?library=1" : ""}`,
+      ),
       { cache: "no-store", signal: AbortSignal.timeout(15000) },
     );
     if (!upstream.ok) throw new Error();

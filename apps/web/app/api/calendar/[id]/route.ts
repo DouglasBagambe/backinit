@@ -1,3 +1,4 @@
+import { resolveEdition } from "../../../lib/edition";
 import { cookies } from "next/headers";
 import { loadEvent } from "../../../lib/feed";
 import { eventTitle } from "@backinit/domain";
@@ -15,14 +16,7 @@ export async function GET(
   if (!/^[a-z0-9-]{1,80}$/.test(id))
     return new Response("Invalid event", { status: 400 });
   const selected = (await cookies()).get("backinit-edition")?.value;
-  const edition =
-    selected === "demo"
-      ? "demo"
-      : selected === "real"
-        ? "real"
-        : process.env.SPORTS_DATA_MODE === "demo"
-          ? "demo"
-          : "real";
+  const edition = resolveEdition(selected);
   const event = await loadEvent(id, edition);
   if (!event) return new Response("Event unavailable", { status: 404 });
   const stamp = (value: string) =>

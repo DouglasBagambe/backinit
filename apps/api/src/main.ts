@@ -31,7 +31,12 @@ import { NewsService } from "./providers/news.js";
 const news = new NewsService();
 const editionSchema = z
   .enum(["real", "demo"])
-  .default(process.env.SPORTS_DATA_MODE === "demo" ? "demo" : "real");
+  .default(
+    process.env.ALLOW_DEMO_MODE === "true" &&
+      process.env.SPORTS_DATA_MODE === "demo"
+      ? "demo"
+      : "real",
+  );
 @Controller()
 class SportsController {
   @Get("news") news() {
@@ -41,9 +46,10 @@ class SportsController {
     return {
       status: "ok",
       provider:
+        process.env.ALLOW_DEMO_MODE === "true" &&
         process.env.SPORTS_DATA_MODE === "demo"
           ? "demo"
-          : "OpenLigaDB / Jolpica",
+          : "Automated sports providers",
       realTime: false,
     };
   }
@@ -94,7 +100,11 @@ class SportsUpdates implements OnModuleInit, OnModuleDestroy {
   private timer?: ReturnType<typeof setInterval>;
   private running = false;
   onModuleInit() {
-    if (process.env.SPORTS_DATA_MODE === "demo") return;
+    if (
+      process.env.ALLOW_DEMO_MODE === "true" &&
+      process.env.SPORTS_DATA_MODE === "demo"
+    )
+      return;
     void this.poll();
     this.timer = setInterval(() => void this.poll(), 30000);
     this.timer.unref();
