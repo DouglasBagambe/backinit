@@ -39,7 +39,8 @@ describe("deployed backend routing", () => {
     vi.stubEnv("VERCEL", "1");
     vi.stubEnv("API_INTERNAL_URL", undefined);
     vi.stubEnv("API_URL", undefined);
-    expect(() => apiUrl("/events")).toThrow("Configure API");
+    expect(() => apiUrl("/events")).toThrow("Missing api service binding");
+    vi.stubEnv("VERCEL", "");
     vi.stubEnv("API_URL", "https://api.example.test");
     expect(apiUrl("/events").origin).toBe("https://api.example.test");
     expect(() => apiUrl("//untrusted.example.test")).toThrow(

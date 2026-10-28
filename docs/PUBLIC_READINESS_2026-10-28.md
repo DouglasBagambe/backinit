@@ -23,7 +23,7 @@ Browser screenshots: `artifacts/public-audit-home.png`, `artifacts/public-audit-
 - Public users cannot select the test-player route or list test streams by default. The test fixtures remain available in isolated tests and secured operator tools; they are not public sporting content.
 - Paused provider ingestion outside `NODE_ENV=test` returns empty unavailable coverage, rather than the test installation's fixed official fixture snapshots.
 - `/api/events` now returns HTTP 503 on backend failure instead of an empty 200 response that could look healthy.
-- All server-side API calls resolve the same backend address: `API_INTERNAL_URL` first, then `API_URL`. Vercel without either fails explicitly instead of attempting localhost. Private service path prefixes are preserved. This does not create or deploy a backend.
+- All server-side API calls resolve the same backend address: the injected `API_INTERNAL_URL` on Vercel, or `API_URL` for local/separately hosted installations. Vercel without either fails explicitly instead of attempting localhost. Private service path prefixes are preserved. This does not create or deploy a backend.
 - Admin fixture responses include fresh, official BWF source candidates. Review fills the source form but does not save, verify or publish it. New sources remain disabled. Expired existing source URLs can be reviewed for renewal without creating a duplicate identity.
 - Provider-confirmed live sessions stay visible after six hours and across midnight. No elapsed-time rule invents live status.
 - BWF caches retain selected event metadata only, discarding unrelated playback/tracking payloads.
@@ -33,12 +33,12 @@ Browser screenshots: `artifacts/public-audit-home.png`, `artifacts/public-audit-
 
 The frontend needs a reachable Nest API. The API hosting location was not discoverable through the connected Vercel account, and a request for the backend service URL/project name is pending. The fact that a frontend domain is publicly reachable does not establish that the Nest service is running or bound correctly.
 
-Set one of these on the web deployment, using the actual deployed API address rather than localhost:
+Use the deployment model already configured in `vercel.json`. Import the repository root so both services are built, and use the generated binding rather than localhost:
 
 - `API_INTERNAL_URL`: injected private service URL when using service bindings.
-- `API_URL`: reachable separately hosted API base URL.
+- `API_URL`: local/separately hosted runtime only. On Vercel, the Services configuration requires its injected binding and deliberately ignores manually set API_URL values.
 
-The API must retain a real persistent database for accounts and source configuration. The current SQLite topology requires one API instance and an absolute `DATABASE_PATH` on persistent storage; ephemeral function storage does not satisfy this. See [database operation](DATABASE.md). No paid resource, database migration or hosting topology change has been provisioned.
+The API must retain a real persistent database for accounts and source configuration. The current SQLite topology requires one API instance and an absolute `DATABASE_PATH` on persistent storage; ephemeral function storage does not satisfy this. See [database operation](DATABASE.md). No paid resource, database migration or hosting topology change has been provisioned. PR #2's Vercel Services configuration was merged into main externally during this continuation and has been incorporated into this feature branch; its documented durable-state blocker remains.
 
 Local SQLite sources/checks do not travel with a frontend deployment. Public playback requires source records on the deployed API, correct validity windows/territories and actual browser verification on the public origin. BWF's standard embeds preserve publisher restrictions. Liverpool–Chelsea and the other cup fixtures still have no verified public in-page source.
 
