@@ -10,6 +10,7 @@ Watch leads with live/upcoming event discovery and dedicated event viewing pages
 - [Provider and infrastructure research](docs/RESEARCH.md)
 - [Tonight’s fixtures and live viewing status](docs/LIVE_VIEWING_2026-10-28.md)
 - [Free viewing destinations and stream acquisition](docs/STREAMS.md)
+- [Vercel Services configuration and storage blocker](docs/VERCEL.md)
 - [Database operation and migration strategy](docs/DATABASE.md)
 - [Verification evidence](docs/VERIFICATION.md)
 
