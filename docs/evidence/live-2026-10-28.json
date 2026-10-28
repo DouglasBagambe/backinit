@@ -132,34 +132,34 @@
   },
   "publicPlaybackAfterSdkReadyFix": [
     {
-      "at": "2026-10-28T10:52:32.082Z",
+      "at": "2026-10-28T13:24:34.714Z",
       "viewport": 1365,
       "first": {
         "time": 0,
         "width": 0,
         "height": 0,
-        "paused": true
+        "paused": false
       },
       "second": {
         "time": 0,
         "width": 0,
         "height": 0,
-        "paused": true
+        "paused": false
       },
       "overflow": false,
       "errors": []
     },
     {
-      "at": "2026-10-28T10:52:55.546Z",
+      "at": "2026-10-28T13:24:59.612Z",
       "viewport": 390,
       "first": {
-        "time": 10407.771601,
+        "time": 19533.887664,
         "width": 854,
         "height": 480,
         "paused": false
       },
       "second": {
-        "time": 10410.792036,
+        "time": 19536.893031,
         "width": 854,
         "height": 480,
         "paused": false
