@@ -4,7 +4,7 @@ import { useState } from "react";
 import { eventTitle, type SportEvent } from "@backinit/domain";
 import { LazyPlayer as Player } from "./lazy-player";
 import { RealDetail } from "./real-detail";
-import { Crest } from "./marks";
+import { Crest, SportMark } from "./marks";
 import { localStart, localDay, useViewingZone } from "../lib/viewing-time";
 export function EventViewing({
   event,
@@ -39,20 +39,34 @@ export function EventViewing({
   return (
     <div className="event-viewing">
       <Link className="back-link" href="/watch">
-        ← All live & upcoming events
+        ← All events
       </Link>
       <header className="event-viewing-header">
         <span className="eyebrow">
-          {event.sport} · {event.competition}
+          <SportMark name={event.sport} /> {event.competition}
         </span>
         <h1>
           {event.kind === "score" ? (
             <>
-              <Crest name={event.home} />
+              <Crest
+                name={event.home}
+                imageUrl={
+                  event.kind === "score"
+                    ? event.homeParticipant?.imageUrl
+                    : undefined
+                }
+              />
               {event.home}
               <span className="muted"> vs </span>
               {event.away}
-              <Crest name={event.away} />
+              <Crest
+                name={event.away}
+                imageUrl={
+                  event.kind === "score"
+                    ? event.awayParticipant?.imageUrl
+                    : undefined
+                }
+              />
             </>
           ) : (
             eventTitle(event)
@@ -61,15 +75,16 @@ export function EventViewing({
         <p>
           <time dateTime={event.start}>
             {event.timeConfirmed === false
-              ? "Date / tournament week · time not confirmed"
+              ? "Date only"
               : localStart(event.start, zone)}
           </time>{" "}
-          · {zone} · {event.detail?.venue || "Venue not supplied"}
+          · {zone}
+          {event.detail?.venue ? ` · ${event.detail.venue}` : ""}
         </p>
         <div className="event-header-actions">
           {favorite}
-          <a href="#official-viewing">Official viewing options ↓</a>
-          <a href={`/api/calendar/${event.id}`}>Add to calendar ↗</a>
+          <a href="#official-viewing">Viewing options ↓</a>
+          <a href={`/api/calendar/${event.id}`}>Calendar ↗</a>
           <Link href={`/match/${event.id}`}>Match Centre ↗</Link>
         </div>
       </header>
@@ -77,11 +92,7 @@ export function EventViewing({
         <div className="event-viewing-main">
           <Player key={event.id} eventId={event.id} />
           <section className="panel viewing-options" id="official-viewing">
-            <h2>Official viewing options</h2>
-            <p>
-              These links open only when you choose them. They are broadcaster
-              or club destinations, not streams embedded by BackInIt.
-            </p>
+            <h2>Viewing options</h2>
             {event.viewingLinks?.length ? (
               event.viewingLinks.map((link) => (
                 <article key={link.url + link.label}>
@@ -90,35 +101,38 @@ export function EventViewing({
                     <span className="pill">
                       {link.countries.length
                         ? link.countries.join(" / ")
-                        : "Provider territory rules"}{" "}
+                        : "Regional access"}{" "}
                       ·{" "}
                       {link.access === "audio"
-                        ? "AUDIO / UPDATES"
+                        ? "Audio / updates"
                         : link.access === "information"
-                          ? "INFORMATION"
+                          ? "Information"
                           : link.access === "free-account"
-                            ? "FREE ACCOUNT"
-                            : "SUBSCRIPTION"}{" "}
+                            ? "Free account"
+                            : "Subscription"}{" "}
                       ·{" "}
                       {link.confirmation === "confirmed"
-                        ? "COVERAGE CONFIRMED"
-                        : "CHECK SCHEDULE"}
+                        ? "Confirmed"
+                        : "Check schedule"}
                     </span>
-                    <p>{link.note}</p>
-                    <small>
-                      Checked{" "}
-                      {new Date(link.checkedAt).toLocaleDateString("en-GB", {
-                        timeZone: zone,
-                      })}{" "}
-                      ·{" "}
-                      <a
-                        href={link.evidenceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Evidence ↗
-                      </a>
-                    </small>
+                    <details className="viewing-note">
+                      <summary>Access details</summary>
+                      <p>{link.note}</p>
+                      <small>
+                        Checked{" "}
+                        {new Date(link.checkedAt).toLocaleDateString("en-GB", {
+                          timeZone: zone,
+                        })}{" "}
+                        ·{" "}
+                        <a
+                          href={link.evidenceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Evidence ↗
+                        </a>
+                      </small>
+                    </details>
                   </div>
                   <a
                     className="back-link"
@@ -126,15 +140,12 @@ export function EventViewing({
                     target="_blank"
                     rel="noreferrer"
                   >
-                    Open official site ↗
+                    Visit site ↗
                   </a>
                 </article>
               ))
             ) : (
-              <p>
-                No event-specific broadcaster has been confirmed. We will not
-                substitute a replay, test film or unrelated feed.
-              </p>
+              <p>No viewing options confirmed.</p>
             )}
           </section>
           <section className="panel event-supporting">
@@ -163,11 +174,11 @@ export function EventViewing({
             <div className="event-data-summary">
               <h2>
                 {event.status === "live"
-                  ? "Provider reports live"
+                  ? "Live"
                   : event.scheduleOnly
-                    ? "Official fixture · schedule only"
+                    ? "Schedule only"
                     : event.status === "finished"
-                      ? "Reported result"
+                      ? "Result"
                       : "Event information"}
               </h2>
               {event.kind === "score" && (
@@ -177,8 +188,8 @@ export function EventViewing({
               )}
               <p>
                 {event.scheduleOnly
-                  ? "Live scores, lineups, statistics and match events are not connected for this fixture. A scheduled start is never used to invent live status."
-                  : "Details below reflect the provider’s latest available snapshot."}
+                  ? "Live match data unavailable."
+                  : "Latest available match data."}
               </p>
               {event.source && (
                 <p className="fine">
@@ -190,34 +201,32 @@ export function EventViewing({
                 </p>
               )}
             </div>
-            <RealDetail
-              key={event.id + tab}
-              event={event}
-              tab={tab}
-              hidePlayer
-            />
+            {(!event.scheduleOnly || tab !== "Overview") && (
+              <RealDetail
+                key={event.id + tab}
+                event={event}
+                tab={tab}
+                hidePlayer
+              />
+            )}
           </section>
         </div>
         <aside className="event-switcher">
-          <h2>Switch event</h2>
-          <p className="fine">
-            {zone} · Listings do not imply stream availability.
-          </p>
+          <h2>More events</h2>
+
           {related.map((e) => (
             <Link key={e.id} href={`/watch/${e.id}`}>
               <small>
                 {e.sport} ·{" "}
                 {e.timeConfirmed === false
-                  ? "Tournament / matchday · time not confirmed"
+                  ? "Date only"
                   : localStart(e.start, zone)}
               </small>
               <strong>{eventTitle(e)}</strong>
               <span>{e.scheduleOnly ? "Schedule only" : "Open event"} →</span>
             </Link>
           ))}
-          {!related.length && (
-            <p>No other verified fixtures are available in this period.</p>
-          )}
+          {!related.length && <p>No upcoming events.</p>}
         </aside>
       </div>
     </div>

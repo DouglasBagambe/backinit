@@ -19,7 +19,7 @@ export function RealDetail({
     return (
       <Empty
         title={`${tab} unavailable for this feed.`}
-        text="The provider does not supply these details. No illustrative values are substituted."
+        text="No data available."
       />
     );
   if (event.kind === "card")
@@ -41,8 +41,8 @@ export function RealDetail({
         ) : (
           <p>
             {["WWE", "MMA"].includes(event.sport)
-              ? "No verified bout card or live results are connected. Published featured performers are not treated as confirmed match bookings."
-              : "Individual fixtures, live scoring and order of play are not supplied by this schedule snapshot."}
+              ? "Card not announced."
+              : "Order of play unavailable."}
           </p>
         )}
       </section>
@@ -54,18 +54,14 @@ export function RealDetail({
         <p>
           {event.detail?.round} · {event.detail?.venue}
         </p>
-        <p>
-          Period-by-period scoring, event tracking and detailed statistics are
-          not connected for this fixture. No football timeline or invented
-          values are substituted.
-        </p>
+        <p>Detailed match data unavailable.</p>
       </section>
     );
   if (event.scheduleOnly && tab !== "Overview")
     return (
       <Empty
         title={`${tab} not connected for this fixture.`}
-        text="This source confirms the schedule only. Live data requires a separate event-data integration."
+        text="Schedule only."
       />
     );
   if (event.kind === "race")
@@ -173,8 +169,7 @@ export function RealDetail({
               <p>No goal events have been reported for this fixture.</p>
             )}
             <p className="fine">
-              Discrete provider events. Ball coordinates, attack direction and
-              momentum are unavailable; no positional animation is inferred.
+              Goal events only. Live positioning unavailable.
             </p>
           </section>
         )}

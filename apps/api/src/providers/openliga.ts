@@ -3,8 +3,13 @@ import {
   eventSchema,
   type SportEvent,
 } from "../../../../packages/domain/src/index.js";
+import { safeTeamImage } from "./identities.js";
 import { ProviderCache } from "./cache.js";
-const team = z.object({ teamId: z.number(), teamName: z.string() });
+const team = z.object({
+  teamId: z.number(),
+  teamName: z.string(),
+  teamIconUrl: z.string().nullable().optional(),
+});
 const match = z.object({
   matchID: z.number(),
   matchDateTimeUTC: z.string().datetime(),
@@ -75,6 +80,18 @@ export function normalizeFootball(
         provenance: "provider",
         home: m.team1.teamName,
         away: m.team2.teamName,
+        homeParticipant: {
+          id: String(m.team1.teamId),
+          provider: "OpenLigaDB",
+          name: m.team1.teamName,
+          imageUrl: safeTeamImage(m.team1.teamIconUrl || undefined),
+        },
+        awayParticipant: {
+          id: String(m.team2.teamId),
+          provider: "OpenLigaDB",
+          name: m.team2.teamName,
+          imageUrl: safeTeamImage(m.team2.teamIconUrl || undefined),
+        },
         homeScore: result?.pointsTeam1 ?? null,
         awayScore: result?.pointsTeam2 ?? null,
         clock: m.matchIsFinished

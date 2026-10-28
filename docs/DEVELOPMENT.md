@@ -87,3 +87,5 @@ CI=1 VERIFY_EXTERNAL_MEDIA=true E2E_WEB_PORT=3300 E2E_API_PORT=4300 pnpm exec pl
 ```
 
 The latter starts isolated production servers/database and verifies authenticated admin checks using actual permitted test-media decoding. It is skipped in ordinary CI because provider/CDN availability varies. Existing CI continues on Chromium; Firefox verification runs locally with separate ports/output. No workflow-scope permission has been added.
+
+Team identity metadata is fetched server-side. Set `TEAM_METADATA_DISABLED=true` to disable auxiliary public ESPN catalogues; OpenLigaDB identities still come from its fixture response. The metadata integration is league-scoped and does not claim worldwide coverage or a commercial data agreement. Remote badge availability depends on the publisher CDN; failed images fall back to existing local artwork or neutral initials. To verify the actual provider → API → rendered badge path, run `node scripts/probe-sport-identities.mjs` with the preview running. The optional probe verifies all ten 28 October cup badges and every local sport image decoding, and records desktop/tablet/mobile screenshots in both themes.

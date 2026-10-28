@@ -30,11 +30,7 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
       })
       .then(({ data }) => {
         setVideos(data);
-        setMessage(
-          data.length
-            ? ""
-            : "No official videos are available from the catalog right now.",
-        );
+        setMessage(data.length ? "" : "No videos available.");
         const requested = new URLSearchParams(location.search).get("video");
         if (!preview)
           setSelected(
@@ -46,9 +42,7 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
       })
       .catch(() => {
         if (!controller.signal.aborted)
-          setMessage(
-            "Official video catalog is unavailable. Retry to check the providers again.",
-          );
+          setMessage("Videos unavailable. Try again.");
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -76,16 +70,11 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
         <h2>{preview ? "Featured" : "Browse videos"}</h2>
         {preview && (
           <Link href="/watch">
-            Explore Watch <ArrowUpRight size={16} />
+            Live events <ArrowUpRight size={16} />
           </Link>
         )}
       </div>
-      {!preview && (
-        <p>
-          Choose a sport or search by team, player or channel. These videos are
-          replays and highlights; regional restrictions may apply.
-        </p>
-      )}
+      {!preview && <p>Replays & highlights · Regional availability varies.</p>}
       {!preview && selected && (
         <div id="watch-player" className="watch-feature">
           <div className="section-heading">
@@ -102,7 +91,7 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
       {!preview && (
         <div className="watch-filters">
           <label>
-            Find something to watch
+            Search videos
             <input
               aria-label="Search videos"
               value={query}

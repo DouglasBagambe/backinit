@@ -18,12 +18,11 @@ export function Utility({
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">BACKINIT</span>
           <h1>
             {route === "settings"
-              ? "Make yourself at home."
+              ? "Settings"
               : route === "profile"
-                ? "Your game. Your space."
+                ? "Account"
                 : route === "admin"
                   ? "Operations"
                   : `Explore ${route}`}
@@ -32,12 +31,9 @@ export function Utility({
       </div>
       {route === "settings" ? (
         <div className="panel settings-panel">
-          <p>Theme preferences are available in the footer on every page.</p>
+          <p>Appearance: choose a theme in the footer.</p>
           <h2>Local preferences</h2>
-          <p>
-            Guest favorites are saved in this browser. Sign in from your profile
-            to save favorites to an account and opt in to in-app match updates.
-          </p>
+          <p>Guest favorites stay on this device. Sign in to sync.</p>
           <button
             disabled={pending || busy}
             onClick={async () => {
@@ -55,13 +51,14 @@ export function Utility({
             Clear saved events
           </button>
           {message && <p role="status">{message}</p>}
-          <h2>About this preview</h2>
-          <p>
-            Real coverage currently includes Bundesliga fixtures, results and
-            goals, plus F1 schedules and the latest classification. Demo edition
-            is separate and clearly labeled. The player uses open film test
-            streams; no sports broadcasts are configured.
-          </p>
+          <details>
+            <summary>Data & viewing availability</summary>
+            <p>
+              Coverage varies by sport. Schedule-only events have no connected
+              live scores. Streams require a permitted source; listings do not
+              guarantee availability. Demo edition is separate.
+            </p>
+          </details>
         </div>
       ) : route === "profile" ? (
         <div className="panel">

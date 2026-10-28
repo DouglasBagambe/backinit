@@ -8,7 +8,11 @@ const fixture = {
   leagueName: "Bundesliga",
   leagueSeason: 2026,
   matchIsFinished: true,
-  team1: { teamId: 1, teamName: "Home" },
+  team1: {
+    teamId: 1,
+    teamName: "Home",
+    teamIconUrl: "https://i.imgur.com/team.png",
+  },
   team2: { teamId: 2, teamName: "Away" },
   group: { groupName: "Round 7" },
   location: null,
@@ -38,6 +42,11 @@ describe("provider normalization", () => {
     )[0]!;
     expect(event.kind === "score" && event.homeScore).toBe(2);
     expect(event.source?.provider).toBe("OpenLigaDB");
+    expect(event.kind === "score" && event.homeParticipant).toMatchObject({
+      id: "1",
+      provider: "OpenLigaDB",
+      imageUrl: "https://i.imgur.com/team.png",
+    });
     expect(event.detail?.goals?.[0]?.player).toBe("Player");
   });
   it("does not infer live status or invent a clock from elapsed wall time", () => {

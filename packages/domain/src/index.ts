@@ -93,11 +93,24 @@ export const baseSchema = z.object({
   end: z.string().datetime().optional(),
   viewingLinks: z.array(viewingLinkSchema).optional(),
 });
+export const participantSchema = z.object({
+  id: z.string(),
+  provider: z.string(),
+  name: z.string(),
+  imageUrl: z
+    .string()
+    .url()
+    .refine((url) => url.startsWith("https://"), "HTTPS image required")
+    .optional(),
+  sourceUrl: z.string().url().optional(),
+});
 export const eventSchema = z.discriminatedUnion("kind", [
   baseSchema.extend({
     kind: z.literal("score"),
     home: z.string(),
     away: z.string(),
+    homeParticipant: participantSchema.optional(),
+    awayParticipant: participantSchema.optional(),
     homeScore: z.number().nullable(),
     awayScore: z.number().nullable(),
     clock: z.string(),

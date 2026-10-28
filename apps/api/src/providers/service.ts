@@ -6,11 +6,15 @@ import {
 } from "../../../../packages/domain/src/index.js";
 import { EflProvider, verifiedCupFixtures } from "./efl.js";
 import { verifiedSportFixtures } from "./verified-sport.js";
+import { TeamIdentities } from "./identities.js";
 import { ProviderCache } from "./cache.js";
 import { OpenLigaProvider } from "./openliga.js";
 import { JolpicaProvider } from "./jolpica.js";
 export class SportsService {
   private cache = new ProviderCache();
+  private identities = new TeamIdentities(
+    new ProviderCache(fetch, Date.now, 3000),
+  );
   private football = new OpenLigaProvider(this.cache);
   private cup = new EflProvider(this.cache);
   private racing = new JolpicaProvider(this.cache);
@@ -38,6 +42,10 @@ export class SportsService {
           },
         ],
       };
+    const metadata = this.identities.enrich([
+      ...verifiedCupFixtures,
+      ...verifiedSportFixtures,
+    ]);
     const now = new Date();
     const year = now.getUTCFullYear();
     const season = now.getUTCMonth() >= 6 ? year : year - 1;
@@ -76,11 +84,14 @@ export class SportsService {
         "Limited official schedule facts, checked 28 October 2026. Not comprehensive coverage or a live score feed.",
       fetchedAt: verifiedSportFixtures[0]!.source!.fetchedAt,
     });
+    await metadata;
     return {
-      data: results
-        .flatMap((r) => (r.status === "fulfilled" ? r.value.value : []))
-        .concat(verifiedSportFixtures)
-        .sort((a, b) => a.start.localeCompare(b.start)),
+      data: await this.identities.enrich(
+        results
+          .flatMap((r) => (r.status === "fulfilled" ? r.value.value : []))
+          .concat(verifiedSportFixtures)
+          .sort((a, b) => a.start.localeCompare(b.start)),
+      ),
       source:
         "OpenLigaDB (ODbL) · Jolpica F1 · EFL official schedule · Verified official fixtures",
       edition,

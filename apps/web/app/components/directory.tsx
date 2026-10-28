@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Star } from "lucide-react";
+import { Crest } from "./marks";
 import type { SportEvent } from "@backinit/domain";
 export type Follow = {
   kind: "team" | "athlete" | "competition" | "sport";
@@ -52,12 +53,7 @@ export function Directory({
     <>
       <div className="page-heading">
         <div>
-          <span className="eyebrow">YOUR WORLD OF SPORT</span>
-          <h1>Explore {route}.</h1>
-          <p>
-            Participants and competitions reported by the selected feed.
-            Profiles and career statistics are not yet available.
-          </p>
+          <h1>{route[0]!.toUpperCase() + route.slice(1)}</h1>
         </div>
       </div>
       <label className="search-input">
@@ -79,7 +75,32 @@ export function Directory({
               <article className="panel directory-card" key={name}>
                 <div>
                   <span className="eyebrow">{kind}</span>
-                  <h2>{name}</h2>
+                  <h2>
+                    {kind === "team" && (
+                      <Crest
+                        name={name}
+                        imageUrl={
+                          events
+                            .flatMap((e) =>
+                              e.kind === "score"
+                                ? [
+                                    {
+                                      name: e.home,
+                                      image: e.homeParticipant?.imageUrl,
+                                    },
+                                    {
+                                      name: e.away,
+                                      image: e.awayParticipant?.imageUrl,
+                                    },
+                                  ]
+                                : [],
+                            )
+                            .find((t) => t.name === name)?.image
+                        }
+                      />
+                    )}{" "}
+                    {name}
+                  </h2>
                   <Link href={`/search?q=${encodeURIComponent(name)}`}>
                     Related events ↗
                   </Link>

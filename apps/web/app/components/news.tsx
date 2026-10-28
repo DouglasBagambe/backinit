@@ -14,19 +14,17 @@ export function News({
   return (
     <section className="news-section">
       {real && !compact && <WatchHub preview />}
-      {real && !compact && !feed?.data.length && (
-        <p>
-          Written news is not available here yet. The videos above come directly
-          from official sports channels.
-        </p>
-      )}
+      {real && !compact && !feed?.data.length && <p>No articles available.</p>}
       {feed && (!real || feed.data.length > 0) && (
         <>
           <div className="section-heading">
-            <h2>From the sports desk</h2>
+            <h2>Latest news</h2>
             <span className="pill">{feed.status}</span>
           </div>
-          <p>{feed.message}</p>
+          <details>
+            <summary>News coverage</summary>
+            <p>{feed.message}</p>
+          </details>
           {feed.data.length > 0 && (
             <div className="news-grid">
               {feed.data.slice(0, compact ? 3 : 24).map((item) => (

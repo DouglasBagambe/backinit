@@ -33,7 +33,13 @@ export default async function Page({
   const selected = (await cookies()).get("backinit-edition")?.value;
   const [feed, news] = await Promise.all([
     loadEvents(
-      selected === "demo" ? "demo" : selected === "real" ? "real" : undefined,
+      route === "watch" || route.startsWith("watch/")
+        ? "real"
+        : selected === "demo"
+          ? "demo"
+          : selected === "real"
+            ? "real"
+            : undefined,
     ),
     route === "" || route === "news" ? loadNews() : Promise.resolve(null),
   ]);

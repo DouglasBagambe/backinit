@@ -28,7 +28,7 @@ export function Player({
   const [started, start] = useState(false);
   const [attempt, retry] = useState(0);
   const [registryAttempt, reload] = useState(0);
-  const [state, setState] = useState("Loading source registry…");
+  const [state, setState] = useState("Checking streams…");
   const [health, setHealth] = useState("");
   const [levels, setLevels] = useState<{ label: string; index: number }[]>([]);
   const [quality, setQuality] = useState(-1);
@@ -94,15 +94,13 @@ export function Player({
         if (first) {
           if (sourceId || eventId) start(true);
           setState(
-            active.length
-              ? "Ready · press play"
-              : "No in-page broadcast is configured for this event.",
+            active.length ? "Ready · press play" : "No stream available.",
           );
           first = false;
         }
       } catch {
         if (!controller.signal.aborted)
-          setState("Source registry unavailable. Retry source discovery.");
+          setState("Streams unavailable. Try again.");
       }
     }
     void load();
@@ -234,9 +232,26 @@ export function Player({
     source && new URL(source.url).hostname === "www.youtube-nocookie.com";
   const failed =
     /unavailable|could not|disabled|restrict|withdrawn|expired/i.test(state);
+  if (eventId && !source)
+    return (
+      <section className="player player-unavailable" aria-label="Event player">
+        <div className="player-empty">
+          <div role="status">
+            <h2>
+              {state === "Checking streams…"
+                ? state
+                : state.startsWith("Streams unavailable")
+                  ? "Unable to check streams"
+                  : "No stream available"}
+            </h2>
+          </div>
+          <button onClick={() => reload((n) => n + 1)}>Check streams</button>
+        </div>
+      </section>
+    );
   return (
     <section
-      className="player"
+      className={`player${eventId && !source ? " player-unavailable" : ""}`}
       aria-label={
         previewSource
           ? "Administrator playback preview"
@@ -363,14 +378,14 @@ export function Player({
               {eventId
                 ? source
                   ? "Watch this event"
-                  : "No in-page broadcast available"
+                  : "No stream available"
                 : sourceId
                   ? "Video unavailable"
                   : "Test the player"}
             </h2>
             <p>
               {eventId
-                ? "No verified, authorized source is currently configured. Match information and any official viewing options are below."
+                ? "Check the viewing options below."
                 : sourceId
                   ? "This video is no longer listed. Choose another video or open its official source."
                   : "Public test signals verify playback only. They are not sports broadcasts."}

@@ -8,6 +8,7 @@ export class ProviderCache {
   constructor(
     private readonly fetcher: typeof fetch = fetch,
     private readonly now = Date.now,
+    private readonly timeout = 8000,
   ) {}
   async json<T>(
     url: string,
@@ -37,7 +38,7 @@ export class ProviderCache {
                 "BackInIt/0.2 (+https://github.com/DouglasBagambe/backinit)",
               ...headers,
             },
-            signal: AbortSignal.timeout(8000),
+            signal: AbortSignal.timeout(this.timeout),
             redirect: "error",
           });
           if (!response.ok) {

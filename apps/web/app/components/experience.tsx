@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
   ChevronRight,
+  ChevronDown,
   Search,
   Star,
   Play,
@@ -308,12 +309,22 @@ export function Experience({
           {e.kind === "score" ? (
             <>
               <span>
-                <Crest name={e.home} />
+                <Crest
+                  name={e.home}
+                  imageUrl={
+                    e.kind === "score" ? e.homeParticipant?.imageUrl : undefined
+                  }
+                />
                 {e.home}
                 <b>{e.homeScore ?? "–"}</b>
               </span>
               <span>
-                <Crest name={e.away} />
+                <Crest
+                  name={e.away}
+                  imageUrl={
+                    e.kind === "score" ? e.awayParticipant?.imageUrl : undefined
+                  }
+                />
                 {e.away}
                 <b>{e.awayScore ?? "–"}</b>
               </span>
@@ -329,7 +340,10 @@ export function Experience({
             </>
           )}
         </Link>
-        <span className="row-sport">{e.sport}</span>
+        <span className="row-sport">
+          <SportMark name={e.sport} />
+          {e.sport}
+        </span>
         {favorite(e)}
         <Link
           className="row-open"
@@ -377,18 +391,18 @@ export function Experience({
     activeSport ||
     (
       {
-        live: "In the moment.",
-        scores: "Every score. One place.",
-        fixtures: "Make time for the game.",
-        favorites: "Your side of sport.",
-        search: "Find your next obsession.",
-        watch: "Watch live sport",
+        live: "Live",
+        scores: "Scores",
+        fixtures: "Fixtures",
+        favorites: "Saved",
+        search: "Search",
+        watch: "Watch",
         videos: "Replays & highlights",
         playback: "Playback verification",
         news: "News",
       } as Record<string, string>
     )[route] ||
-    (real ? "Watch" : "Your daily dose of sport.");
+    (real ? "Watch" : "Sport today");
   return (
     <>
       <a className="skip" href="#main">
@@ -404,7 +418,7 @@ export function Experience({
         <nav className="desktop-nav" aria-label="Main navigation">
           {[
             ["watch", "Watch"],
-            ["", "Discover"],
+            ["fixtures", "Fixtures"],
             ["live", "Live"],
             ["scores", "Scores"],
             ["news", "News"],
@@ -467,44 +481,81 @@ export function Experience({
           ))}
         </nav>
       )}
-      <nav className="sports-nav" aria-label="Sports">
-        <Link
-          href={
-            real && (isHome || route.startsWith("watch")) ? "/watch" : "/scores"
-          }
-          className={!activeSport ? "chosen" : ""}
-        >
-          <Globe2 size={16} />
-          All sports
-        </Link>
-        {sports.map((s) => (
+      <div className="sports-strip">
+        <nav className="sports-nav" aria-label="Sports">
           <Link
-            className={activeSport === s ? "chosen" : ""}
-            href={
-              real && (isHome || route.startsWith("watch"))
-                ? `/watch?sport=${encodeURIComponent(s)}`
-                : sportUrl(s)
+            href={isHome || route.startsWith("watch") ? "/watch" : "/scores"}
+            className={
+              !activeSport && !(route === "watch" && searchParams.get("sport"))
+                ? "chosen"
+                : ""
             }
-            key={s}
           >
-            <span className="sport-symbol">
-              <SportMark name={s} />
-            </span>
-            {s}
+            <SportMark name="All sports" />
+            All sports
           </Link>
-        ))}
-      </nav>
-      {!real && (
+          {sports.map((s) => (
+            <Link
+              className={
+                activeSport === s ||
+                (route === "watch" && searchParams.get("sport") === s)
+                  ? "chosen"
+                  : ""
+              }
+              href={
+                isHome || route.startsWith("watch")
+                  ? `/watch?sport=${encodeURIComponent(s)}&range=upcoming`
+                  : sportUrl(s)
+              }
+              key={s}
+            >
+              <span className="sport-symbol">
+                <SportMark name={s} />
+              </span>
+              {s}
+            </Link>
+          ))}
+        </nav>
+        <details className="sports-picker">
+          <summary>
+            <span>Sports</span>
+            <ChevronDown size={15} />
+          </summary>
+          <nav className="sports-picker-grid" aria-label="Choose sport">
+            <Link
+              href={isHome || route.startsWith("watch") ? "/watch" : "/scores"}
+              onClick={(e) =>
+                e.currentTarget.closest("details")?.removeAttribute("open")
+              }
+            >
+              <SportMark name="All sports" />
+              All sports
+            </Link>
+            {sports.map((s) => (
+              <Link
+                key={s}
+                href={
+                  isHome || route.startsWith("watch")
+                    ? `/watch?sport=${encodeURIComponent(s)}&range=upcoming`
+                    : sportUrl(s)
+                }
+                onClick={(e) =>
+                  e.currentTarget.closest("details")?.removeAttribute("open")
+                }
+              >
+                <SportMark name={s} />
+                {s}
+              </Link>
+            ))}
+          </nav>
+        </details>
+      </div>
+      {!real && !route.startsWith("watch") && (
         <div className="demo-strip">
           <span>
             <ShieldCheck size={13} />{" "}
             {real ? "REAL DATA · LIMITED COVERAGE" : "DEMO EDITION"}
           </span>
-          <p>
-            {real
-              ? "Bundesliga fixtures, results and goals · F1 schedule and latest classification. No live clocks or broadcasts."
-              : "Explore the experience. Scores, fixtures and event cards are illustrative."}
-          </p>
           <button onClick={changeEdition}>
             {real ? "Explore demo edition" : "Use real sports data"}{" "}
             <ArrowUpRight size={13} />
@@ -519,65 +570,6 @@ export function Experience({
         </div>
       )}
       <div className="app-layout">
-        <aside className="sidebar">
-          <span className="eyebrow">BACKINIT</span>
-          <nav aria-label="Explore">
-            <Link className={isHome ? "side-active" : ""} href="/">
-              <House size={18} />
-              Overview
-            </Link>
-            <Link
-              className={route.startsWith("watch") ? "side-active" : ""}
-              href="/watch"
-            >
-              <Play size={18} />
-              Watch
-            </Link>
-            <Link
-              className={route === "live" ? "side-active" : ""}
-              href="/live"
-            >
-              <Radio size={18} />
-              Live now{" "}
-              <span className="count">
-                {events.filter((e) => e.status === "live").length}
-              </span>
-            </Link>
-            <Link
-              className={route === "fixtures" ? "side-active" : ""}
-              href="/fixtures"
-            >
-              <CalendarDays size={18} />
-              Fixtures & calendar
-            </Link>
-            <Link
-              className={route === "favorites" ? "side-active" : ""}
-              href="/favorites"
-            >
-              <Star size={18} />
-              My favorites{" "}
-              {ready && favorites.length > 0 && (
-                <span className="count">{favorites.length}</span>
-              )}
-            </Link>
-          </nav>
-          <div className="sidebar-rule" />
-          <span className="eyebrow">EXPLORE SPORTS</span>
-          <nav>
-            {sports.slice(0, 7).map((s) => (
-              <Link href={sportUrl(s)} key={s}>
-                <span className="sport-symbol">
-                  <SportMark name={s} />
-                </span>
-                {s}
-              </Link>
-            ))}
-          </nav>
-          <Link className="settings-link" href="/settings">
-            <Settings size={16} />
-            Settings & preferences
-          </Link>
-        </aside>
         <main id="main" className="main">
           {syncError && <p role="alert">{syncError}</p>}
           {match && route.startsWith("watch/") ? (
@@ -595,7 +587,7 @@ export function Experience({
           ) : route === "profile" ? (
             <>
               <div className="page-heading">
-                <h1>Your game. Your space.</h1>
+                <h1>Account</h1>
               </div>
               <Account onChange={() => setAccountVersion((v) => v + 1)} />
             </>
@@ -622,46 +614,11 @@ export function Experience({
             />
           ) : (
             <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">
-                    {route === "live"
-                      ? real
-                        ? "PROVIDER SNAPSHOTS"
-                        : "DEMO MATCHDAY"
-                      : route === "favorites"
-                        ? "MADE FOR YOU"
-                        : real
-                          ? "BACKINIT"
-                          : "THE WORLD OF SPORT, IN ONE PLACE"}
-                  </div>
+              {!(route === "watch" || (real && isHome)) && (
+                <div className="page-heading">
                   <h1>{title}</h1>
-                  <p>
-                    {route === "favorites"
-                      ? user
-                        ? "Your saved events, synced to your account."
-                        : "Keep the events you care about close. Saved on this device."
-                      : route === "watch"
-                        ? "Today’s events, upcoming fixtures and verified viewing options."
-                        : activeSport
-                          ? `Follow the moments that matter in ${activeSport.toLowerCase()}.`
-                          : real && isHome
-                            ? "Live events first. Your sport, schedule and viewing options in one place."
-                            : "From the first whistle to the final moment. Stay in it."}
-                  </p>
                 </div>
-                <Link className="date-chip" href="/fixtures">
-                  <CalendarDays size={16} />
-                  <span>
-                    {real ? "Your matchday" : "Demo matchday"}
-                    <small>
-                      {real
-                        ? "Schedules & local viewing times"
-                        : "26 October 2026 · UTC"}
-                    </small>
-                  </span>
-                </Link>
-              </div>
+              )}
               {route === "watch" ? (
                 <LiveWatch />
               ) : route === "videos" ? (
@@ -723,7 +680,15 @@ export function Experience({
                                     href={"/match/" + e.id}
                                   >
                                     <div>
-                                      <Crest name={e.home} large />
+                                      <Crest
+                                        name={e.home}
+                                        imageUrl={
+                                          e.kind === "score"
+                                            ? e.homeParticipant?.imageUrl
+                                            : undefined
+                                        }
+                                        large
+                                      />
                                       <span>{e.home}</span>
                                     </div>
                                     <strong>
@@ -732,7 +697,15 @@ export function Experience({
                                       {e.awayScore}
                                     </strong>
                                     <div>
-                                      <Crest name={e.away} large />
+                                      <Crest
+                                        name={e.away}
+                                        imageUrl={
+                                          e.kind === "score"
+                                            ? e.awayParticipant?.imageUrl
+                                            : undefined
+                                        }
+                                        large
+                                      />
                                       <span>{e.away}</span>
                                     </div>
                                   </Link>
@@ -1018,8 +991,9 @@ export function Experience({
             <Link className="footer-brand" href="/">
               backinit.
             </Link>
-            <span>Sport, on your terms.</span>
+            <Link href="/settings">Settings</Link>
             <Link href="/privacy">Privacy</Link>
+            <a href="/sports/credits.html">Image credits</a>
             <fieldset className="footer-theme">
               <legend>Appearance</legend>
               {["light", "dark", "system"].map((value) => (
@@ -1037,7 +1011,10 @@ export function Experience({
                 Demo edition
               </button>
             )}
-            <small>{feedSource} · Viewing sources vary by event</small>
+            <details className="footer-data">
+              <summary>Data & availability</summary>
+              <small>{feedSource} · Viewing sources vary by event</small>
+            </details>
           </footer>
         </main>
       </div>

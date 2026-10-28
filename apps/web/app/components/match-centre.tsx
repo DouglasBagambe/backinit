@@ -51,7 +51,13 @@ export function MatchCentre({
         {e.kind === "score" ? (
           <div className="scoreboard">
             <div>
-              <Crest name={e.home} large />
+              <Crest
+                name={e.home}
+                imageUrl={
+                  e.kind === "score" ? e.homeParticipant?.imageUrl : undefined
+                }
+                large
+              />
               <h1>{e.home}</h1>
             </div>
             <div className="score-main">
@@ -72,7 +78,13 @@ export function MatchCentre({
               </small>
             </div>
             <div>
-              <Crest name={e.away} large />
+              <Crest
+                name={e.away}
+                imageUrl={
+                  e.kind === "score" ? e.awayParticipant?.imageUrl : undefined
+                }
+                large
+              />
               <h1>{e.away}</h1>
             </div>
           </div>

@@ -3,7 +3,7 @@ export function Privacy() {
   return (
     <>
       <div className="page-heading">
-        <h1>Your data. Your choice.</h1>
+        <h1>Privacy</h1>
       </div>
       <section className="panel privacy-panel">
         <h2>What this installation stores</h2>
@@ -34,12 +34,13 @@ export function Privacy() {
         </p>
         <h2>External services</h2>
         <p>
-          Sports providers receive server-side data requests. Opening a news
-          link sends you to the publisher. Video preview images contact
-          YouTube’s image servers. Loading a video contacts its source provider;
-          embedded video loads only after consent. Providers may receive your IP
-          address and apply their own privacy policies. Fonts are served
-          locally.
+          Sports providers receive server-side data requests. Team badges may
+          load from publisher image servers, which receive your IP address.
+          Opening a news link sends you to the publisher. Video preview images
+          contact YouTube’s image servers. Loading a video contacts its source
+          provider; embedded video loads only after consent. Providers may
+          receive your IP address and apply their own privacy policies. Fonts
+          are served locally.
         </p>
         <h2>Before public launch</h2>
         <p>

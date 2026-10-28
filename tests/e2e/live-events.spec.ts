@@ -15,6 +15,7 @@ test("official cup discovery gives Kampala kickoffs, no false live player and fa
   await real(page, baseURL!);
   await page.clock.setFixedTime(new Date("2026-10-28T06:00:00Z"));
   await page.goto("/watch?date=2026-10-28");
+  await page.locator(".watch-options summary").click();
   await page
     .getByLabel("Viewing timezone", { exact: true })
     .selectOption("Africa/Kampala");
@@ -32,13 +33,11 @@ test("official cup discovery gives Kampala kickoffs, no false live player and fa
     page.getByRole("button", { name: /Load test player/ }),
   ).toHaveCount(0);
   await expect(page.locator("iframe,video")).toHaveCount(0);
-  await page
-    .getByRole("link", { name: "Open match & viewing options", exact: true })
-    .click();
+  await page.locator(".live-spotlight").click();
   await expect(page).toHaveURL(new RegExp(`/watch/${priority}$`));
   await expect(
     page.getByRole("heading", {
-      name: "No in-page broadcast available",
+      name: "No stream available",
       exact: true,
     }),
   ).toBeVisible();
@@ -98,6 +97,83 @@ for (const theme of ["light", "dark"]) {
     }
   });
 }
+test("compact discovery shows matches immediately and every sport stays reachable on narrow screens", async ({
+  page,
+  baseURL,
+}) => {
+  await real(page, baseURL!);
+  await page.clock.setFixedTime(new Date("2026-10-28T06:00:00Z"));
+  for (const width of [360, 768, 1024, 1440]) {
+    await page.setViewportSize({ width, height: 740 });
+    await page.goto("/watch?date=2026-10-28");
+    await expect(page.locator(".live-event-row").first()).toBeVisible();
+    const visibleRows = await page
+      .locator(".live-event-row")
+      .evaluateAll(
+        (rows) =>
+          rows.filter(
+            (row) => row.getBoundingClientRect().bottom < innerHeight - 60,
+          ).length,
+      );
+    expect(visibleRows).toBeGreaterThanOrEqual(3);
+    await expect(page.locator(".sidebar")).toHaveCount(0);
+    const images = page.locator(".sports-nav img");
+    await expect(images).toHaveCount(13);
+    await expect
+      .poll(() =>
+        images.evaluateAll((nodes) =>
+          nodes.every(
+            (n) =>
+              (n as HTMLImageElement).complete &&
+              (n as HTMLImageElement).naturalWidth > 0,
+          ),
+        ),
+      )
+      .toBe(true);
+    await page.locator(".sports-picker > summary").click();
+    const picker = page.getByRole("navigation", { name: "Choose sport" });
+    for (const sport of [
+      "Football",
+      "Basketball",
+      "Tennis",
+      "WWE",
+      "Formula 1",
+      "Cricket",
+      "MMA",
+      "American football",
+      "Baseball",
+      "Rugby",
+    ])
+      await expect(
+        picker.getByRole("link", { name: sport, exact: true }),
+      ).toBeVisible();
+    await picker.getByRole("link", { name: "Baseball", exact: true }).click();
+    await expect(page).toHaveURL(/sport=Baseball.*range=upcoming/);
+    await expect(page.locator(".watch-competition")).toContainText("Baseball");
+    await expect(page.locator(".sports-picker")).not.toHaveAttribute(
+      "open",
+      "",
+    );
+  }
+  await page.setViewportSize({ width: 360, height: 740 });
+  await page
+    .getByRole("button", { name: "Toggle navigation", exact: true })
+    .click();
+  await page
+    .getByRole("navigation", { name: "More navigation" })
+    .getByRole("link", { name: "fixtures", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/fixtures$/);
+  await page.goto("/watch?sport=MMA");
+  await page
+    .getByRole("button", { name: "Upcoming events", exact: true })
+    .click();
+  await expect(page.locator(".live-event-list")).toContainText("Moicano");
+  await page.goto(`/watch/${priority}`);
+  const player = await page.locator(".player-unavailable").boundingBox();
+  expect(player!.height).toBeLessThan(180);
+  await expect(page.locator(".viewing-options")).toBeVisible();
+});
 test("admin sources require verification, match only their fixture, expose retry/fallback and honor revocation", async ({
   page,
   baseURL,
