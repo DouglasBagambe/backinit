@@ -9,6 +9,8 @@ const sportPhotos: Record<string, string> = {
   Rugby: "/sports/rugby.webp",
   "American football": "/sports/american-football.webp",
   Baseball: "/sports/baseball.webp",
+  Badminton: "/sports/badminton.webp",
+  "Ice hockey": "/sports/ice-hockey.webp",
 };
 import logoFiles from "../lib/logos.json";
 const logos: Record<string, string> = logoFiles;
