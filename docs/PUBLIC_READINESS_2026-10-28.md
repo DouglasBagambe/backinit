@@ -1,5 +1,15 @@
 # Public-site audit and real-data enforcement
 
+## Later update: free Render backend deployed
+
+The founder confirmed that no backend existed and authorized hosting it in Dyson’s Render workspace. `https://backinit-api.onrender.com` is now live at commit `4a6e002`, in stateless **data-only** mode. The hosted probe at 21:22 Africa/Kampala returned 1,048 real provider records across 10 sports, including six provider-reported live tennis records. Earlier in the audit there were seven; subsequent provider refreshes changed the returned live set. This is automated provider data, not independently verified video.
+
+The local production frontend successfully used that real hosted API for event discovery, Watch listings and the Liverpool–Chelsea viewing page. The actual `backinit.live` frontend has not been updated by this work. The prepared Vercel configuration builds only Next.js and explicitly selects the external Render backend, replacing the old two-service arrangement. The connected Vercel account still cannot access the site’s team.
+
+Accounts, source management and playable broadcasts remain unavailable on the hosted API until durable storage is connected. BWF discovery failed from Render; cricket and boxing remain unconfigured. **LIVE PLAYBACK NOT ACHIEVED on the public installation.** No football broadcast has been verified. See [Render operation](RENDER.md), [frontend configuration](VERCEL.md) and [timestamped hosted evidence](evidence/render-api-2026-10-28.json).
+
+The sections below record the earlier audit and preparation, before the backend was hosted.
+
 ## Observed public deployment
 
 On 28 October 2026, at approximately 20:58 Africa/Kampala, a real browser opened `https://www.backinit.live/`, `/watch`, `/scores` and `/news`. The HTML returned 200, but the page showed unavailable data/accounts and still offered a Demo edition button. Badminton and ice hockey were absent from its navigation, indicating this deployment did not contain the latest branch's full feature set.

@@ -1,14 +1,22 @@
 /** Server-only address resolution. A deployed frontend must never call its own loopback. */
 export function apiUrl(path: string): URL {
-  const base =
-    process.env.API_INTERNAL_URL ||
-    (process.env.VERCEL !== "1"
-      ? process.env.API_URL || "http://127.0.0.1:4000"
-      : undefined);
-  if (!base) throw new Error("Missing api service binding: API_INTERNAL_URL");
+  const external = process.env.API_BACKEND === "external";
+  const base = external
+    ? process.env.API_URL
+    : process.env.API_INTERNAL_URL ||
+      (process.env.VERCEL !== "1"
+        ? process.env.API_URL || "http://127.0.0.1:4000"
+        : undefined);
+  if (!base)
+    throw new Error(
+      external
+        ? "Missing external API_URL"
+        : "Missing api service binding: API_INTERNAL_URL",
+    );
   const url = new URL(base);
   if (
     !["https:", "http:"].includes(url.protocol) ||
+    (external && process.env.VERCEL === "1" && url.protocol !== "https:") ||
     url.username ||
     url.password ||
     url.search ||

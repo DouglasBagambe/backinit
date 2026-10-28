@@ -1,22 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
-    "api": {
-      "root": "apps/api",
-      "framework": "nestjs"
-    },
     "web": {
       "root": "apps/web",
-      "framework": "nextjs",
-      "bindings": [
-        {
-          "type": "service",
-          "service": "api",
-          "format": "url",
-          "env": "API_INTERNAL_URL"
-        }
-      ]
+      "framework": "nextjs"
     }
+  },
+  "env": {
+    "API_BACKEND": "external",
+    "API_URL": "https://backinit-api.onrender.com",
+    "ALLOW_DEMO_MODE": "false",
+    "SPORTS_DATA_MODE": "real"
   },
   "rewrites": [
     {

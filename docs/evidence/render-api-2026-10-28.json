@@ -1,0 +1,279 @@
+{
+  "at": "2026-10-28T18:22:03.902Z",
+  "api": "https://backinit-api.onrender.com",
+  "checks": [
+    {
+      "base": "https://backinit-api.onrender.com",
+      "path": "/health",
+      "status": 200,
+      "elapsedMs": 712
+    },
+    {
+      "base": "https://backinit-api.onrender.com",
+      "path": "/events?edition=real",
+      "status": 200,
+      "elapsedMs": 4879
+    },
+    {
+      "base": "https://backinit-api.onrender.com",
+      "path": "/events?edition=demo",
+      "status": 403,
+      "elapsedMs": 335
+    },
+    {
+      "base": "https://backinit-api.onrender.com",
+      "path": "/account/me",
+      "status": 503,
+      "elapsedMs": 697
+    },
+    {
+      "base": "https://backinit-api.onrender.com",
+      "path": "/streams",
+      "status": 503,
+      "elapsedMs": 295
+    },
+    {
+      "base": "http://127.0.0.1:3501",
+      "path": "/api/events",
+      "status": 200,
+      "elapsedMs": 936
+    },
+    {
+      "base": "http://127.0.0.1:3501",
+      "path": "/api/watch",
+      "status": 200,
+      "elapsedMs": 652
+    }
+  ],
+  "records": 1048,
+  "sports": [
+    "Football",
+    "Tennis",
+    "Formula 1",
+    "Basketball",
+    "Ice hockey",
+    "Baseball",
+    "WWE",
+    "American football",
+    "Rugby",
+    "MMA"
+  ],
+  "providerReportedLive": [
+    {
+      "id": "espn-tennis-wta-185844",
+      "sport": "Tennis",
+      "source": {
+        "provider": "ESPN:tennis/wta",
+        "url": "https://site.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard",
+        "license": "Public ESPN scoreboard; undocumented API, reuse terms require review. No broadcast rights.",
+        "fetchedAt": "2026-10-28T18:21:48.312Z",
+        "stale": false
+      }
+    },
+    {
+      "id": "espn-tennis-atp-185185",
+      "sport": "Tennis",
+      "source": {
+        "provider": "ESPN:tennis/atp",
+        "url": "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard",
+        "license": "Public ESPN scoreboard; undocumented API, reuse terms require review. No broadcast rights.",
+        "fetchedAt": "2026-10-28T18:21:47.516Z",
+        "stale": false
+      }
+    },
+    {
+      "id": "espn-tennis-atp-185179",
+      "sport": "Tennis",
+      "source": {
+        "provider": "ESPN:tennis/atp",
+        "url": "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard",
+        "license": "Public ESPN scoreboard; undocumented API, reuse terms require review. No broadcast rights.",
+        "fetchedAt": "2026-10-28T18:21:47.516Z",
+        "stale": false
+      }
+    },
+    {
+      "id": "espn-tennis-wta-185768",
+      "sport": "Tennis",
+      "source": {
+        "provider": "ESPN:tennis/wta",
+        "url": "https://site.api.espn.com/apis/site/v2/sports/tennis/wta/scoreboard",
+        "license": "Public ESPN scoreboard; undocumented API, reuse terms require review. No broadcast rights.",
+        "fetchedAt": "2026-10-28T18:21:48.312Z",
+        "stale": false
+      }
+    },
+    {
+      "id": "espn-tennis-atp-185163",
+      "sport": "Tennis",
+      "source": {
+        "provider": "ESPN:tennis/atp",
+        "url": "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard",
+        "license": "Public ESPN scoreboard; undocumented API, reuse terms require review. No broadcast rights.",
+        "fetchedAt": "2026-10-28T18:21:47.516Z",
+        "stale": false
+      }
+    },
+    {
+      "id": "espn-tennis-atp-185138",
+      "sport": "Tennis",
+      "source": {
+        "provider": "ESPN:tennis/atp",
+        "url": "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/scoreboard",
+        "license": "Public ESPN scoreboard; undocumented API, reuse terms require review. No broadcast rights.",
+        "fetchedAt": "2026-10-28T18:21:47.516Z",
+        "stale": false
+      }
+    }
+  ],
+  "coverage": [
+    {
+      "provider": "OpenLigaDB",
+      "sport": "Football",
+      "status": "available",
+      "message": "Bundesliga fixtures, results and goal events.",
+      "fetchedAt": "2026-10-28T18:18:04.907Z"
+    },
+    {
+      "provider": "Jolpica F1",
+      "sport": "Formula 1",
+      "status": "available",
+      "message": "Race schedule and latest classification; no live timing.",
+      "fetchedAt": "2026-10-28T18:18:03.811Z"
+    },
+    {
+      "provider": "EFL official schedule",
+      "sport": "Football",
+      "status": "available",
+      "message": "Official cup schedule; scores supplemented by ESPN when available.",
+      "fetchedAt": "2026-10-28T18:18:04.515Z"
+    },
+    {
+      "provider": "WWE official schedule",
+      "sport": "WWE",
+      "status": "available",
+      "message": "Automated official schedule only; no live results feed.",
+      "fetchedAt": "2026-10-28T18:18:05.808Z"
+    },
+    {
+      "provider": "BWF TV",
+      "sport": "Badminton",
+      "status": "unavailable",
+      "message": "Official court-session broadcasts and publisher-reported live status; individual match scoring unavailable.",
+      "fetchedAt": null
+    },
+    {
+      "provider": "ESPN:hockey/nhl",
+      "sport": "Ice hockey",
+      "status": "available",
+      "message": "NHL scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:47.210Z"
+    },
+    {
+      "provider": "ESPN:soccer/eng.league_cup",
+      "sport": "Football",
+      "status": "available",
+      "message": "Carabao Cup scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:47.112Z"
+    },
+    {
+      "provider": "ESPN:soccer/eng.1",
+      "sport": "Football",
+      "status": "available",
+      "message": "Premier League scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:47.009Z"
+    },
+    {
+      "provider": "ESPN:soccer/esp.1",
+      "sport": "Football",
+      "status": "available",
+      "message": "La Liga scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:47.010Z"
+    },
+    {
+      "provider": "ESPN:soccer/uefa.champions",
+      "sport": "Football",
+      "status": "available",
+      "message": "Champions League scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:46.715Z"
+    },
+    {
+      "provider": "ESPN:basketball/nba",
+      "sport": "Basketball",
+      "status": "available",
+      "message": "NBA scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:47.309Z"
+    },
+    {
+      "provider": "ESPN:basketball/wnba",
+      "sport": "Basketball",
+      "status": "available",
+      "message": "WNBA scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:46.715Z"
+    },
+    {
+      "provider": "ESPN:football/nfl",
+      "sport": "American football",
+      "status": "available",
+      "message": "NFL scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:47.413Z"
+    },
+    {
+      "provider": "ESPN:baseball/mlb",
+      "sport": "Baseball",
+      "status": "available",
+      "message": "MLB scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:46.716Z"
+    },
+    {
+      "provider": "ESPN:mma/ufc",
+      "sport": "MMA",
+      "status": "available",
+      "message": "UFC scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:47.113Z"
+    },
+    {
+      "provider": "ESPN:tennis/atp",
+      "sport": "Tennis",
+      "status": "available",
+      "message": "ATP scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:47.516Z"
+    },
+    {
+      "provider": "ESPN:tennis/wta",
+      "sport": "Tennis",
+      "status": "available",
+      "message": "WTA scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:48.312Z"
+    },
+    {
+      "provider": "ESPN:rugby/267979",
+      "sport": "Rugby",
+      "status": "available",
+      "message": "Premiership Rugby scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:47.013Z"
+    },
+    {
+      "provider": "ESPN:rugby/270559",
+      "sport": "Rugby",
+      "status": "available",
+      "message": "Top 14 scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.",
+      "fetchedAt": "2026-10-28T18:21:47.107Z"
+    },
+    {
+      "provider": "Cricket / boxing",
+      "sport": "Cricket · Boxing",
+      "status": "not-configured",
+      "message": "No reliable free live feed connected. No manually maintained fixtures are presented as current coverage.",
+      "fetchedAt": null
+    }
+  ],
+  "frontendRecords": 1048,
+  "watchRecords": 527,
+  "matchHref": "/watch/efl-20261028-liverpool-chelsea",
+  "actualBroadcastsVerified": 0,
+  "playback": "LIVE PLAYBACK NOT ACHIEVED on the public installation; data-only API has no source registry",
+  "oldDemoCookieIgnored": true,
+  "externalBackendSelected": true,
+  "desktopAndMobile": true
+}
