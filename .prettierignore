@@ -1,0 +1,7 @@
+pnpm-lock.yaml
+.next
+dist
+node_modules
+artifacts
+test-results
+.turbo

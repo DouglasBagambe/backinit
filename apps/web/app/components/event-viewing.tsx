@@ -1,0 +1,234 @@
+"use client";
+import Link from "next/link";
+import { useState } from "react";
+import { eventTitle, type SportEvent } from "@backinit/domain";
+import { LazyPlayer as Player } from "./lazy-player";
+import { RealDetail } from "./real-detail";
+import { Crest, SportMark } from "./marks";
+import { localStart, localDay, useViewingZone } from "../lib/viewing-time";
+export function EventViewing({
+  event,
+  events,
+  favorite,
+}: {
+  event: SportEvent;
+  events: SportEvent[];
+  favorite: React.ReactNode;
+}) {
+  const [tab, setTab] = useState("Overview");
+  const { zone } = useViewingZone();
+  const related = events
+    .filter(
+      (e) =>
+        e.provenance === "provider" &&
+        e.id !== event.id &&
+        e.status !== "finished" &&
+        localDay(e.end || e.start, zone) >=
+          localDay(new Date().toISOString(), zone) &&
+        Date.parse(e.end || e.start) > Date.now() - 6 * 3600000 &&
+        Date.parse(e.start) < Date.now() + 7 * 86400000,
+    )
+    .sort(
+      (a, b) =>
+        Number(localDay(b.start, zone) === localDay(event.start, zone)) -
+          Number(localDay(a.start, zone) === localDay(event.start, zone)) ||
+        Number(a.timeConfirmed === false) - Number(b.timeConfirmed === false) ||
+        a.start.localeCompare(b.start),
+    )
+    .slice(0, 12);
+  return (
+    <div className="event-viewing">
+      <Link className="back-link" href="/watch">
+        ← All events
+      </Link>
+      <header className="event-viewing-header">
+        <span className="eyebrow">
+          <SportMark name={event.sport} /> {event.competition}
+        </span>
+        <h1>
+          {event.kind === "score" ? (
+            <>
+              <Crest
+                name={event.home}
+                imageUrl={
+                  event.kind === "score"
+                    ? event.homeParticipant?.imageUrl
+                    : undefined
+                }
+              />
+              {event.home}
+              <span className="muted"> vs </span>
+              {event.away}
+              <Crest
+                name={event.away}
+                imageUrl={
+                  event.kind === "score"
+                    ? event.awayParticipant?.imageUrl
+                    : undefined
+                }
+              />
+            </>
+          ) : (
+            eventTitle(event)
+          )}
+        </h1>
+        <p>
+          <time dateTime={event.start}>
+            {event.timeConfirmed === false
+              ? "Date only"
+              : localStart(event.start, zone)}
+          </time>{" "}
+          · {zone}
+          {event.detail?.venue ? ` · ${event.detail.venue}` : ""}
+        </p>
+        <div className="event-header-actions">
+          {favorite}
+          <a href="#official-viewing">Viewing options ↓</a>
+          <a href={`/api/calendar/${event.id}`}>Calendar ↗</a>
+          <Link href={`/match/${event.id}`}>Match Centre ↗</Link>
+        </div>
+      </header>
+      <div className="event-viewing-layout">
+        <div className="event-viewing-main">
+          <Player key={event.id} eventId={event.id} />
+          <section className="panel viewing-options" id="official-viewing">
+            <h2>Viewing options</h2>
+            {event.viewingLinks?.length ? (
+              event.viewingLinks.map((link) => (
+                <article key={link.url + link.label}>
+                  <div>
+                    <h3>{link.label}</h3>
+                    <span className="pill">
+                      {link.countries.length
+                        ? link.countries.join(" / ")
+                        : "Regional access"}{" "}
+                      ·{" "}
+                      {link.access === "audio"
+                        ? "Audio / updates"
+                        : link.access === "information"
+                          ? "Information"
+                          : link.access === "free-account"
+                            ? "Free account"
+                            : "Subscription"}{" "}
+                      ·{" "}
+                      {link.confirmation === "confirmed"
+                        ? "Confirmed"
+                        : "Check schedule"}
+                    </span>
+                    <details className="viewing-note">
+                      <summary>Access details</summary>
+                      <p>{link.note}</p>
+                      <small>
+                        Checked{" "}
+                        {new Date(link.checkedAt).toLocaleDateString("en-GB", {
+                          timeZone: zone,
+                        })}{" "}
+                        ·{" "}
+                        <a
+                          href={link.evidenceUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Evidence ↗
+                        </a>
+                      </small>
+                    </details>
+                  </div>
+                  <a
+                    className="back-link"
+                    href={link.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Visit site ↗
+                  </a>
+                </article>
+              ))
+            ) : (
+              <p>No viewing options confirmed.</p>
+            )}
+          </section>
+          <section className="panel event-supporting">
+            <div
+              className="filter-tabs"
+              role="group"
+              aria-label="Event information"
+            >
+              {(event.sport === "Football"
+                ? ["Overview", "Tracker", "Statistics", "Timeline", "Lineups"]
+                : event.kind === "race"
+                  ? ["Overview", "Classification"]
+                  : event.kind === "card"
+                    ? ["Overview", "Card"]
+                    : ["Overview", "Statistics", "Timeline"]
+              ).map((t) => (
+                <button
+                  key={t}
+                  aria-pressed={tab === t}
+                  onClick={() => setTab(t)}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+            <div className="event-data-summary">
+              <h2>
+                {event.status === "live"
+                  ? "Live"
+                  : event.scheduleOnly
+                    ? "Schedule only"
+                    : event.status === "finished"
+                      ? "Result"
+                      : "Event information"}
+              </h2>
+              {event.kind === "score" && (
+                <p className="event-score">
+                  {event.homeScore ?? "–"} : {event.awayScore ?? "–"}
+                </p>
+              )}
+              <p>
+                {event.scheduleOnly
+                  ? "Live match data unavailable."
+                  : "Latest available match data."}
+              </p>
+              {event.source && (
+                <p className="fine">
+                  <a href={event.source.url} target="_blank" rel="noreferrer">
+                    {event.source.provider} ↗
+                  </a>{" "}
+                  · {event.source.stale ? "Stale snapshot" : "Checked"}{" "}
+                  {localStart(event.source.fetchedAt, zone)} · {zone}
+                </p>
+              )}
+            </div>
+            {(!event.scheduleOnly || tab !== "Overview") && (
+              <RealDetail
+                key={event.id + tab}
+                event={event}
+                tab={tab}
+                hidePlayer
+              />
+            )}
+          </section>
+        </div>
+        <aside className="event-switcher">
+          <h2>More events</h2>
+
+          {related.map((e) => (
+            <Link key={e.id} href={`/watch/${e.id}`}>
+              <small>
+                {e.sport} ·{" "}
+                {e.timeConfirmed === false
+                  ? "Date only"
+                  : localStart(e.start, zone)}
+              </small>
+              <strong>{eventTitle(e)}</strong>
+              <span>{e.scheduleOnly ? "Schedule only" : "Open event"} →</span>
+            </Link>
+          ))}
+          {!related.length && <p>No upcoming events.</p>}
+        </aside>
+      </div>
+    </div>
+  );
+}

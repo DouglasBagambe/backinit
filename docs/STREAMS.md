@@ -1,0 +1,40 @@
+# Free sports viewing and source acquisition
+
+Checked 28 October 2026. No paid account, broadcast subscription or deployment has been provisioned.
+
+## Available in BackInIt
+
+Watch is now an event-first discovery and viewing flow. Replays/highlights are on `/videos`; testing signals are isolated on `/playback`. See [tonight’s verified fixtures, restrictions and live-player evidence](LIVE_VIEWING_2026-10-28.md).
+
+The separate `/videos` archive library discovers selected videos from the official WWE, WWE Vault, UFC, FIBA Basketball, NBA, Australian Open, ICC, FIFA and Formula 1 YouTube channels. Public channel RSS and oEmbed metadata require no API key. Every entry records its publisher, exact official watch URL, category and check time. Titles containing “LIVE” are never treated as proof of a current live broadcast. “Full game highlights” are labelled highlights.
+
+The browser loads the privacy-enhanced YouTube player only after consent. Provider controls, ads and restrictions remain intact. Regional restrictions, age requirements, removal and embedding decisions can prevent playback. Metadata success is **not playback verification**. Preview artwork contacts YouTube image servers before video consent; this is disclosed on the privacy page. Official-source links remain available when embedding fails.
+
+No direct live sports HLS/DASH sources are configured. The two diagnostic manifests are Big Buck Bunny test films, clearly separated from sport. No premium broadcasts are unlocked by this integration.
+
+## Where to find legitimate free coverage
+
+| Sport      | Official destination                                                                                                                                                                             | Realistic free offer                                                              | How BackInIt can use it                                                                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Basketball | [FIBA YouTube live schedule](https://www.fiba.basketball/en/news/watch-live-on-the-fiba-youtube-channel-this-week), [official channel](https://www.youtube.com/@FIBA)                            | Selected live games and full replays; availability varies by event and territory. | Link to the current official schedule; use the official embedded player where the publisher enables it. No promise that every game is free. |
+| Football   | [FIFA+](https://www.fifa.com/en/watch), [FIFA official YouTube](https://www.youtube.com/@fifa)                                                                                                   | Selected live competitions, archives and highlights.                              | YouTube videos are catalogued. FIFA+ is currently an outbound viewer destination, not an integrated manifest or a redistribution agreement. |
+| Cricket    | [ICC.tv](https://www.icc-cricket.com/icc-tv), [ICC FAQs](https://www.icc-cricket.com/news/icctv-faqs), [ICC official YouTube](https://www.youtube.com/@ICC)                                      | Free account access to selected content; live events have territory restrictions. | ICC YouTube videos are catalogued. ICC.tv viewing is outbound only. Check the specific event’s Uganda availability; no location bypass.     |
+| WWE        | [WWE official channel](https://www.youtube.com/@WWE), [WWE Vault](https://www.youtube.com/@WWEVault)                                                                                             | Selected full archive matches, compilations and highlights.                       | WWE official-channel videos are catalogued. This does not provide all current weekly shows or premium live events.                          |
+| MMA        | [UFC official channel](https://www.youtube.com/@ufc)                                                                                                                                             | Selected free archive fights and highlights.                                      | Official channel videos are catalogued; no free UFC PPV feed is claimed.                                                                    |
+| Tennis     | [Australian Open channel](https://www.youtube.com/@australianopen), [archive announcement](https://ausopen.com/articles/news/iconic-australian-open-archive-matches-debut-on-ao-youtube-channel) | Selected historic full matches and highlights.                                    | Official videos are catalogued. This is not universal live ATP/WTA coverage.                                                                |
+| NBA        | [NBA official channel](https://www.youtube.com/@NBA)                                                                                                                                             | Primarily official highlights and selected special programming.                   | Catalogued with accurate categories; no free full-season NBA broadcast claim.                                                               |
+| Formula 1  | [Formula 1 official channel](https://www.youtube.com/@Formula1)                                                                                                                                  | Highlights and selected official programmes.                                      | Catalogued videos; no free live Grand Prix feed claim.                                                                                      |
+
+A viewer’s free access does not give BackInIt rights to extract manifests, relay video, sell access to the footage or suppress provider controls. [YouTube embedding documentation](https://support.google.com/youtube/answer/171780) describes embedding, privacy-enhanced mode, publisher restrictions and required referrers. The embedded-player terms and developer policies continue to apply. A future monetization model needs its own terms review; third-party programming is not BackInIt’s inventory to sublicense.
+
+## Obtaining direct streams
+
+For a BackInIt-controlled live player, approach leagues, federations, clubs, tournament organizers or production companies that own distribution rights. Small/local competitions can be a practical starting point. Ask for written permission covering embedding or redistribution, territories, dates, commercial use/advertising and any required attribution. Obtain the authorized HLS/DASH URL or approved embed from that rights holder, plus codec/CORS information and any expiry/entitlement requirements.
+
+The administrator registry records evidence, validity, event mapping, revocation and versions. Direct sources currently require worldwide rights; regional entitlement enforcement is not built. Adding a new manifest hostname requires code review of the server allowlist. A manifest reachable on the internet, an IPTV playlist, a search result or a free trial is not sufficient evidence of distribution rights.
+
+## Operational limits
+
+The catalogue refreshes metadata through a bounded 15-minute cache with timeouts, host cooldowns for throttling/server errors and daily expiry of unattended entries. Operator edits or revocations are preserved during automatic refresh. There is no official-channel uptime guarantee, commercial data SLA, background video downloading or protected-feed extraction.
+
+Actual browser evidence, including failures, is recorded in [VERIFICATION.md](VERIFICATION.md). This source guide is not a claim that every listed destination currently offers a particular match.

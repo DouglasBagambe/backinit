@@ -1,0 +1,186 @@
+import {
+  eventSchema,
+  type SportEvent,
+  type Sport,
+} from "../../../../packages/domain/src/index.js";
+import { checkedAt } from "./efl.js";
+/** Human-verified official fixture facts. These are schedules, never a live score feed. */
+function card(
+  id: string,
+  sport: Sport,
+  title: string,
+  competition: string,
+  start: string,
+  url: string,
+  venue: string,
+  options: { end?: string; timeConfirmed?: boolean; note?: string } = {},
+): SportEvent {
+  return eventSchema.parse({
+    id,
+    externalId: id,
+    kind: "card",
+    sport,
+    title,
+    competition,
+    start,
+    status: "upcoming",
+    provenance: "provider",
+    bouts: [],
+    scheduleOnly: true,
+    timeConfirmed: options.timeConfirmed,
+    end: options.end,
+    source: {
+      provider: "Verified official fixtures",
+      url,
+      license:
+        "Published schedule facts · no video distribution rights implied",
+      fetchedAt: checkedAt,
+      stale: false,
+    },
+    detail: {
+      venue,
+      round:
+        options.note || "Official schedule · live event data not connected",
+    },
+    viewingLinks: [
+      {
+        label: "Official event / viewing information",
+        url,
+        evidenceUrl: url,
+        countries: [],
+        access: "information",
+        confirmation: "check-schedule",
+        checkedAt,
+        note: "Published event information, not an in-page broadcast. Check the publisher's local viewing terms and schedule.",
+      },
+    ],
+  });
+}
+export const verifiedSportFixtures: SportEvent[] = [
+  card(
+    "wwe-20261030-smackdown",
+    "WWE",
+    "Friday Night SmackDown",
+    "WWE SmackDown",
+    "2026-10-30T23:30:00Z",
+    "https://www.wwe.com/event/friday-night-smackdown-85",
+    "Charleston Coliseum · West Virginia",
+    {
+      note: "Published arena event time; television start may differ. Match card not connected.",
+    },
+  ),
+  card(
+    "ufc-20261031-moicano-nolan",
+    "MMA",
+    "Moicano vs Nolan",
+    "UFC Fight Night",
+    "2026-11-01T00:00:00Z",
+    "https://www.ufc.com/event/ufc-fight-night-october-31-2026",
+    "Meta APEX · Las Vegas",
+    {
+      note: "Published main-card start; preliminary bouts have a separate schedule.",
+    },
+  ),
+  card(
+    "atp-20261026-vienna",
+    "Tennis",
+    "Erste Bank Open · Vienna",
+    "ATP 500",
+    "2026-10-26T00:00:00Z",
+    "https://www.atptour.com/en/tournaments/vienna/337/overview",
+    "Wiener Stadthalle · Vienna",
+    {
+      end: "2026-11-01T23:59:00Z",
+      timeConfirmed: false,
+      note: "26 October–1 November. Individual match times and order of play are not connected.",
+    },
+  ),
+  card(
+    "atp-20261026-basel",
+    "Tennis",
+    "Swiss Indoors · Basel",
+    "ATP 500",
+    "2026-10-26T00:00:00Z",
+    "https://www.atptour.com/en/tournaments/basel/328/overview",
+    "St. Jakobshalle · Basel",
+    {
+      end: "2026-11-01T23:59:00Z",
+      timeConfirmed: false,
+      note: "26 October–1 November. Individual match times and order of play are not connected.",
+    },
+  ),
+  card(
+    "icc-20261028-challenge-league-a",
+    "Cricket",
+    "ICC CWC Challenge League A · matchday",
+    "ICC CWC Challenge League A",
+    "2026-10-28T00:00:00Z",
+    "https://www.icc-cricket.com/fixtures-results",
+    "Check official match listing",
+    {
+      timeConfirmed: false,
+      note: "Competition matchday verified; individual start times, scorecards and broadcast entitlement are not connected.",
+    },
+  ),
+  card(
+    "mlb-20261028-world-series-g5",
+    "Baseball",
+    "World Series · Game 5 (if necessary)",
+    "MLB World Series",
+    "2026-10-29T00:00:00Z",
+    "https://www.mlb.com/postseason",
+    "Check official postseason schedule",
+    {
+      note: "Conditional fixture: only played if the series requires a fifth game. Recheck the official schedule before viewing.",
+    },
+  ),
+  card(
+    "nfl-20261029-panthers-packers",
+    "American football",
+    "Carolina Panthers at Green Bay Packers",
+    "NFL · Thursday Night Football",
+    "2026-10-30T00:15:00Z",
+    "https://www.aboutamazon.com/news/entertainment/everything-you-need-to-know-about-thursday-night-football-on-prime-video",
+    "Lambeau Field",
+    {
+      note: "Published 8:15 pm Eastern kickoff. Prime Video viewing is territory/account dependent; no embed is authorized.",
+    },
+  ),
+  eventSchema.parse({
+    id: "nba-0022600143",
+    externalId: "0022600143",
+    sport: "Basketball",
+    competition: "NBA",
+    kind: "score",
+    home: "LA Clippers",
+    away: "Los Angeles Lakers",
+    start: "2026-10-29T02:30:00Z",
+    status: "upcoming",
+    homeScore: null,
+    awayScore: null,
+    clock: "Scheduled",
+    provenance: "provider",
+    scheduleOnly: true,
+    detail: { venue: "Intuit Dome", round: "Regular season" },
+    source: {
+      provider: "Verified official fixtures",
+      url: "https://www.nba.com/clippers/singlegametickets/2026-27/10-28-2026-clippers-vs-lakers",
+      license:
+        "Published schedule facts · no live statistics or broadcasting rights implied",
+      fetchedAt: checkedAt,
+      stale: false,
+    },
+    viewingLinks: [
+      {
+        label: "Clippers official viewing information",
+        url: "https://www.nba.com/clippers/watch",
+        evidenceUrl: "https://www.nba.com/clippers/watch",
+        countries: [],
+        access: "information",
+        confirmation: "check-schedule",
+        checkedAt,
+        note: "Check local and national broadcasts, League Pass restrictions and subscription availability. No BackInIt embed is supplied.",
+      },
+    ],
+  }),
+];

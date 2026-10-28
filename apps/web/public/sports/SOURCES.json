@@ -1,0 +1,72 @@
+[
+  {
+    "sport": "Football",
+    "file": "/sports/football.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Soccerball.png",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Soccerball.png",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "CAPS LOCK; background removal by Kmf164",
+    "changes": "Resized to 96px WebP. Derivatives retain the stated source license."
+  },
+  {
+    "sport": "Basketball",
+    "file": "/sports/basketball.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Basketball.png",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Basketball.png",
+    "license": "Public domain",
+    "licenseUrl": null,
+    "author": "Reisio",
+    "changes": "Resized to 96px WebP. Derivatives retain the stated source license."
+  },
+  {
+    "sport": "Tennis",
+    "file": "/sports/tennis.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Tennisball2.png",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/8/8c/Tennisball2.png",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "http://creativecommons.org/licenses/by-sa/3.0/",
+    "author": "KS; original photograph by Christian \"VisualBeo\" Horvat",
+    "changes": "Resized to 96px WebP. Derivatives retain the stated source license."
+  },
+  {
+    "sport": "Cricket",
+    "file": "/sports/cricket.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Cricketball.png",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/b/b0/Cricketball.png",
+    "license": "Public domain",
+    "licenseUrl": null,
+    "author": "Spundun",
+    "changes": "Resized to 96px WebP. Derivatives retain the stated source license."
+  },
+  {
+    "sport": "Rugby",
+    "file": "/sports/rugby.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Rugby_ball_webb_ellis.png",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/9/96/Rugby_ball_webb_ellis.png",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "author": "Fma12",
+    "changes": "Resized to 96px WebP. Derivatives retain the stated source license."
+  },
+  {
+    "sport": "American football",
+    "file": "/sports/american-football.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:American_Football_ball.png",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/d/d4/American_Football_ball.png",
+    "license": "Public domain",
+    "licenseUrl": null,
+    "author": "TRakowski",
+    "changes": "Resized to 96px WebP. Derivatives retain the stated source license."
+  },
+  {
+    "sport": "Baseball",
+    "file": "/sports/baseball.webp",
+    "source": "https://commons.wikimedia.org/wiki/File:Cutout_Baseball_Texture_with_outline.png",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/1/17/Cutout_Baseball_Texture_with_outline.png",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "author": "DanDectis; original photograph by Tage Olsin",
+    "changes": "Resized to 96px WebP. Derivatives retain the stated source license."
+  }
+]
