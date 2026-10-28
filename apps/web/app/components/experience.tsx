@@ -69,7 +69,7 @@ export function Experience({
     if (!real) return;
     const timer = setInterval(() => {
       if (!document.hidden) router.refresh();
-    }, 60000);
+    }, 30000);
     return () => clearInterval(timer);
   }, [real, router]);
   async function changeEdition() {
@@ -303,7 +303,9 @@ export function Experience({
             ? e.clock
             : e.status === "upcoming"
               ? "Upcoming"
-              : "Final"}
+              : e.status === "finished"
+                ? "Final"
+                : e.status}
         </div>
         <Link className="match-teams" href={"/match/" + e.id}>
           {e.kind === "score" ? (

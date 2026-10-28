@@ -6,19 +6,25 @@ import {
 } from "../../../../packages/domain/src/index.js";
 import { EflProvider, verifiedCupFixtures } from "./efl.js";
 import { verifiedSportFixtures } from "./verified-sport.js";
-import { TeamIdentities } from "./identities.js";
 import { ProviderCache } from "./cache.js";
 import { OpenLigaProvider } from "./openliga.js";
 import { JolpicaProvider } from "./jolpica.js";
+import { EspnProvider, espnLeagues } from "./espn.js";
+import { WweProvider } from "./wwe.js";
+import { BwfProvider } from "./bwf.js";
 export class SportsService {
   private cache = new ProviderCache();
-  private identities = new TeamIdentities(
-    new ProviderCache(fetch, Date.now, 3000),
-  );
   private football = new OpenLigaProvider(this.cache);
   private cup = new EflProvider(this.cache);
   private racing = new JolpicaProvider(this.cache);
-  async feed(edition: "real" | "demo" = "real"): Promise<EventFeed> {
+  private espn = new EspnProvider(this.cache);
+  private wrestling = new WweProvider(this.cache);
+  private badminton = new BwfProvider(new ProviderCache(fetch, Date.now, 5000));
+  private known = new Map<string, SportEvent>();
+  async feed(
+    edition: "real" | "demo" = "real",
+    date = new Date().toISOString().slice(0, 10),
+  ): Promise<EventFeed> {
     if (edition === "demo")
       return {
         data: await new DemoProvider().getEvents(),
@@ -42,67 +48,157 @@ export class SportsService {
           },
         ],
       };
-    const metadata = this.identities.enrich([
-      ...verifiedCupFixtures,
-      ...verifiedSportFixtures,
-    ]);
-    const now = new Date();
+    const now = new Date(`${date}T12:00:00Z`);
+    if (
+      !/^20\d{2}-\d{2}-\d{2}$/.test(date) ||
+      !Number.isFinite(now.getTime()) ||
+      now.toISOString().slice(0, 10) !== date
+    )
+      throw new Error("Invalid schedule date");
     const year = now.getUTCFullYear();
     const season = now.getUTCMonth() >= 6 ? year : year - 1;
-    const results = await Promise.allSettled([
-      this.football.events(season),
-      this.racing.events(year),
-      this.cup.events(),
-    ]);
-    const coverage: Coverage[] = results.map((r, index) => ({
-      provider:
-        index === 0
-          ? "OpenLigaDB"
-          : index === 1
-            ? "Jolpica F1"
-            : "EFL official schedule",
-      sport: index === 1 ? "Formula 1" : "Football",
+    const providers = [
+      {
+        provider: "OpenLigaDB",
+        sport: "Football",
+        load: () => this.football.events(season),
+        message: "Bundesliga fixtures, results and goal events.",
+      },
+      {
+        provider: "Jolpica F1",
+        sport: "Formula 1",
+        load: () => this.racing.events(year),
+        message: "Race schedule and latest classification; no live timing.",
+      },
+      {
+        provider: "EFL official schedule",
+        sport: "Football",
+        load: () => this.cup.events(),
+        message:
+          "Official cup schedule; scores supplemented by ESPN when available.",
+      },
+      {
+        provider: "WWE official schedule",
+        sport: "WWE",
+        load: () => this.wrestling.events(),
+        message: "Automated official schedule only; no live results feed.",
+      },
+      {
+        provider: "BWF TV",
+        sport: "Badminton",
+        load: () => this.badminton.events(),
+        message:
+          "Official court-session broadcasts and publisher-reported live status; individual match scoring unavailable.",
+      },
+      ...espnLeagues.map((league) => ({
+        provider: `ESPN:${league.path}`,
+        sport: league.sport,
+        load: () => this.espn.events(league, date),
+        message: `${league.label} scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.`,
+      })),
+    ];
+    const results = await Promise.allSettled(providers.map((p) => p.load()));
+    const coverage: Coverage[] = results.map((r, i) => ({
+      provider: providers[i].provider,
+      sport: providers[i].sport,
       status:
         r.status === "fulfilled"
           ? r.value.stale
             ? "stale"
             : "available"
           : "unavailable",
-      message:
-        index === 0
-          ? "Bundesliga · community fixtures, results and goals. No live clock, lineups or positions."
-          : index === 1
-            ? "Season schedule and latest race classification. No live timing."
-            : "Official cup fixtures. Schedule only: live scores, lineups and match events are not connected.",
+      message: providers[i].message,
       fetchedAt: r.status === "fulfilled" ? r.value.fetchedAt : null,
     }));
     coverage.push({
-      provider: "Verified official fixtures",
-      sport: "Basketball · WWE · MMA · Tennis · Cricket · Baseball",
-      status: "available",
+      provider: "Cricket / boxing",
+      sport: "Cricket · Boxing",
+      status: "not-configured",
       message:
-        "Limited official schedule facts, checked 28 October 2026. Not comprehensive coverage or a live score feed.",
-      fetchedAt: verifiedSportFixtures[0]!.source!.fetchedAt,
+        "No reliable free live feed connected. No manually maintained fixtures are presented as current coverage.",
+      fetchedAt: null,
     });
-    await metadata;
+    const all = results.flatMap((r) =>
+      r.status === "fulfilled" ? r.value.value : [],
+    );
+    // Preserve existing cup URLs and source associations while replacing schedule-only
+    // records with a provider scoreboard. Match BOTH participants and kickoff.
+    const key = (s: string) =>
+      s
+        .toLowerCase()
+        .replace(/\b(afc|fc)\b/g, "")
+        .replace(/[^a-z0-9]/g, "");
+    const cup = all.filter(
+      (e) => e.source?.provider === "EFL official schedule",
+    );
+    const merged = all
+      .filter((e) => e.source?.provider !== "EFL official schedule")
+      .map((e) => {
+        if (
+          e.kind !== "score" ||
+          e.source?.provider !== "ESPN:soccer/eng.league_cup"
+        )
+          return e;
+        const official = cup.find(
+          (c) =>
+            c.kind === "score" &&
+            key(c.home) === key(e.home) &&
+            key(c.away) === key(e.away) &&
+            Math.abs(Date.parse(c.start) - Date.parse(e.start)) < 300000,
+        );
+        if (!official) return e;
+        cup.splice(cup.indexOf(official), 1);
+        return {
+          ...e,
+          id: official.id,
+          viewingLinks: official.viewingLinks,
+          detail: { ...official.detail, ...e.detail },
+        };
+      })
+      .concat(cup)
+      .sort((a, b) => a.start.localeCompare(b.start));
+    for (const event of merged) {
+      if (this.known.size >= 2000 && !this.known.has(event.id))
+        this.known.delete(this.known.keys().next().value!);
+      this.known.set(event.id, event);
+    }
     return {
-      data: await this.identities.enrich(
-        results
-          .flatMap((r) => (r.status === "fulfilled" ? r.value.value : []))
-          .concat(verifiedSportFixtures)
-          .sort((a, b) => a.start.localeCompare(b.start)),
-      ),
-      source:
-        "OpenLigaDB (ODbL) · Jolpica F1 · EFL official schedule · Verified official fixtures",
+      data: merged,
       edition,
+      source:
+        "Automated provider snapshots · see coverage for availability and freshness",
       coverage,
     };
+  }
+  async fixture(
+    id: string,
+    edition: "real" | "demo",
+  ): Promise<SportEvent | undefined> {
+    const known = this.known.get(id);
+    if (
+      edition === "real" &&
+      known?.source &&
+      !known.source.stale &&
+      Date.now() - Date.parse(known.source.fetchedAt) < 30000
+    )
+      return known;
+    const date = known?.start.slice(0, 10);
+    let event = (await this.feed(edition, date)).data.find((e) => e.id === id);
+    if (
+      !event &&
+      edition === "real" &&
+      process.env.SPORTS_PROVIDERS_DISABLED !== "true"
+    )
+      event = await this.espn.lookup(id).catch(() => undefined);
+    return event;
   }
   async event(
     id: string,
     edition: "real" | "demo",
   ): Promise<SportEvent | undefined> {
-    const event = (await this.feed(edition)).data.find((e) => e.id === id);
+    const event = await this.fixture(id, edition);
+    if (event?.source?.provider.startsWith("ESPN:"))
+      event.detail = await this.espn.detail(event).catch(() => event?.detail);
     if (event?.source?.provider === "OpenLigaDB") {
       const year = new Date(event.start).getUTCFullYear();
       const season = new Date(event.start).getUTCMonth() >= 6 ? year : year - 1;

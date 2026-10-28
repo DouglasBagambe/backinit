@@ -47,7 +47,10 @@ export default async function Page({
     ["match", "watch"].includes(slug[0] || "") && slug.length === 2
       ? await loadEvent(slug[1]!, feed.edition)
       : null;
-  if (match) feed.data = feed.data.map((e) => (e.id === match.id ? match : e));
+  if (match)
+    feed.data = feed.data.some((e) => e.id === match.id)
+      ? feed.data.map((e) => (e.id === match.id ? match : e))
+      : [match, ...feed.data];
   if (
     !pages.includes(route) &&
     !(

@@ -97,7 +97,7 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
     void load();
     const timer = setInterval(() => {
       if (!document.hidden) void load();
-    }, 60000);
+    }, 30000);
     return () => {
       controller.abort();
       clearInterval(timer);

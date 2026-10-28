@@ -96,7 +96,7 @@ class SportsUpdates implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     if (process.env.SPORTS_DATA_MODE === "demo") return;
     void this.poll();
-    this.timer = setInterval(() => void this.poll(), 60000);
+    this.timer = setInterval(() => void this.poll(), 30000);
     this.timer.unref();
   }
   private async poll() {

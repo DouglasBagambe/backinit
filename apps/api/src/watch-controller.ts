@@ -13,7 +13,7 @@ export class WatchController {
         new Date(date).toISOString().slice(0, 10) !== date)
     )
       throw new BadRequestException("Invalid schedule date");
-    const feed = await service.feed("real");
+    const feed = await service.feed("real", date);
     const now = date ? Date.parse(`${date}T12:00:00Z`) : Date.now();
     const data = feed.data
       .filter(

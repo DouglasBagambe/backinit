@@ -19,7 +19,7 @@ export class StreamController {
     @Query("library") library?: string,
   ) {
     if (event) {
-      const fixture = await service.event(event, "real");
+      const fixture = await service.fixture(event, "real");
       return { data: fixture ? streams.forEvent(fixture) : [] };
     }
     return { data: streams.public(undefined, library === "1") };
@@ -48,7 +48,7 @@ export class StreamController {
     };
     if (input?.content === "sports") {
       const event = input.eventId
-        ? await service.event(input.eventId, "real")
+        ? await service.fixture(input.eventId, "real")
         : (await service.feed("real")).data.find(
             (e) =>
               e.source?.provider === input.fixtureRef?.provider &&

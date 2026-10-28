@@ -1,4 +1,9 @@
-type Player = { destroy(): void };
+export type YouTubePlayer = {
+  destroy(): void;
+  getCurrentTime(): number;
+  getPlayerState(): number;
+};
+type Player = YouTubePlayer;
 type YouTube = {
   Player: new (
     element: HTMLElement,

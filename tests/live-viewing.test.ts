@@ -186,3 +186,28 @@ it("explicit event IDs cannot be overridden by a reference for another match, an
     ).toThrow();
   }
 });
+it("requires advancing SDK evidence for publisher embeds and withholds live sources after an event ends", () => {
+  const { streams, user, fixture, source } = setup();
+  const saved = streams.save(user, {
+    ...source,
+    type: "embed",
+    territory: "PROVIDER",
+    url: "https://www.youtube-nocookie.com/embed/epxkdYuTSqU",
+  });
+  const report = {
+    id: saved.id,
+    version: saved.version,
+    result: "passed",
+    method: "provider-player",
+    currentTime: 0,
+    width: 0,
+    height: 0,
+    browser: "contract test",
+  };
+  expect(() => streams.recordCheck(user, report)).toThrow("Advancing");
+  streams.recordCheck(user, { ...report, currentTime: 4 });
+  streams.save(user, { ...saved, revoked: false });
+  expect(streams.forEvent(fixture)).toHaveLength(1);
+  expect(streams.forEvent({ ...fixture, status: "finished" })).toEqual([]);
+  expect(streams.forEvent({ ...fixture, status: "cancelled" })).toEqual([]);
+});

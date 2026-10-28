@@ -15,12 +15,91 @@ export function RealDetail({
   const goals = event.detail?.goals || [];
   const [index, setIndex] = useState(0);
   const current = goals[index];
-  if (tab === "Statistics" || tab === "Lineups")
-    return (
+  const detail = event.detail;
+  const rows = tab === "Statistics" ? detail?.statistics : detail?.periods;
+  if (
+    tab === "Statistics" ||
+    (event.kind === "score" &&
+      event.sport !== "Football" &&
+      tab === "Overview" &&
+      rows?.length)
+  )
+    return rows?.length ? (
+      <section className="panel">
+        <h2>{tab === "Statistics" ? "Statistics" : "Score by period"}</h2>
+        <div
+          className="table-scroll"
+          role="region"
+          aria-label="Match statistics"
+          tabIndex={0}
+        >
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Statistic</th>
+                <th scope="col">
+                  {event.kind === "score" ? event.home : "Home"}
+                </th>
+                <th scope="col">
+                  {event.kind === "score" ? event.away : "Away"}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={`${row.label}-${i}`}>
+                  <th scope="row">{row.label}</th>
+                  <td>{row.home}</td>
+                  <td>{row.away}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    ) : (
       <Empty
-        title={`${tab} unavailable for this feed.`}
+        title="Statistics unavailable for this feed."
         text="No data available."
       />
+    );
+  if (tab === "Lineups")
+    return detail?.lineups?.length ? (
+      <section className="panel">
+        <h2>Lineups</h2>
+        {detail.lineups.map((team) => (
+          <div key={team.team}>
+            <h3>{team.team}</h3>
+            {team.players.map((p, i) => (
+              <p key={`${p.name}-${i}`}>
+                {p.name}
+                {p.position ? ` · ${p.position}` : ""}
+                {p.starter === true ? " · Starter" : ""}
+              </p>
+            ))}
+          </div>
+        ))}
+      </section>
+    ) : (
+      <Empty
+        title="Lineups unavailable for this feed."
+        text="No data available."
+      />
+    );
+  if ((tab === "Timeline" || tab === "Tracker") && detail?.timeline?.length)
+    return (
+      <section className="panel">
+        <h2>Play by play</h2>
+        {detail.timeline.map((p, i) => (
+          <div className="moment" key={`${p.id}-${i}`}>
+            <b>{p.clock}</b>
+            <span>
+              {p.text}
+              {p.team ? <small>{p.team}</small> : null}
+            </span>
+          </div>
+        ))}
+      </section>
     );
   if (event.kind === "card")
     return (
@@ -33,7 +112,10 @@ export function RealDetail({
         <p>{event.detail?.round || "Detailed event data is not connected."}</p>
         {event.bouts.length ? (
           event.bouts.map((b) => (
-            <div className="bout" key={b.stipulation}>
+            <div
+              className="bout"
+              key={`${b.performers.join("-")}-${b.stipulation}`}
+            >
               <strong>{b.performers.join(" vs ")}</strong>
               <p>{b.stipulation}</p>
             </div>
