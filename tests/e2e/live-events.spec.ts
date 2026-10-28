@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { execFileSync } from "node:child_process";
+import { sports } from "../../packages/domain/src/index";
 import { verifiedCupFixtures } from "../../apps/api/src/providers/efl";
 const priority = "efl-20261028-liverpool-chelsea";
 async function real(page: Page, baseURL: string) {
@@ -118,7 +119,7 @@ test("compact discovery shows matches immediately and every sport stays reachabl
     expect(visibleRows).toBeGreaterThanOrEqual(3);
     await expect(page.locator(".sidebar")).toHaveCount(0);
     const images = page.locator(".sports-nav img");
-    await expect(images).toHaveCount(13);
+    await expect(images).toHaveCount(sports.length + 3);
     await expect
       .poll(() =>
         images.evaluateAll((nodes) =>
@@ -132,18 +133,7 @@ test("compact discovery shows matches immediately and every sport stays reachabl
       .toBe(true);
     await page.locator(".sports-picker > summary").click();
     const picker = page.getByRole("navigation", { name: "Choose sport" });
-    for (const sport of [
-      "Football",
-      "Basketball",
-      "Tennis",
-      "WWE",
-      "Formula 1",
-      "Cricket",
-      "MMA",
-      "American football",
-      "Baseball",
-      "Rugby",
-    ])
+    for (const sport of sports)
       await expect(
         picker.getByRole("link", { name: sport, exact: true }),
       ).toBeVisible();
