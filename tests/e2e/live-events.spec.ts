@@ -188,7 +188,9 @@ test("compact discovery shows matches immediately and every sport stays reachabl
     page.getByRole("heading", { name: "No streams available" }),
   ).toBeVisible();
   await page.goto(`/watch/${priority}`);
-  const player = await page.locator(".player-unavailable").boundingBox();
+  const unavailablePlayer = page.locator(".player-unavailable");
+  await expect(unavailablePlayer).toBeVisible();
+  const player = await unavailablePlayer.boundingBox();
   expect(player!.height).toBeLessThan(180);
   await expect(page.locator(".viewing-options")).toBeVisible();
 });
