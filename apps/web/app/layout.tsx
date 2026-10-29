@@ -10,6 +10,16 @@ export const metadata: Metadata = {
   description:
     "Discover live sport, follow scores and find your next match on BackInIt.",
   robots: { index: false, follow: false },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/brand/icon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/brand/icon-180.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  manifest: "/manifest.webmanifest",
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,7 +27,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var t=localStorage.getItem('backinit-theme')||'system';document.documentElement.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t}catch(e){}`,
+            __html: `try{var v=localStorage.getItem('backinit-dark-variant');document.documentElement.dataset.darkVariant=['green1','green2','green3'].includes(v)?v:'green2';var t=localStorage.getItem('backinit-theme')||'system';document.documentElement.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t}catch(e){}`,
           }}
         />
         {children}

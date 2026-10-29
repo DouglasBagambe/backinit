@@ -121,16 +121,17 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
         </div>
       )}
       {loading && (
-        <div className="watch-grid" aria-busy="true">
+        <div className="watch-grid" aria-busy="true" role="status">
+          <span className="sr-only">Loading videos</span>
           {[1, 2, 3].map((i) => (
             <div key={i} className="watch-skeleton">
               <div />
-              <p>Checking official sources…</p>
+              <div className="skeleton-copy" aria-hidden="true" />
             </div>
           ))}
         </div>
       )}
-      {message && <p role="status">{message}</p>}
+      {!loading && message && <p role="status">{message}</p>}
       {!loading && (
         <div className="watch-grid">
           {(preview

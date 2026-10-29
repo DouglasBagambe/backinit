@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { EventSkeleton } from "./brand";
 import { Notifications } from "./notifications";
 import { AccountSecurity } from "./account-security";
 export type AccountUser = { id: string; email: string; role: "user" | "admin" };
@@ -12,14 +13,22 @@ export function Account({ onChange }: { onChange: () => void }) {
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
+  const [checking, setChecking] = useState(true);
   useEffect(() => {
     void accountRequest("me")
       .then((r) => setUser(r.user))
       .catch((error) => {
         if (error.status >= 500) setUnavailable(true);
         if (error.status !== 401) setMessage(error.message);
-      });
+      })
+      .finally(() => setChecking(false));
   }, []);
+  if (checking)
+    return (
+      <div className="account-panel">
+        <EventSkeleton label="Loading account" />
+      </div>
+    );
   if (unavailable)
     return (
       <section className="panel account-panel">

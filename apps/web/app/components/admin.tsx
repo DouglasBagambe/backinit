@@ -365,18 +365,12 @@ export function Admin() {
                         }}
                       >
                         <option value="">Select a verified fixture</option>
-                        {fixtures
-                          .filter(
-                            (e) =>
-                              Date.parse(e.end || e.start) >
-                              Date.now() - 86400000,
-                          )
-                          .map((e) => (
-                            <option value={e.id} key={e.id}>
-                              {e.sport} · {eventTitle(e)} ·{" "}
-                              {e.start.slice(0, 16)} UTC
-                            </option>
-                          ))}
+                        {fixtures.map((e) => (
+                          <option value={e.id} key={e.id}>
+                            {e.sport} · {eventTitle(e)} · {e.start.slice(0, 16)}{" "}
+                            UTC
+                          </option>
+                        ))}
                       </select>
                     </label>
                     <label>

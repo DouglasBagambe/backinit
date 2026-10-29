@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
-import { eventTitle, type SportEvent } from "@backinit/domain";
+import { useEffect, useState } from "react";
+import { eventTitle, watchFeedSchema, type SportEvent } from "@backinit/domain";
 import { LazyPlayer as Player } from "./lazy-player";
 import { RealDetail } from "./real-detail";
 import { Crest, SportMark } from "./marks";
@@ -16,10 +16,44 @@ export function EventViewing({
   favorite: React.ReactNode;
 }) {
   const [tab, setTab] = useState("Overview");
+  const [watchableIds, setWatchableIds] = useState<string[]>([]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const load = async () => {
+      try {
+        const response = await fetch("/api/watch", {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error();
+        const feed = watchFeedSchema.parse(await response.json());
+        if (!controller.signal.aborted)
+          setWatchableIds(
+            feed.data
+              .filter((entry) =>
+                entry.sources.some(
+                  (source) => (source.presentation || "live") === "live",
+                ),
+              )
+              .map((entry) => entry.event.id),
+          );
+      } catch {
+        if (!controller.signal.aborted) setWatchableIds([]);
+      }
+    };
+    void load();
+    const timer = setInterval(() => {
+      if (!document.hidden) void load();
+    }, 30000);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, []);
   const { zone } = useViewingZone();
   const related = events
     .filter(
       (e) =>
+        watchableIds.includes(e.id) &&
         e.provenance === "provider" &&
         e.id !== event.id &&
         e.status !== "finished" &&
@@ -212,7 +246,7 @@ export function EventViewing({
           </section>
         </div>
         <aside className="event-switcher">
-          <h2>More events</h2>
+          <h2>More to watch</h2>
 
           {related.map((e) => (
             <Link key={e.id} href={`/watch/${e.id}`}>
@@ -223,10 +257,11 @@ export function EventViewing({
                   : localStart(e.start, zone)}
               </small>
               <strong>{eventTitle(e)}</strong>
-              <span>{e.scheduleOnly ? "Schedule only" : "Open event"} →</span>
+              <span>Watch →</span>
             </Link>
           ))}
-          {!related.length && <p>No upcoming events.</p>}
+          {!related.length && <p>No other streams available.</p>}
+          <Link href="/fixtures">All fixtures →</Link>
         </aside>
       </div>
     </div>

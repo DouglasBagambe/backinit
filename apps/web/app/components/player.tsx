@@ -1,4 +1,5 @@
 "use client";
+import { BrandLoading } from "./brand";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OfficialEmbed } from "./official-embed";
 import {
@@ -413,7 +414,14 @@ export function Player({
         )}
       </div>
       <div className="player-bar">
-        <span role="status">{state}</span>
+        <span className="playback-state" role="status">
+          {(state.startsWith("Loading") || state.startsWith("Buffering")) && (
+            <span className="buffering-mark" aria-hidden="true">
+              <BrandLoading />
+            </span>
+          )}
+          {state}
+        </span>
         {source && (
           <span className="pill">
             {source.content === "test"

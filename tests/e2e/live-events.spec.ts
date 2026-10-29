@@ -20,21 +20,12 @@ test("official cup discovery gives Kampala kickoffs, no false live player and fa
   await page
     .getByLabel("Viewing timezone", { exact: true })
     .selectOption("Africa/Kampala");
-  await expect(page.locator(".live-spotlight")).toContainText("23:00");
-  for (const [home, time] of [
-    ["Manchester City", "22:30"],
-    ["AFC Bournemouth", "22:45"],
-    ["Fulham", "22:45"],
-    ["Sunderland", "22:45"],
-  ])
-    await expect(
-      page.locator(".live-event-row").filter({ hasText: home }),
-    ).toContainText(time!);
   await expect(
-    page.getByRole("button", { name: /Load test player/ }),
-  ).toHaveCount(0);
+    page.getByRole("heading", { name: "No streams available" }),
+  ).toBeVisible();
+  await expect(page.locator(".live-event-row")).toHaveCount(0);
   await expect(page.locator("iframe,video")).toHaveCount(0);
-  await page.locator(".live-spotlight").click();
+  await page.goto(`/watch/${priority}`);
   await expect(page).toHaveURL(new RegExp(`/watch/${priority}$`));
   await expect(
     page.getByRole("heading", {
@@ -54,10 +45,13 @@ test("official cup discovery gives Kampala kickoffs, no false live player and fa
     await page.request.get(`/api/calendar/${priority}`)
   ).text();
   expect(calendar).toContain("DTSTART:20261028T200000Z");
-  await page
-    .locator(".event-switcher")
-    .getByRole("link", { name: /Manchester City/ })
-    .click();
+  await expect(page.locator(".event-switcher")).not.toContainText(
+    "Manchester City",
+  );
+  const city = verifiedCupFixtures.find(
+    (e) => e.kind === "score" && e.home === "Manchester City",
+  )!;
+  await page.goto(`/watch/${city.id}`);
   await expect(
     page.getByRole("heading", { name: /Manchester City.*Brighton/ }),
   ).toBeVisible();
@@ -104,6 +98,36 @@ test("compact discovery shows matches immediately and every sport stays reachabl
 }) => {
   await real(page, baseURL!);
   await page.clock.setFixedTime(new Date("2026-10-28T06:00:00Z"));
+  await page.route("**/api/watch*", (route) =>
+    route.fulfill({
+      json: {
+        data: verifiedCupFixtures.map((event) => ({
+          event,
+          availability: "in-page",
+          sources: [
+            {
+              id: `ci-${event.id}`,
+              name: "CI playback contract",
+              type: "embed",
+              content: "official",
+              url: "https://example.test/embed",
+              eventId: event.id,
+              presentation: "live",
+              rightsOwner: "CI fixture only",
+              rightsEvidence: "https://example.test/terms",
+              validFrom: "2026-10-28T00:00:00Z",
+              validUntil: "2026-10-29T00:00:00Z",
+              territory: "WORLD",
+              revoked: false,
+              version: 1,
+            },
+          ],
+        })),
+        coverage: [],
+        generatedAt: "2026-10-28T06:00:00Z",
+      },
+    }),
+  );
   for (const width of [360, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 740 });
     await page.goto("/watch?date=2026-10-28");
@@ -139,7 +163,9 @@ test("compact discovery shows matches immediately and every sport stays reachabl
       ).toBeVisible();
     await picker.getByRole("link", { name: "Baseball", exact: true }).click();
     await expect(page).toHaveURL(/sport=Baseball.*range=upcoming/);
-    await expect(page.locator(".watch-competition")).toContainText("Baseball");
+    await expect(
+      page.getByRole("heading", { name: "No streams available" }),
+    ).toBeVisible();
     await expect(page.locator(".sports-picker")).not.toHaveAttribute(
       "open",
       "",
@@ -158,7 +184,9 @@ test("compact discovery shows matches immediately and every sport stays reachabl
   await page
     .getByRole("button", { name: "Upcoming events", exact: true })
     .click();
-  await expect(page.locator(".live-event-list")).toContainText("Moicano");
+  await expect(
+    page.getByRole("heading", { name: "No streams available" }),
+  ).toBeVisible();
   await page.goto(`/watch/${priority}`);
   const player = await page.locator(".player-unavailable").boundingBox();
   expect(player!.height).toBeLessThan(180);
@@ -347,7 +375,7 @@ test("admin sources require verification, match only their fixture, expose retry
   ).toBe(false);
 });
 
-test("long-running provider-confirmed broadcasts remain discoverable across midnight", async ({
+test("Watch excludes unavailable events and replays while keeping live broadcasts across midnight", async ({
   page,
   baseURL,
 }) => {
@@ -372,10 +400,38 @@ test("long-running provider-confirmed broadcasts remain discoverable across midn
       stale: false,
     },
   };
+  const source = {
+    id: "browser-test-live",
+    name: "CI source contract",
+    type: "embed",
+    content: "official",
+    eventId: event.id,
+    presentation: "live",
+    url: "https://example.test/embed",
+    rightsOwner: "CI fixture only",
+    rightsEvidence: "https://example.test/terms",
+    validFrom: "2026-10-27T20:00:00Z",
+    validUntil: "2026-10-29T20:00:00Z",
+    territory: "WORLD",
+    revoked: false,
+    version: 1,
+  };
   await page.route("**/api/watch*", (route) =>
     route.fulfill({
       json: {
-        data: [{ event, sources: [], availability: "unavailable" }],
+        data: [
+          { event, sources: [source], availability: "in-page" },
+          {
+            event: { ...event, id: "no-stream", title: "Unstreamed event" },
+            sources: [],
+            availability: "unavailable",
+          },
+          {
+            event: { ...event, id: "replay-only", title: "Replay only event" },
+            sources: [{ ...source, presentation: "replay" }],
+            availability: "unavailable",
+          },
+        ],
         coverage: [],
         generatedAt: "2026-10-28T12:00:00Z",
       },
@@ -385,5 +441,49 @@ test("long-running provider-confirmed broadcasts remain discoverable across midn
   await expect(page.locator(".live-event-list")).toContainText(event.title);
   await page.getByRole("button", { name: "Live", exact: true }).click();
   await expect(page.locator(".live-event-list")).toContainText(event.title);
-  await expect(page.locator(".live-event-list")).toContainText("No stream");
+  await expect(page.locator(".live-event-row")).toHaveCount(1);
+  await expect(page.locator(".live-event-list")).toContainText("Watch live");
+  await expect(page.locator(".live-event-list")).not.toContainText(
+    "Unstreamed event",
+  );
+  await expect(page.locator(".live-event-list")).not.toContainText(
+    "Replay only event",
+  );
+});
+
+test("three local green previews persist and keep the footer accessible on mobile", async ({
+  page,
+}) => {
+  await page.goto("/watch");
+  await page.setViewportSize({ width: 390, height: 844 });
+  const colors = new Set<string>();
+  for (const n of [1, 2, 3]) {
+    const button = page.getByRole("button", {
+      name: `Green ${n}`,
+      exact: true,
+    });
+    await button.click();
+    await expect(button).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator("html")).toHaveAttribute(
+      "data-dark-variant",
+      `green${n}`,
+    );
+    colors.add(
+      await page.evaluate(() =>
+        getComputedStyle(document.documentElement)
+          .getPropertyValue("--bg")
+          .trim(),
+      ),
+    );
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  expect(colors.size).toBe(3);
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Green 3", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 });

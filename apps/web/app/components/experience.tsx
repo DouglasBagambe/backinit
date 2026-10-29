@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { BrandMark } from "./brand";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -91,6 +92,8 @@ export function Experience({
   const [favorites, setFavorites] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
   const [theme, setTheme] = useState("system");
+  const [darkVariant, setDarkVariant] = useState("green2");
+  const [themePreview, setThemePreview] = useState(false);
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [user, setUser] = useState<AccountUser | null>(null);
@@ -189,6 +192,12 @@ export function Experience({
               typeof f.target === "string",
           ),
         );
+      setThemePreview(
+        ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname),
+      );
+      const variant = localStorage.getItem("backinit-dark-variant");
+      if (variant && ["green1", "green2", "green3"].includes(variant))
+        setDarkVariant(variant);
       const t = localStorage.getItem("backinit-theme");
       if (t && ["dark", "light", "system"].includes(t)) setTheme(t);
     } catch {}
@@ -217,12 +226,14 @@ export function Experience({
         theme === "system" ? (media.matches ? "dark" : "light") : theme;
     };
     apply();
+    document.documentElement.dataset.darkVariant = darkVariant;
     try {
+      localStorage.setItem("backinit-dark-variant", darkVariant);
       localStorage.setItem("backinit-theme", theme);
     } catch {}
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
-  }, [theme, ready]);
+  }, [theme, darkVariant, ready]);
   async function clearEvents() {
     if (syncing) throw new Error("Wait for favorites to finish syncing.");
     if (user) await accountRequest("saved-events", "DELETE");
@@ -414,9 +425,7 @@ export function Experience({
       </a>
       <header className="topbar">
         <Link className="brand" href="/" title="BackInIt home">
-          <span className="brand-mark" aria-hidden="true">
-            b<span>↗</span>
-          </span>
+          <BrandMark className="brand-mark" />
           back<span>in</span>it<span className="brand-dot">.</span>
         </Link>
         <nav className="desktop-nav" aria-label="Main navigation">
@@ -998,7 +1007,8 @@ export function Experience({
           )}
           <footer>
             <Link className="footer-brand" href="/">
-              backinit.
+              <BrandMark />
+              <span>backinit.</span>
             </Link>
             <Link href="/settings">Settings</Link>
             <Link href="/privacy">Privacy</Link>
@@ -1015,6 +1025,34 @@ export function Experience({
                 </button>
               ))}
             </fieldset>
+            {themePreview && (
+              <fieldset
+                className="footer-theme"
+                aria-label="Green theme previews"
+              >
+                <legend>Try a green</legend>
+                {["Charcoal & sage", "Bottle green", "Forest green"].map(
+                  (label, index) => {
+                    const variant = `green${index + 1}`;
+                    return (
+                      <button
+                        key={variant}
+                        title={label}
+                        aria-pressed={
+                          theme === "dark" && darkVariant === variant
+                        }
+                        onClick={() => {
+                          setDarkVariant(variant);
+                          setTheme("dark");
+                        }}
+                      >
+                        Green {index + 1}
+                      </button>
+                    );
+                  },
+                )}
+              </fieldset>
+            )}
             {real && demoAvailable && (
               <button className="text-button" onClick={changeEdition}>
                 Demo edition

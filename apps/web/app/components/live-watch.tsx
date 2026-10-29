@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { EventSkeleton } from "./brand";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -57,7 +58,6 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
         : "today",
   );
   const [date, setDate] = useState(params.get("date") || "");
-  const [available, setAvailable] = useState(false);
   const [query, setQuery] = useState("");
   const [limit, setLimit] = useState(30);
   const [loading, setLoading] = useState(true);
@@ -120,8 +120,7 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
           (day <= (date || today) && endDay >= (date || today)) ||
           (!date && e.status === "live")) &&
         (range !== "live" || e.status === "live") &&
-        (!available ||
-          sources.some((s) => (s.presentation || "live") === "live")) &&
+        sources.some((s) => (s.presentation || "live") === "live") &&
         (sport === "All sports" || e.sport === sport) &&
         `${eventTitle(e)} ${e.competition} ${e.sport}`
           .toLowerCase()
@@ -254,14 +253,6 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
                 ))}
               </select>
             </label>
-            <label className="available-filter">
-              <input
-                type="checkbox"
-                checked={available}
-                onChange={(e) => setAvailable(e.target.checked)}
-              />
-              Playable streams only
-            </label>
           </div>
         </details>
       </div>
@@ -272,11 +263,7 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
         </span>
         <span>{zone}</span>
       </div>
-      {loading && (
-        <p role="status" aria-busy="true">
-          Loading events…
-        </p>
-      )}
+      {loading && <EventSkeleton />}
       {error && (
         <p role="alert">
           {error} <button onClick={() => retry((a) => a + 1)}>Retry</button>
@@ -379,11 +366,12 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
       </div>
       {!loading && !filtered.length && (
         <div className="live-empty">
-          <h2>{available ? "No streams available" : "No events found"}</h2>
+          <h2>No streams available</h2>
           <p>
-            {range === "today"
-              ? "Nothing scheduled today."
-              : "Try another date or sport."}
+            Try another date or sport, or browse all fixtures.{" "}
+            <Link href="/fixtures">
+              Fixtures <ChevronRight size={14} />
+            </Link>
           </p>
           {range === "today" && (
             <button
@@ -416,10 +404,8 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
         <details>
           <summary>Coverage & viewing information</summary>
           <p>
-            Listings do not guarantee a stream. Scores and live status appear
-            only when supplied. Some sports have verified schedule snapshots
-            rather than live feeds. Broadcasts are subject to publisher access
-            and territory restrictions.
+            Broadcast availability can change and may depend on your location or
+            publisher access. All other events are listed in Fixtures.
           </p>
           <div className="schedule-links">
             {sports.map((s) => (
