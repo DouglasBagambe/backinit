@@ -121,7 +121,7 @@ export function Experience({
         if (active && error.status !== 401) {
           failed = true;
           setSyncError(
-            "Account sync is unavailable. Reload to retry; saved preferences have not changed.",
+            "Saved items are temporarily unavailable. Please try again. Your saved preferences are unchanged.",
           );
           return;
         }
@@ -575,7 +575,12 @@ export function Experience({
       )}
       <div className="app-layout">
         <main id="main" className="main">
-          {syncError && <p role="alert">{syncError}</p>}
+          {syncError &&
+            ["favorites", "settings", "profile"].includes(route) && (
+              <p className="account-notice" role="alert">
+                {syncError}
+              </p>
+            )}
           {match && route.startsWith("watch/") ? (
             <EventViewing
               event={match}
@@ -1016,8 +1021,10 @@ export function Experience({
               </button>
             )}
             <details className="footer-data">
-              <summary>Data & availability</summary>
-              <small>{feedSource} · Viewing sources vary by event</small>
+              <summary>About coverage</summary>
+              <small>
+                Event coverage and viewing options vary by sport and location.
+              </small>
             </details>
           </footer>
         </main>

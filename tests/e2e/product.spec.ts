@@ -262,10 +262,19 @@ test("account outages preserve guest storage and prevent unsynchronized edits", 
       body: JSON.stringify({ message: "Account service unavailable" }),
     }),
   );
+  await page.goto("/watch");
+  await expect(page.locator(".account-notice")).toHaveCount(0);
+  await page.goto("/profile");
+  await expect(
+    page.getByRole("heading", { name: "Accounts are temporarily unavailable" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Sign in", exact: true }),
+  ).toHaveCount(0);
   await page.goto("/favorites");
   await expect(
     page.getByText(
-      "Account sync is unavailable. Reload to retry; saved preferences have not changed.",
+      "Saved items are temporarily unavailable. Please try again. Your saved preferences are unchanged.",
     ),
   ).toBeVisible();
   expect(

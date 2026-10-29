@@ -134,8 +134,8 @@ export function AccountSecurity({ signedOut }: { signedOut: () => void }) {
         <p>
           This permanently removes your account, favorites, recovery codes and
           active sessions. Source-operation audit entries are retained without
-          your account ID. Previous backups expire according to the
-          installation's retention policy.
+          your account ID. Previous backups expire according to the backup
+          retention policy.
         </p>
         <form
           onSubmit={(e) => {

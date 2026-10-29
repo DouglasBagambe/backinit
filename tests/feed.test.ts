@@ -1,7 +1,10 @@
 import { beforeEach, afterEach, describe, it, expect, vi } from "vitest";
 import { loadEvents, loadEvent } from "../apps/web/app/lib/feed";
 import { events } from "../packages/domain/src/index";
-beforeEach(() => vi.stubEnv("ALLOW_DEMO_MODE", "true"));
+beforeEach(() => {
+  vi.stubEnv("ALLOW_DEMO_MODE", "true");
+  vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3100");
+});
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();

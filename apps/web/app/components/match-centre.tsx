@@ -140,7 +140,7 @@ export function MatchCentre({
           <p className="muted">
             {e.provenance === "demo"
               ? "Fictional performers and bookings for interface demonstration."
-              : "Official schedule. Detailed card and live results are not connected."}
+              : "Live results unavailable."}
           </p>
           {e.bouts.map((b) => (
             <div className="bout" key={b.stipulation}>

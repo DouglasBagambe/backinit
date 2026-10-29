@@ -51,10 +51,8 @@ export function Notifications() {
         </span>
       </div>
       <p>
-        Opt in to provider-reported changes for saved events and followed teams,
-        athletes or competitions. Updates are checked every minute while the API
-        runs; provider caches and reporting delays still apply. Email and
-        background push are not enabled.
+        Get updates here for saved events and the sport you follow. Updates may
+        be delayed. Email and push notifications aren’t available.
       </p>
       <label className="check-label">
         <input
