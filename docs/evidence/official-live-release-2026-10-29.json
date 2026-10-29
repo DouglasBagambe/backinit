@@ -1,0 +1,52 @@
+{
+  "at": "2026-10-29T20:45:02.401Z",
+  "origin": "https://www.backinit.live",
+  "publisherReportedLive": 2,
+  "attempts": [
+    {
+      "eventId": "fiba-75f13b9dda56288610906538",
+      "title": "LIVE 🔴 FIBA 3x3 AmeriCup 2026 | Day 2 - Session 1 | #3x3Basketball",
+      "publisher": "FIBA Basketball",
+      "checkedAt": "2026-10-29T20:45:02.488Z",
+      "before": {
+        "currentTime": 6330.1,
+        "width": 1280,
+        "height": 720,
+        "readyState": 1,
+        "paused": false,
+        "frames": 0
+      },
+      "after": {
+        "currentTime": 6338.19952,
+        "width": 1280,
+        "height": 720,
+        "readyState": 4,
+        "paused": false,
+        "frames": 491
+      },
+      "played": true,
+      "mobile": {
+        "overflow": false,
+        "sample": {
+          "currentTime": 6340.425568,
+          "width": 1280,
+          "height": 720,
+          "readyState": 4,
+          "paused": false,
+          "frames": 625
+        }
+      },
+      "afterRefresh": {
+        "currentTime": 6405.466163,
+        "width": 854,
+        "height": 480,
+        "readyState": 4,
+        "paused": false,
+        "frames": 2863
+      },
+      "refreshPreservedPlayback": true
+    }
+  ],
+  "decodedBroadcasts": 1,
+  "status": "LIVE PLAYBACK VERIFIED"
+}

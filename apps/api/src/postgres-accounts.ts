@@ -55,7 +55,7 @@ export class PostgresAccounts {
     const body = credentialsSchema.safeParse(input);
     if (!body.success)
       throw new BadRequestException(
-        "Use a valid email and a password of 12–128 characters.",
+        "Use a valid email and a password of 8–128 characters.",
       );
     const { email, password } = body.data;
     const key = await this.attempt(register ? "register" : "login", email);
@@ -184,7 +184,7 @@ export class PostgresAccounts {
       .safeParse(input);
     if (!body.success)
       throw new BadRequestException(
-        "Enter your email, recovery code and a new password of 12–128 characters.",
+        "Enter your email, recovery code and a new password of 8–128 characters.",
       );
     const { email, password, code } = body.data;
     await this.attempt("recover", email);
@@ -217,13 +217,13 @@ export class PostgresAccounts {
     const body = z
       .object({
         currentPassword: z.string().min(1).max(128),
-        password: z.string().min(12).max(128),
+        password: z.string().min(8).max(128),
       })
       .strict()
       .safeParse(input);
     if (!body.success)
       throw new BadRequestException(
-        "Enter your current password and a new password of 12–128 characters.",
+        "Enter your current password and a new password of 8–128 characters.",
       );
     const previous = await this.confirm(user, body.data.currentPassword),
       hash = await passwordHash(body.data.password);

@@ -149,12 +149,12 @@ export function Account({ onChange }: { onChange: () => void }) {
                   mode === "login" ? "current-password" : "new-password"
                 }
                 required
-                minLength={12}
+                minLength={8}
                 maxLength={128}
               />
             </label>
             <p className="fine">
-              Use at least 12 characters. Keep your recovery codes safe; account
+              Use at least 8 characters. Keep your recovery codes safe; account
               recovery uses these codes, not email. Email addresses are not
               verified.
             </p>

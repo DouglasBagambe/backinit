@@ -19,7 +19,7 @@ describe.skipIf(!process.env.POSTGRES_TEST_URL)(
     const ids: string[] = [];
     const credentials = () => ({
       email: `qa-${randomUUID()}@example.test`,
-      password: "correct-horse-battery-staple",
+      password: "Eight!42",
     });
     async function register() {
       const input = credentials(),
@@ -47,6 +47,9 @@ describe.skipIf(!process.env.POSTGRES_TEST_URL)(
       await pool.end();
     });
     it("stores hashes, persists favorites across a fresh connection, isolates users and revokes sessions", async () => {
+      await expect(
+        accounts.authenticate({ ...credentials(), password: "Seven!7" }, true),
+      ).rejects.toThrow("8–128");
       const a = await register(),
         b = await register();
       const stored = (
@@ -93,7 +96,7 @@ describe.skipIf(!process.env.POSTGRES_TEST_URL)(
       const replacement = {
         email: a.input.email,
         code: codes[0],
-        password: "new-secure-password-recovery",
+        password: "Reset!42",
       };
       const results = await Promise.allSettled([
         accounts.recover(replacement),

@@ -154,7 +154,7 @@ test("recovery codes reset access, privacy export excludes secrets, and account 
   page,
 }) => {
   const email = `recovery-${Date.now()}@example.test`;
-  const password = "initial-password-for-recovery";
+  let password = "Eight!42";
   await page.goto("/profile");
   await page
     .getByRole("button", { name: "Create an account", exact: true })
@@ -164,6 +164,20 @@ test("recovery codes reset access, privacy export excludes secrets, and account 
   await page
     .getByRole("button", { name: "Create account", exact: true })
     .click();
+  await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
+  await page.getByText("Change password", { exact: true }).click();
+  await page.getByLabel("Current password", { exact: true }).fill(password);
+  await page.getByLabel("New password", { exact: true }).fill("Change42");
+  await page
+    .getByRole("button", { name: "Change password and sign out", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Sign in", exact: true }),
+  ).toBeVisible();
+  password = "Change42";
+  await page.getByLabel("Email", { exact: true }).fill(email);
+  await page.getByLabel("Password", { exact: true }).fill(password);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByText(`Signed in as ${email}`)).toBeVisible();
   await page.getByText("Recovery codes", { exact: true }).click();
   await page
@@ -197,7 +211,7 @@ test("recovery codes reset access, privacy export excludes secrets, and account 
     .click();
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Recovery code", { exact: true }).fill(code);
-  const next = "replacement-password-for-recovery";
+  const next = "Reset!42";
   await page.getByLabel("New password", { exact: true }).fill(next);
   await page
     .getByRole("button", { name: "Reset password", exact: true })

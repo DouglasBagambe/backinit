@@ -46,7 +46,7 @@ export class Accounts {
     const parsed = credentialsSchema.safeParse(input);
     if (!parsed.success)
       throw new BadRequestException(
-        "Use a valid email and a password of 12–128 characters.",
+        "Use a valid email and a password of 8–128 characters.",
       );
     const { email, password } = parsed.data;
     const existing = this.db
@@ -179,7 +179,7 @@ export class Accounts {
       .safeParse(input);
     if (!body.success)
       throw new BadRequestException(
-        "Enter your email, recovery code and a new password of 12–128 characters.",
+        "Enter your email, recovery code and a new password of 8–128 characters.",
       );
     const { email, password, code } = body.data;
     this.attempt("recover", email);
@@ -209,13 +209,13 @@ export class Accounts {
     const body = z
       .object({
         currentPassword: z.string().min(1).max(128),
-        password: z.string().min(12).max(128),
+        password: z.string().min(8).max(128),
       })
       .strict()
       .safeParse(input);
     if (!body.success)
       throw new BadRequestException(
-        "Enter your current password and a new password of 12–128 characters.",
+        "Enter your current password and a new password of 8–128 characters.",
       );
     const previous = await this.confirm(user, body.data.currentPassword);
     const hash = await passwordHash(body.data.password);
