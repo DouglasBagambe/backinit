@@ -42,11 +42,13 @@ BBC_FEED_LICENSED=false
 
 Render supplies `PORT`. No database, disk or paid compute plan was provisioned.
 
-## Durable accounts release — 29 October 2026 (prepared, not yet deployed)
+## Durable accounts release — 29 October 2026 (deployed)
 
-The next account release adds an optional Neon PostgreSQL account adapter. Keep `SPORTS_DATA_ONLY=true`; set `DATABASE_URL` privately to the restricted `backinit_app` pooled production connection only after schema migration and release checks. The version-1 schema has been installed in the dedicated personal-account BackInIt project. Runtime checks the version and does not migrate with application credentials. See [database operations](DATABASE.md) and [isolated hosted browser evidence](evidence/hosted-accounts-qa-2026-10-29.json).
+PR #9 merged to main as `e6c07dc1ebb0e05ce9144f396f1c7e39d3b919cb` after all CI checks passed. The restricted Neon `backinit_app` pooled production connection is configured privately as `DATABASE_URL`; `SPORTS_DATA_ONLY=true` remains enabled. The owner connection is not in Render. The backend reports `data+accounts`. Deployments `dep-dbhqvqfb9u1s73fhvjg0` and `dep-dbhqvqr23eus73eibqog` reached `live` on 29 October.
 
-With the connection configured, `/health` reports `data+accounts` and account/session/favorite/recovery/privacy/notification routes use PostgreSQL. Custom source administration remains unavailable; no ephemeral SQLite registry is enabled. Official broadcast discovery and playback continue independently of account storage. Without `DATABASE_URL`, accounts retain their explicit unavailable state.
+A synthetic account registered through **https://www.backinit.live**, with a Secure/HttpOnly/SameSite=Lax cookie and no token returned to browser JavaScript. Its session and saved favorite survived the second actual Render deployment. Sign-out/sign-in restored the favorite; notification inbox and privacy export returned successfully. Only that synthetic account was then deleted and its session rejected. See [public account evidence](evidence/public-accounts-2026-10-29.json), [public frontend evidence](evidence/public-frontend-2026-10-29.json) and [database operations](DATABASE.md).
+
+Custom source administration remains unavailable in hosted data-only mode; no ephemeral SQLite registry is enabled. Official broadcast discovery and playback continue independently of account storage. Removing `DATABASE_URL` disables account routes without deleting their data. No new broadcast rights, email delivery, verified email addresses or browser push were introduced.
 
 The deployment notes below describe historical milestones and limitations at their recorded dates.
 

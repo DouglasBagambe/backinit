@@ -1,0 +1,11 @@
+{
+  "origin": "https://www.backinit.live",
+  "checkedAt": "2026-10-29T20:46:20.428Z",
+  "checks": [
+    "Public browser signup, secure HttpOnly cookie, no token in response, favorite saved",
+    "Existing session and favorite survived the actual Render redeployment",
+    "Public sign-out and sign-in restore persisted favorites",
+    "Public notification inbox and privacy export respond successfully without credential hashes",
+    "Only the synthetic release-check account deleted; its session rejected"
+  ]
+}
