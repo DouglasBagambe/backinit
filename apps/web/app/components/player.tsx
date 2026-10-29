@@ -169,7 +169,8 @@ export function Player({
     availability();
     const healthTimer = setInterval(availability, 60000);
     const expiry = setInterval(() => {
-      if (previewSource || sourceIsActive(source)) return;
+      const latest = sourcesRef.current.find((s) => s.id === source.id);
+      if (previewSource || (latest && sourceIsActive(latest))) return;
       withdraw("Source availability window has ended.");
     }, 1000);
     if (source.type !== "embed" && element)
@@ -205,7 +206,16 @@ export function Player({
         element.load();
       }
     };
-  }, [source, started, attempt, previewSource]);
+    // Lease/metadata refreshes must not restart a healthy playing broadcast.
+  }, [
+    source?.id,
+    source?.url,
+    source?.version,
+    source?.type,
+    started,
+    attempt,
+    previewSource,
+  ]);
   const embedState = useCallback((value: string) => {
     setState(value);
   }, []);

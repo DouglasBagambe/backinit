@@ -21,7 +21,11 @@ export class StreamController {
   ) {
     if (event) {
       const fixture = await service.fixture(event, "real");
-      return { data: fixture ? streams.forEvent(fixture) : [] };
+      return {
+        data: fixture
+          ? [...streams.forEvent(fixture), ...service.broadcastSources(fixture)]
+          : [],
+      };
     }
     return {
       data:
@@ -30,7 +34,20 @@ export class StreamController {
           : [],
     };
   }
-  @Get("streams/:id/health") health(@Param("id") id: string) {
+  @Get("streams/:id/health") async health(@Param("id") id: string) {
+    if (id.startsWith("official-")) {
+      const event = await service.fixture(id.slice("official-".length), "real");
+      const source =
+        event && service.broadcastSources(event).find((s) => s.id === id);
+      if (!source)
+        throw new NotFoundException("Broadcast ended, expired or unavailable");
+      return {
+        status: "metadata-available",
+        checkedAt: source.validFrom,
+        message:
+          "Official publisher reports live and allows embedding. Playback remains subject to regional restrictions.",
+      };
+    }
     return streams.health(id);
   }
   @Get("admin/sources") sources(@Headers("authorization") auth?: string) {

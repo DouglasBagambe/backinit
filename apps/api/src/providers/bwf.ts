@@ -3,7 +3,12 @@ import {
   type SportEvent,
 } from "../../../../packages/domain/src/index.js";
 import { ProviderCache } from "./cache.js";
+import { createHash } from "node:crypto";
 const channel = "UChh-akEbUM8_6ghGVnJd6cQ";
+export function broadcastEventId(publisher: string, videoId: string) {
+  // Preserve existing valid BWF links; new IDs retain the case-sensitive video identity.
+  return `${publisher}-${publisher === "bwf" && !videoId.includes("_") ? videoId.toLowerCase() : createHash("sha256").update(videoId).digest("hex").slice(0, 24)}`;
+}
 /** Read public page metadata only. Never reads streamingData, media URLs or private APIs. */
 export function pageJson(html: string, marker: string): unknown {
   const found = new RegExp(`(?:var )?${marker}\\s*=\\s*`).exec(html);
@@ -31,11 +36,16 @@ export function pageJson(html: string, marker: string): unknown {
 export function broadcastMetadata(raw: unknown) {
   const root = record(raw),
     video = record(root.videoDetails);
+  const playability = record(root.playabilityStatus);
   const live = record(
     record(record(root.microformat).playerMicroformatRenderer)
       .liveBroadcastDetails,
   );
   return {
+    playabilityStatus: {
+      status: playability.status,
+      playableInEmbed: playability.playableInEmbed,
+    },
     videoDetails: {
       channelId: video.channelId,
       title: video.title,
@@ -107,7 +117,7 @@ export function normalizeBwf(
           ? "upcoming"
           : "unknown";
   return eventSchema.parse({
-    id: `bwf-${id.toLowerCase()}`,
+    id: broadcastEventId("bwf", id),
     externalId: id,
     sport: "Badminton",
     kind: "card",

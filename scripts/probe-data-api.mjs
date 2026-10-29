@@ -43,8 +43,6 @@ try {
   const health = await (await fetch(api + "/health")).json();
   assert.equal(health.mode, "data-only");
   for (const path of [
-    "/streams",
-    "/streams/example/health",
     "/admin/sources",
     "/account/me",
     "/account/register",
@@ -55,6 +53,15 @@ try {
     });
     assert.equal(r.status, 503, path);
   }
+  assert.deepEqual(await (await fetch(api + "/streams")).json(), { data: [] });
+  assert.equal((await fetch(api + "/streams/example/health")).status, 404);
+  assert.deepEqual(await (await fetch(api + "/streams?event=missing")).json(), {
+    data: [],
+  });
+  assert.equal(
+    (await fetch(api + "/streams/official-missing/health")).status,
+    404,
+  );
   assert.equal((await fetch(api + "/events?edition=demo")).status, 403);
   const events = await (await fetch(api + "/events?edition=real")).json();
   assert.equal(events.edition, "real");

@@ -1,0 +1,52 @@
+{
+  "at": "2026-10-29T16:05:26.284Z",
+  "origin": "http://127.0.0.1:3000",
+  "publisherReportedLive": 3,
+  "attempts": [
+    {
+      "eventId": "bwf-fb0qojgb7k8",
+      "title": "HYLO Open 2026 | Day 3 | Court 2 | Round of 16",
+      "publisher": "BWF TV",
+      "checkedAt": "2026-10-29T16:05:26.427Z",
+      "before": {
+        "currentTime": 25030.119773,
+        "width": 1280,
+        "height": 720,
+        "readyState": 1,
+        "paused": false,
+        "frames": 0
+      },
+      "after": {
+        "currentTime": 25039.390924,
+        "width": 1280,
+        "height": 720,
+        "readyState": 4,
+        "paused": false,
+        "frames": 284
+      },
+      "played": true,
+      "mobile": {
+        "overflow": false,
+        "sample": {
+          "currentTime": 25041.758644,
+          "width": 1280,
+          "height": 720,
+          "readyState": 4,
+          "paused": false,
+          "frames": 355
+        }
+      },
+      "afterRefresh": {
+        "currentTime": 25106.855249,
+        "width": 854,
+        "height": 480,
+        "readyState": 4,
+        "paused": false,
+        "frames": 2307
+      },
+      "refreshPreservedPlayback": true
+    }
+  ],
+  "decodedBroadcasts": 1,
+  "status": "LIVE PLAYBACK VERIFIED"
+}

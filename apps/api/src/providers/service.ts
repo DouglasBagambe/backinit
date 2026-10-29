@@ -12,7 +12,10 @@ import { OpenLigaProvider } from "./openliga.js";
 import { JolpicaProvider } from "./jolpica.js";
 import { EspnProvider, espnLeagues } from "./espn.js";
 import { WweProvider } from "./wwe.js";
-import { BwfProvider } from "./bwf.js";
+import {
+  OfficialBroadcastProvider,
+  broadcastPublishers,
+} from "./official-broadcasts.js";
 export class SportsService {
   private cache = new ProviderCache();
   private football = new OpenLigaProvider(this.cache);
@@ -20,7 +23,16 @@ export class SportsService {
   private racing = new JolpicaProvider(this.cache);
   private espn = new EspnProvider(this.cache);
   private wrestling = new WweProvider(this.cache);
-  private badminton = new BwfProvider(new ProviderCache(fetch, Date.now, 5000));
+  private broadcasts = broadcastPublishers.map(
+    (p) =>
+      new OfficialBroadcastProvider(
+        p,
+        new ProviderCache(fetch, Date.now, 4000),
+      ),
+  );
+  broadcastSources(event: SportEvent) {
+    return this.broadcasts.flatMap((p) => p.sourcesFor(event));
+  }
   private known = new Map<string, SportEvent>();
   async feed(
     edition: "real" | "demo" = "real",
@@ -105,13 +117,13 @@ export class SportsService {
         load: () => this.wrestling.events(),
         message: "Automated official schedule only; no live results feed.",
       },
-      {
-        provider: "BWF TV",
-        sport: "Badminton",
-        load: () => this.badminton.events(),
+      ...this.broadcasts.map((p) => ({
+        provider: p.publisher.name,
+        sport: p.publisher.sport,
+        load: () => p.events(),
         message:
-          "Official court-session broadcasts and publisher-reported live status; individual match scoring unavailable.",
-      },
+          "Official broadcast sessions and publisher-reported status. Embed availability is checked separately; regional restrictions apply. No scores inferred from video.",
+      })),
       ...espnLeagues.map((league) => ({
         provider: `ESPN:${league.path}`,
         sport: league.sport,

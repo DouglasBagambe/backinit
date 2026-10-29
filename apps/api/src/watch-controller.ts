@@ -8,9 +8,10 @@ const catalog = new OfficialVideoCatalog(streams);
 export class WatchController {
   @Get("watch") async feed(@Query("date") date?: string) {
     validateScheduleDate(date);
-    return watchFeed(await service.feed("real", date), date, (event) =>
-      streams.forEvent(event),
-    );
+    return watchFeed(await service.feed("real", date), date, (event) => [
+      ...streams.forEvent(event),
+      ...service.broadcastSources(event),
+    ]);
   }
   @Get("videos") videos() {
     return catalog.feed();

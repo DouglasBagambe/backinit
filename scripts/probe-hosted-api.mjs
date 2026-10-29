@@ -27,7 +27,7 @@ assert(
 );
 await get(api, "/events?edition=demo", 403);
 await get(api, "/account/me", 503);
-await get(api, "/streams", 503);
+assert.deepEqual((await get(api, "/streams")).data, []);
 const child = spawn(
   process.execPath,
   [
@@ -59,7 +59,7 @@ try {
   let ready = false;
   for (let i = 0; i < 60; i++) {
     try {
-      if ((await fetch(web + "/api/streams")).status === 503) {
+      if ((await fetch(web + "/api/streams")).status === 200) {
         ready = true;
         break;
       }
@@ -76,8 +76,9 @@ try {
     schedule.data.every(
       (x) =>
         x.event.provenance === "provider" &&
-        x.sources.length === 0 &&
-        x.availability !== "in-page",
+        x.sources.every(
+          (s) => s.content === "sports" && s.eventId === x.event.id,
+        ),
     ),
   );
   browser = await chromium.launch();
@@ -121,7 +122,7 @@ try {
   const matchHref = await first.getAttribute("href");
   await first.click();
   await page.waitForURL("**" + matchHref);
-  assert.equal((await page.request.get(web + "/api/streams")).status(), 503);
+  assert.equal((await page.request.get(web + "/api/streams")).status(), 200);
   assert.deepEqual(errors, []);
   const result = {
     at: new Date().toISOString(),
@@ -138,7 +139,7 @@ try {
     matchHref,
     actualBroadcastsVerified: 0,
     playback:
-      "LIVE PLAYBACK NOT ACHIEVED on the public installation; data-only API has no source registry",
+      "Playback not exercised by this data probe; verify eligible broadcasts separately",
     oldDemoCookieIgnored: true,
     externalBackendSelected: true,
     desktopAndMobile: true,
