@@ -1,0 +1,10 @@
+{
+  "checkedAt": "2026-10-29T20:33:36.851Z",
+  "checks": [
+    "Browser signup, HttpOnly session cookie, response token removed",
+    "Session and favorites survive a complete API process restart",
+    "Fresh browser sign-in restores persisted favorites",
+    "Browser recovery resets password and revokes both existing sessions; privacy export contains no password or token hashes",
+    "Own synthetic QA account deleted and session rejected"
+  ]
+}

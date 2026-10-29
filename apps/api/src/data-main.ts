@@ -16,6 +16,9 @@ import helmet from "helmet";
 import { SportsController } from "./sports-controller.js";
 import { service } from "./providers/service.js";
 import { validateScheduleDate, watchFeed } from "./watch-feed.js";
+const accountRuntime = process.env.DATABASE_URL
+  ? await import("./hosted-accounts.js")
+  : null;
 @Controller()
 class DataController {
   @Get("watch") async watch(@Query("date") date?: string) {
@@ -25,8 +28,9 @@ class DataController {
       provider: "Broadcast registry",
       sport: "All",
       status: "not-configured",
-      message:
-        "Custom broadcast sources and accounts need persistent storage. Official publisher embeds are discovered automatically.",
+      message: accountRuntime
+        ? "Custom broadcast source management is not configured. Official publisher embeds are discovered automatically."
+        : "Custom broadcast sources and accounts need persistent storage. Official publisher embeds are discovered automatically.",
       fetchedAt: null,
     });
     return watchFeed(feed, date, (event) => service.broadcastSources(event));
@@ -53,7 +57,12 @@ class DataController {
         "Official publisher reports live and allows embedding. Actual playback depends on your region and is checked by the player.",
     };
   }
-  @All(["streams/*path", "videos", "account/*path", "admin/*path"])
+  @All([
+    "streams/*path",
+    "videos",
+    "admin/*path",
+    ...(!accountRuntime ? ["account/*path"] : []),
+  ])
   unavailable() {
     throw new ServiceUnavailableException(
       "Persistent accounts and broadcast sources are not connected on this data-only API.",
@@ -62,8 +71,15 @@ class DataController {
 }
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }])],
-  controllers: [SportsController, DataController],
-  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
+  controllers: [
+    SportsController,
+    DataController,
+    ...(accountRuntime ? [accountRuntime.AccountController] : []),
+  ],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    ...(accountRuntime ? [accountRuntime.AccountDatabaseLifecycle] : []),
+  ],
 })
 class DataModule {}
 const app = await NestFactory.create(DataModule, {
