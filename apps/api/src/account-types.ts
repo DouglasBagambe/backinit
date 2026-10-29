@@ -6,7 +6,7 @@ export const credentialsSchema = z
       .email()
       .max(254)
       .transform((x) => x.toLowerCase()),
-    password: z.string().min(12).max(128),
+    password: z.string().min(8).max(128),
   })
   .strict();
 export const favoriteSchema = z

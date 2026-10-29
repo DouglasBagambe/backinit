@@ -9,7 +9,7 @@ const make = () => {
 afterEach(() => stores.splice(0).forEach((a) => a.db.close()));
 const credentials = {
   email: "fan@example.test",
-  password: "correct-horse-battery-staple",
+  password: "Eight!42",
 };
 describe("durable accounts and authorization", () => {
   it("stores salted password hashes and hashed, expiring sessions; logout revokes access", async () => {
@@ -43,7 +43,7 @@ describe("durable accounts and authorization", () => {
       a.authenticate({ ...credentials, role: "admin" }, true),
     ).rejects.toThrow("valid email");
     await expect(
-      a.authenticate({ ...credentials, password: "short" }, true),
+      a.authenticate({ ...credentials, password: "Seven!7" }, true),
     ).rejects.toThrow();
   });
   it("isolates favorites between users and denies privileged access by default", async () => {
@@ -79,7 +79,7 @@ it("rotates one-use recovery codes, resets passwords and revokes every session",
   await expect(a.recover({ ...credentials, code: codes[0] })).rejects.toThrow(
     "incorrect",
   );
-  const replacement = "new-long-password-for-recovery";
+  const replacement = "Reset!42";
   await a.recover({
     email: credentials.email,
     password: replacement,
@@ -105,12 +105,12 @@ it("changes passwords after reauthentication and limits failed attempts persiste
   await expect(
     a.changePassword(session.user, {
       currentPassword: "incorrect-password",
-      password: "another-long-password",
+      password: "Change42",
     }),
   ).rejects.toThrow("incorrect");
   await a.changePassword(session.user, {
     currentPassword: credentials.password,
-    password: "another-long-password",
+    password: "Change42",
   });
   expect(() => a.user(`Bearer ${session.token}`)).toThrow();
   for (let i = 0; i < 8; i++)

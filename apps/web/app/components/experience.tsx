@@ -22,6 +22,7 @@ import {
   X,
   Heart,
   ShieldCheck,
+  UserRound,
 } from "lucide-react";
 import {
   sports,
@@ -463,7 +464,11 @@ export function Experience({
             href="/profile"
             aria-label={user ? "Account profile" : "Guest profile"}
           >
-            {user ? user.email[0]?.toUpperCase() : "G"}
+            {user ? (
+              user.email[0]?.toUpperCase()
+            ) : (
+              <UserRound size={18} aria-hidden="true" />
+            )}
           </Link>
           <button
             className="icon-button menu-toggle"
