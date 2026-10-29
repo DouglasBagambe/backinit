@@ -1,4 +1,4 @@
-import { expect, it, vi } from "vitest";
+import { expect, it, vi, afterEach } from "vitest";
 import {
   broadcastIds,
   broadcastPublishers,
@@ -14,6 +14,7 @@ const publisher = broadcastPublishers[0];
 const videoId = "X8zS3uXmwFA";
 const start = "2026-10-29T09:08:32Z";
 const at = Date.parse("2026-10-29T15:55:00Z");
+afterEach(() => vi.unstubAllEnvs());
 it("keeps case-sensitive publisher video IDs distinct and generated routes URL-safe", () => {
   expect(broadcastEventId("fiba", "JUQysb8G3_o")).toMatch(/^[a-z0-9-]+$/);
   expect(broadcastEventId("fiba", "JUQysb8G3_o")).not.toBe(
@@ -183,4 +184,56 @@ it("does not turn a stale publisher snapshot into live availability", () => {
     true,
   );
   expect(e?.status).toBe("unknown");
+});
+it("uses a single cached documented API batch instead of watch-page parsing when a key is configured", async () => {
+  vi.stubEnv("YOUTUBE_API_KEY", "isolated-test-key");
+  const fetcher = vi.fn(
+    async (url: string | URL | Request, init?: RequestInit) => {
+      const path = String(url);
+      expect(path).not.toContain("isolated-test-key");
+      if (path.includes("/streams"))
+        return new Response(
+          `var ytInitialData = ${JSON.stringify({ contents: [{ videoRenderer: { videoId } }] })};`,
+        );
+      if (path.includes("/feeds/"))
+        return new Response("missing", { status: 404 });
+      expect(path).toContain("www.googleapis.com/youtube/v3/videos?");
+      expect(init?.headers).toMatchObject({
+        "X-Goog-Api-Key": "isolated-test-key",
+      });
+      return Response.json({
+        items: [
+          {
+            id: videoId,
+            snippet: {
+              channelId: publisher.channel,
+              title: "Real provider API metadata",
+              liveBroadcastContent: "live",
+            },
+            status: {
+              privacyStatus: "public",
+              embeddable: true,
+              uploadStatus: "processed",
+            },
+            liveStreamingDetails: { actualStartTime: start },
+          },
+        ],
+      });
+    },
+  );
+  const provider = new OfficialBroadcastProvider(
+    publisher,
+    new ProviderCache(fetcher, () => at),
+    () => at,
+  );
+  const event = (await provider.events()).value[0]!;
+  expect(event.status).toBe("live");
+  expect(provider.sourcesFor(event)).toHaveLength(1);
+  await provider.events();
+  expect(
+    fetcher.mock.calls.filter(([url]) => String(url).includes("googleapis")),
+  ).toHaveLength(1);
+  expect(
+    fetcher.mock.calls.some(([url]) => String(url).includes("/watch?")),
+  ).toBe(false);
 });

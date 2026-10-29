@@ -11,6 +11,7 @@ import {
 } from "./bwf.js";
 import { parseChannel } from "./official-video.js";
 import { ProviderCache } from "./cache.js";
+import { youtubeDataMetadata } from "./youtube-data.js";
 
 export const broadcastPublishers = [
   {
@@ -185,16 +186,44 @@ export class OfficialBroadcastProvider {
         ...(rss && !rss.stale ? rss.value : []),
       ]),
     ].slice(0, 18);
+    const apiKey = process.env.YOUTUBE_API_KEY?.trim();
+    const api =
+      apiKey && ids.length
+        ? await this.cache.json(
+            `https://www.googleapis.com/youtube/v3/videos?${new URLSearchParams(
+              {
+                part: "snippet,status,liveStreamingDetails",
+                id: [...ids].sort().join(","),
+                fields:
+                  "items(id,snippet(channelId,title,liveBroadcastContent),status(privacyStatus,embeddable,uploadStatus),liveStreamingDetails)",
+              },
+            )}`,
+            60000,
+            youtubeDataMetadata,
+            { "X-Goog-Api-Key": apiKey },
+          )
+        : null;
     const results = await Promise.allSettled(
       ids.map(async (id) => {
-        const response = await this.cache.json(
-          `https://www.youtube.com/watch?v=${id}`,
-          30000,
-          (raw) =>
-            broadcastMetadata(pageJson(String(raw), "ytInitialPlayerResponse")),
-          headers,
-          (r) => r.text(),
-        );
+        const item = api?.value.find((row) => row.id === id);
+        if (api && !item) return { event: null, allowed: false };
+        const response =
+          api && item
+            ? {
+                value: item.metadata,
+                fetchedAt: api.fetchedAt,
+                stale: api.stale,
+              }
+            : await this.cache.json(
+                `https://www.youtube.com/watch?v=${id}`,
+                30000,
+                (raw) =>
+                  broadcastMetadata(
+                    pageJson(String(raw), "ytInitialPlayerResponse"),
+                  ),
+                headers,
+                (r) => r.text(),
+              );
         const event = normalizeBroadcast(
           response.value,
           id,
