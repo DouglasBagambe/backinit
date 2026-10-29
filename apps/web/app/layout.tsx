@@ -27,7 +27,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <body>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var v=localStorage.getItem('backinit-dark-variant');document.documentElement.dataset.darkVariant=['green1','green2','green3'].includes(v)?v:'green2';var t=localStorage.getItem('backinit-theme')||'system';document.documentElement.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t}catch(e){}`,
+            __html: `try{var t=localStorage.getItem('backinit-theme')||'system';document.documentElement.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t}catch(e){}`,
           }}
         />
         {children}

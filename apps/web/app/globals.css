@@ -23,40 +23,6 @@
   --hero: #12432e;
   color-scheme: dark;
 }
-:root[data-theme="dark"][data-dark-variant="green3"] {
-  --bg: #0d1512;
-  --surface: #16221c;
-  --subtle: #1e3027;
-  --ink: #f2f7f3;
-  --muted: #bbcdbf;
-  --line: #304b3b;
-  --accent: #9ad3ab;
-  --accent-soft: #244332;
-  --hero: #183c2b;
-}
-:root[data-theme="dark"][data-dark-variant="green1"] {
-  --bg: #111715;
-  --surface: #1b2420;
-  --subtle: #28332d;
-  --ink: #f2f5f2;
-  --muted: #bdcbbf;
-  --line: #3b4a40;
-  --accent: #b5cfa0;
-  --accent-soft: #303e2d;
-  --hero: #28382d;
-}
-:root[data-theme="dark"][data-dark-variant="green2"] {
-  --bg: #071713;
-  --surface: #0e2821;
-  --subtle: #173c30;
-  --ink: #effaf5;
-  --muted: #b6d3c6;
-  --line: #295343;
-  --accent: #7fd6ad;
-  --accent-soft: #1b4a36;
-  --hero: #12432e;
-}
-
 * {
   box-sizing: border-box;
 }

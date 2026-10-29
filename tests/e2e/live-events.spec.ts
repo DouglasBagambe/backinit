@@ -451,39 +451,31 @@ test("Watch excludes unavailable events and replays while keeping live broadcast
   );
 });
 
-test("three local green previews persist and keep the footer accessible on mobile", async ({
+test("bottle-green dark mode persists without exposing preview controls", async ({
   page,
 }) => {
   await page.goto("/watch");
   await page.setViewportSize({ width: 390, height: 844 });
-  const colors = new Set<string>();
-  for (const n of [1, 2, 3]) {
-    const button = page.getByRole("button", {
-      name: `Green ${n}`,
-      exact: true,
-    });
-    await button.click();
-    await expect(button).toHaveAttribute("aria-pressed", "true");
-    await expect(page.locator("html")).toHaveAttribute(
-      "data-dark-variant",
-      `green${n}`,
-    );
-    colors.add(
-      await page.evaluate(() =>
-        getComputedStyle(document.documentElement)
-          .getPropertyValue("--bg")
-          .trim(),
-      ),
-    );
-    expect(
-      await page.evaluate(
-        () => document.documentElement.scrollWidth <= innerWidth,
-      ),
-    ).toBe(true);
-  }
-  expect(colors.size).toBe(3);
+  await expect(page.getByRole("button", { name: /Green [123]/ })).toHaveCount(
+    0,
+  );
+  const dark = page
+    .locator("footer")
+    .getByRole("button", { name: "dark", exact: true });
+  await dark.click();
+  await expect(dark).toHaveAttribute("aria-pressed", "true");
+  expect(
+    await page.evaluate(() =>
+      getComputedStyle(document.documentElement)
+        .getPropertyValue("--bg")
+        .trim(),
+    ),
+  ).toBe("#071713");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
   await page.reload();
-  await expect(
-    page.getByRole("button", { name: "Green 3", exact: true }),
-  ).toHaveAttribute("aria-pressed", "true");
+  await expect(dark).toHaveAttribute("aria-pressed", "true");
 });
