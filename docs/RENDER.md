@@ -42,6 +42,14 @@ BBC_FEED_LICENSED=false
 
 Render supplies `PORT`. No database, disk or paid compute plan was provisioned.
 
+## Durable accounts release — 29 October 2026 (prepared, not yet deployed)
+
+The next account release adds an optional Neon PostgreSQL account adapter. Keep `SPORTS_DATA_ONLY=true`; set `DATABASE_URL` privately to the restricted `backinit_app` pooled production connection only after schema migration and release checks. The version-1 schema has been installed in the dedicated personal-account BackInIt project. Runtime checks the version and does not migrate with application credentials. See [database operations](DATABASE.md) and [isolated hosted browser evidence](evidence/hosted-accounts-qa-2026-10-29.json).
+
+With the connection configured, `/health` reports `data+accounts` and account/session/favorite/recovery/privacy/notification routes use PostgreSQL. Custom source administration remains unavailable; no ephemeral SQLite registry is enabled. Official broadcast discovery and playback continue independently of account storage. Without `DATABASE_URL`, accounts retain their explicit unavailable state.
+
+The deployment notes below describe historical milestones and limitations at their recorded dates.
+
 ## Official broadcasts update — 29 October 2026
 
 The next reviewed release adds stateless official BWF/FIBA live-broadcast discovery and read-only event source/health endpoints. Accounts and custom source administration remain unavailable without durable storage. See [official live evidence and boundaries](OFFICIAL_LIVE_2026-10-29.md). The initial-deployment audit below is historical; public playback must be checked again after this release.

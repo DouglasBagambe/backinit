@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { BrandMark } from "./brand";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -414,9 +415,7 @@ export function Experience({
       </a>
       <header className="topbar">
         <Link className="brand" href="/" title="BackInIt home">
-          <span className="brand-mark" aria-hidden="true">
-            b<span>↗</span>
-          </span>
+          <BrandMark className="brand-mark" />
           back<span>in</span>it<span className="brand-dot">.</span>
         </Link>
         <nav className="desktop-nav" aria-label="Main navigation">
@@ -998,7 +997,8 @@ export function Experience({
           )}
           <footer>
             <Link className="footer-brand" href="/">
-              backinit.
+              <BrandMark />
+              <span>backinit.</span>
             </Link>
             <Link href="/settings">Settings</Link>
             <Link href="/privacy">Privacy</Link>

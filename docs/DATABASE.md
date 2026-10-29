@@ -1,4 +1,51 @@
-# Database operation and migration strategy
+# Hosted account storage
+
+## Neon rollout — 29 October 2026
+
+The data-only Render API can now use PostgreSQL for accounts while retaining stateless sports and official broadcast discovery. `SPORTS_DATA_ONLY=true` plus `DATABASE_URL` enables account routes; without a URL they continue to return 503. Runtime never silently falls back to an ephemeral SQLite database. `/health` identifies this configuration as `data+accounts`.
+
+A dedicated **BackInIt** project was provisioned on the founder’s personal Neon Free account in Frankfurt. No paid plan was selected. Production and an isolated `accounts-verification` branch both have schema version 1. Existing personal projects were not modified. Production connection rollout and public checks must be recorded separately; schema creation alone does not prove deployed accounts work.
+
+The `backinit_app` runtime role has table CRUD and sequence usage only, without schema CREATE, superuser, role-creation or database-creation rights. Its pooled connection belongs in Render’s secret `DATABASE_URL`. Owner credentials stay out of the runtime and repository. SQL queries are parameterized. Neon uses the serverless PostgreSQL pool over secure WebSockets; ordinary PostgreSQL uses certificate-verified TLS, except loopback development. Pool size is four, with bounded connection, statement and query timeouts.
+
+## Schema and release procedure
+
+`apps/api/src/postgres.ts` contains additive, transactional schema migration 1, protected by an advisory transaction lock and version table. Startup only checks the installed version with the restricted role; it does not run DDL. Before later schema changes, branch the database, test the migration and existing-data upgrade there, then apply with an owner-role **direct** connection:
+
+```sh
+pnpm --filter @backinit/api build
+# Supply DATABASE_URL privately with the owner/direct connection.
+node scripts/migrate-accounts.mjs
+```
+
+Never put a connection string in a commit, screenshot, log or chat. The migration script rejects pooler hosts. Existing password hashing, hashed sessions, one-use recovery codes and public account API contracts are preserved. Credential changes and session issuance synchronize with user-row locks; favorite caps and recovery-code consumption are transactional. Authentication attempt budgets persist in PostgreSQL across process restarts.
+
+## Verification
+
+`POSTGRES_TEST_URL` runs five integration tests against real PostgreSQL, including connection restart persistence, concurrent signup/recovery/favorite limits, isolation, notification deduplication, export and cascading account removal. The existing CI test command starts and removes an isolated PostgreSQL 17 Docker container, so these tests also run in CI without database credentials or workflow permission changes.
+
+For an isolated hosted QA database with schema already migrated and the restricted role configured:
+
+```sh
+# Supply BACKINIT_TEST_DATABASE_URL privately; do not use production.
+node scripts/probe-hosted-accounts.mjs
+```
+
+This launches an isolated API/frontend pair, signs up through the browser, verifies the HttpOnly cookie and absence of a returned token, saves a favorite, restarts the API process, signs in from another browser context, resets with a recovery code, verifies session revocation/export and deletes only its own synthetic account. Evidence excludes passwords, tokens, recovery codes and database URLs.
+
+## Operations and limits
+
+Sessions, favorites, recovery codes, privacy controls, notification settings and inbox state are durable. Notifications refresh when the signed-in inbox is opened/polled, rather than waking the database continuously for every provider refresh. Only genuinely changed, fresh provider data generates alerts after a baseline observation. No email delivery or browser push is claimed; email addresses are not verified, and password recovery uses saved codes.
+
+Custom source administration and source/audit migration remain outside this hosted account rollout and stay unavailable in data-only hosting. SQLite full mode remains for local development or an explicitly persistent installation. Do not disable data-only mode on an ephemeral Render filesystem to expose administration.
+
+Render’s free service still sleeps; cold starts and provider failures can produce temporary unavailability. General request throttling and provider caches remain process-local; persistent credential budgets do not replace distributed abuse prevention. Watch/provider access does not require a database query, except the optional account lookup.
+
+Free-tier quotas and restore retention must be checked in the actual Neon dashboard before relying on them. A database move remains possible with a reviewed PostgreSQL export/import and a cutover window; test restored accounts and revoke sessions as appropriate. No automatic backup schedule, successful restore drill, unlimited free capacity or high availability is claimed. For rollback, retain schema/data, restore a compatible backend release, or temporarily remove `DATABASE_URL` to disable account routes without deleting customer data.
+
+---
+
+# Legacy SQLite operation (local/full mode)
 
 The implemented store is SQLite in WAL mode, with foreign-key cascades, a five-second busy timeout and secure deletion of active database cells. This is a real single-process persistent store, not a production database service provisioned elsewhere. Password hashes, session digests and recovery-code digests remain sensitive data.
 
@@ -24,14 +71,6 @@ Define scheduled backup frequency, encrypted off-host copies, maximum retention,
 
 Current additive schemas are created at startup with CREATE TABLE IF NOT EXISTS. There is no versioned migration framework yet. Before a destructive/schema-changing release, introduce numbered transactional migrations and a schema-version table, test both fresh installation and upgrades from a sanitized prior database, take a verified backup and document the rollback/restore path. No destructive schema migration is part of this milestone.
 
-## PostgreSQL migration trigger and plan
+## Migrating legacy SQLite records
 
-Move to a durable PostgreSQL instance before multiple API replicas, high write concurrency or operational requirements that exceed a single host. No managed paid or free database has been created, and no PostgreSQL adapter is claimed to be working.
-
-1. Introduce repository interfaces for accounts, sessions, favorites, notifications, source versions and audit. Preserve authorization and transaction boundaries.
-2. Implement PostgreSQL schemas and versioned migrations with matching uniqueness, cascades, indexes and atomic recovery-code/source-version updates.
-3. Migrate hashes unchanged, preserve IDs and source/audit versions, and intentionally revoke sessions during cutover. Verify row counts and representative account/source histories in an isolated restore.
-4. Centralize provider refresh/rate budgets and add shared request limiting with reviewed proxy attribution. Keep raw secrets and personal identifiers out of logs.
-5. Perform a read-only cutover window, reconcile the final snapshot, run end-to-end verification, and retain the encrypted SQLite snapshot under the declared retention policy until rollback is no longer needed.
-
-A production database strategy is documented here; a scalable production deployment remains outstanding.
+The Neon project is new; no customer SQLite database was discovered or copied. If a persistent legacy installation needs migration, preserve account IDs and password hashes, migrate favorites/settings/audit in a controlled window, revoke old sessions, compare counts and test ownership and recovery before switching traffic. Source management needs its own PostgreSQL adapter before it can move from full mode.

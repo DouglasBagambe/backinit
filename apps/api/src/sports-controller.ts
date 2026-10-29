@@ -46,7 +46,12 @@ export class SportsController {
           ? "demo"
           : "Automated sports providers",
       realTime: false,
-      mode: process.env.SPORTS_DATA_ONLY === "true" ? "data-only" : "full",
+      mode:
+        process.env.SPORTS_DATA_ONLY === "true"
+          ? process.env.DATABASE_URL
+            ? "data+accounts"
+            : "data-only"
+          : "full",
     };
   }
   @Get("events") async list(@Query() input: unknown) {

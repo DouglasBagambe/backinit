@@ -10,6 +10,16 @@ export const metadata: Metadata = {
   description:
     "Discover live sport, follow scores and find your next match on BackInIt.",
   robots: { index: false, follow: false },
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/brand/icon-32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/brand/icon-180.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  manifest: "/manifest.webmanifest",
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
