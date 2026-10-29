@@ -29,7 +29,11 @@ export function youtubeDataMetadata(raw: unknown) {
         status:
           item.status.privacyStatus === "public" &&
           (!item.status.uploadStatus ||
-            item.status.uploadStatus === "processed")
+            item.status.uploadStatus === "processed" ||
+            (item.status.uploadStatus === "uploaded" &&
+              item.snippet.liveBroadcastContent === "live" &&
+              !!item.liveStreamingDetails?.actualStartTime &&
+              !item.liveStreamingDetails.actualEndTime))
             ? "OK"
             : "UNAVAILABLE",
         playableInEmbed: item.status.embeddable,
