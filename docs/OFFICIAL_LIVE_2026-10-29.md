@@ -41,3 +41,11 @@ For two continuously polled publishers with stable candidate sets, a minute cach
 Setup: create/select a Google Cloud project, enable YouTube Data API v3, create an API key restricted to that API, and put it in Render's backend environment as `YOUTUBE_API_KEY`. Do not use browser HTTP-referrer restrictions for this server key, expose it as `NEXT_PUBLIC_*`, commit it, or send it in chat. Google project/key provisioning remains with the founder. Public live playback must be retested once the key and follow-up release are active.
 
 References: [videos.list](https://developers.google.com/youtube/v3/docs/videos/list), [video resource fields](https://developers.google.com/youtube/v3/docs/videos), [quota and setup](https://developers.google.com/youtube/v3/getting-started), [API-key header](https://cloud.google.com/apis/docs/system-parameters).
+
+## Public playback verified after API-key setup
+
+The founder configured the backend key and redeployed. PR #7 additionally admits the documented `uploaded` state only for an already-started, ongoing public broadcast; rejected/failed/deleted/unknown uploads remain unavailable. Render deployment `dep-dbhnli0473hc73af9djg` of main commit `5689898e171db151a63b739da8360b3f0cfb73a9` became live.
+
+At 19:58 Africa/Kampala, the public-origin probe found three publisher-reported live candidates and **decoded one actual live sports broadcast inside BackInIt**: HYLO Open Court 2, BWF TV, `/watch/bwf-fb0qojgb7k8`. The video advanced from 12 to 313 frames over ten seconds at 1280×720, remained playing at mobile width 390px without horizontal overflow, and advanced to 1,959 frames after the ordinary source refresh. The permitted publisher embed was `https://www.youtube-nocookie.com/embed/FB0qoJGB7K8`.
+
+Evidence: `docs/evidence/official-live-public-after-key-2026-10-29.json`. Screenshots were visually inspected and are retained under ignored `artifacts/official-live-{desktop,mobile}.png`; no footage or media manifests were saved. This establishes playback for that session and test location, not every candidate, region or future session. No Premier League, WWE, Sky Sports or other subscription coverage is implied. The earlier failed public probe remains preserved as historical evidence.

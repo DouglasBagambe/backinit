@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Notifications } from "./notifications";
 import { AccountSecurity } from "./account-security";
 export type AccountUser = { id: string; email: string; role: "user" | "admin" };
@@ -10,21 +11,35 @@ export function Account({ onChange }: { onChange: () => void }) {
   const [mode, setMode] = useState("login");
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   useEffect(() => {
     void accountRequest("me")
       .then((r) => setUser(r.user))
       .catch((error) => {
+        if (error.status >= 500) setUnavailable(true);
         if (error.status !== 401) setMessage(error.message);
       });
   }, []);
+  if (unavailable)
+    return (
+      <section className="panel account-panel">
+        <h2>Accounts are temporarily unavailable</h2>
+        <p>
+          Please try again later. You can still browse events and watch
+          available broadcasts.
+        </p>
+        <Link className="primary" href="/watch">
+          Browse sport
+        </Link>
+      </section>
+    );
   return (
     <section className="panel account-panel">
       {user ? (
         <>
-          <h2>Your account.</h2>
+          <h2>Your account</h2>
           <p>Signed in as {user.email}</p>
-          <p>Your favorites are saved to your account on this installation.</p>
-          <p className="fine">Account ID: {user.id}</p>
+          <p>Your saved events and preferences stay with your account.</p>
           <button
             disabled={pending}
             onClick={async () => {
@@ -64,10 +79,7 @@ export function Account({ onChange }: { onChange: () => void }) {
                 ? "Recover your account."
                 : "Create an account."}
           </h2>
-          <p>
-            Browse freely. Create an account to keep your favorites across
-            browsers on this installation.
-          </p>
+          <p>Save your favourites and keep them with you across devices.</p>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -133,8 +145,9 @@ export function Account({ onChange }: { onChange: () => void }) {
               />
             </label>
             <p className="fine">
-              At least 12 characters. Recovery uses saved recovery codes. Email
-              verification and email delivery are not configured.
+              Use at least 12 characters. Keep your recovery codes safe; account
+              recovery uses these codes, not email. Email addresses are not
+              verified.
             </p>
             <button className="primary" disabled={pending}>
               {pending

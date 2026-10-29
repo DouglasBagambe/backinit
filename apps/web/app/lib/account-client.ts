@@ -14,9 +14,11 @@ export async function accountRequest(
   if (!response.ok)
     throw Object.assign(
       new Error(
-        typeof result.message === "string"
-          ? result.message
-          : "Unable to complete request.",
+        response.status >= 500
+          ? "Accounts are temporarily unavailable. Please try again later."
+          : typeof result.message === "string"
+            ? result.message
+            : "Unable to complete request.",
       ),
       { status: response.status },
     );

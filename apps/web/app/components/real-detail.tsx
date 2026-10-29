@@ -109,7 +109,7 @@ export function RealDetail({
             ? "Event card"
             : "Event schedule"}
         </h2>
-        <p>{event.detail?.round || "Detailed event data is not connected."}</p>
+        {event.detail?.round && <p>{event.detail.round}</p>}
         {event.bouts.length ? (
           event.bouts.map((b) => (
             <div
@@ -142,8 +142,8 @@ export function RealDetail({
   if (event.scheduleOnly && tab !== "Overview")
     return (
       <Empty
-        title={`${tab} not connected for this fixture.`}
-        text="Schedule only."
+        title={`${tab} unavailable`}
+        text="Check back closer to the event."
       />
     );
   if (event.kind === "race")

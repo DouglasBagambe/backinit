@@ -31,8 +31,11 @@ body {
   font-family: var(--font);
   color: var(--ink);
   background: var(--bg);
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.55;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
 }
 a {
   color: inherit;
@@ -83,25 +86,27 @@ p {
 h1,
 h2,
 h3 {
-  font-family: "Manrope Variable", var(--font);
-  letter-spacing: -0.045em;
+  font-family: var(--font);
+  font-weight: 600;
+  letter-spacing: -0.018em;
 }
 h1 {
-  font-size: 35px;
+  font-size: 32px;
   line-height: 1.2;
   margin-bottom: 12px;
-  font-weight: 800;
+  font-weight: 650;
 }
 h2 {
   font-size: 20px;
   line-height: 1.3;
   margin-bottom: 16px;
-  font-weight: 800;
+  font-weight: 650;
 }
 h3 {
   font-size: 17px;
   line-height: 1.35;
   margin-bottom: 9px;
+  font-weight: 600;
 }
 p {
   color: var(--muted);
@@ -121,11 +126,11 @@ i.live-dot,
 }
 .eyebrow {
   display: block;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  letter-spacing: 1.55px;
   color: var(--muted);
   margin-bottom: 12px;
+  letter-spacing: 0.055em;
 }
 .topbar {
   height: 80px;
@@ -226,7 +231,7 @@ i.live-dot,
   border: 1px solid var(--line);
   padding: 9px 12px;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: 14px;
   color: var(--muted);
 }
 kbd {
@@ -266,7 +271,7 @@ kbd {
   align-items: center;
   white-space: nowrap;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 .sports-nav .chosen {
@@ -934,18 +939,19 @@ kbd {
   color: var(--accent);
 }
 .news-card .eyebrow {
-  font-size: 8px;
+  font-size: 12px;
   margin-bottom: 7px;
 }
 .news-card h3 {
-  font-size: 16px;
+  font-size: 18px;
+  line-height: 1.4;
 }
 .news-card p {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.7;
 }
 .news-card small {
-  font-size: 9px;
+  font-size: 12px;
   color: var(--muted);
 }
 footer {
@@ -956,11 +962,11 @@ footer {
   margin-top: 35px;
   border-top: 1px solid var(--line);
   color: var(--muted);
-  font-size: 10px;
+  font-size: 12px;
 }
 footer small {
   margin-left: auto;
-  font-size: 9px;
+  font-size: 12px;
 }
 .footer-brand {
   font-size: 16px;
@@ -1008,7 +1014,7 @@ footer small {
   background: var(--accent);
   color: var(--surface);
   padding: 11px 17px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 .primary:hover {
@@ -1024,10 +1030,10 @@ footer small {
 }
 .muted {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 .fine {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--muted);
   margin: 14px 0 0;
   line-height: 1.7;
@@ -2168,7 +2174,7 @@ td {
 }
 thead th {
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.05em;
 }
 .highlight-row {
@@ -2600,7 +2606,7 @@ thead th {
 }
 .desktop-nav a[href="/watch"] {
   color: var(--ink);
-  font-weight: 800;
+  font-weight: 650;
 }
 @media (min-width: 1101px) {
   .main > .watch-hub .watch-grid {
@@ -2760,8 +2766,9 @@ details {
 .event-start {
   display: grid;
   gap: 6px;
-  font-size: 19px;
+  font-size: 14px;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .event-start small,
 .event-main small {
@@ -2778,7 +2785,7 @@ details {
   gap: 9px;
   align-items: center;
   flex-wrap: wrap;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.6;
 }
 .event-versus {
@@ -2838,9 +2845,12 @@ details {
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
-  font-size: 30px;
+  font-size: 26px;
   line-height: 1.5;
   margin: 12px 0;
+  font-weight: 650;
+  letter-spacing: -0.018em;
+  text-wrap: balance;
 }
 .event-viewing-header p {
   color: var(--muted);
@@ -3107,7 +3117,7 @@ details {
 }
 .demo-strip button {
   padding: 4px 10px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .row-sport {
   display: inline-flex;
@@ -3136,9 +3146,10 @@ details {
   margin-bottom: 14px;
 }
 .watch-toolbar h1 {
-  font-size: 23px;
+  font-size: 26px;
   margin: 0;
   letter-spacing: -0.6px;
+  font-weight: 650;
 }
 .watch-toolbar .filter-tabs {
   margin: 0;
@@ -3159,7 +3170,7 @@ details {
 }
 .archive-link {
   margin-left: auto;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   display: flex;
   align-items: center;
@@ -3192,7 +3203,7 @@ details {
   padding: 7px 3px;
   color: var(--ink);
   background: transparent;
-  font-size: 12px;
+  font-size: 13px;
 }
 .watch-search {
   display: flex;
@@ -3212,7 +3223,7 @@ details {
   border: 0;
   width: 100%;
   min-width: 0;
-  font-size: 12px;
+  font-size: 13px;
   outline-offset: 4px;
 }
 .watch-options {
@@ -3224,7 +3235,7 @@ details {
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   min-height: 40px;
   padding: 8px;
   border-radius: 6px;
@@ -3249,7 +3260,7 @@ details {
 .watch-options-panel label {
   display: grid;
   gap: 6px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 .watch-options-panel select {
@@ -3271,7 +3282,7 @@ details {
   justify-content: space-between;
   gap: 10px;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 12px;
   margin: 14px 0 8px;
 }
 .live-event-list {
@@ -3279,7 +3290,7 @@ details {
   border-radius: 8px;
 }
 .watch-competition h2 {
-  font-size: 12px;
+  font-size: 13px;
   margin: 0;
   padding: 10px 16px;
   display: flex;
@@ -3316,9 +3327,10 @@ details {
 .event-start {
   font-size: 14px;
   gap: 2px;
+  font-variant-numeric: tabular-nums;
 }
 .event-start small {
-  font-size: 10px;
+  font-size: 12px;
 }
 .event-is-live {
   color: var(--accent);
@@ -3329,7 +3341,7 @@ details {
 }
 .event-main strong {
   display: block;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -3349,17 +3361,17 @@ details {
 }
 .watch-teams b {
   margin-left: auto;
-  font-size: 13px;
+  font-size: 14px;
 }
 .featured-label {
-  font-size: 9px;
+  font-size: 11px;
   color: var(--muted);
   letter-spacing: 0.6px;
   text-transform: uppercase;
   font-weight: 700;
 }
 .event-access {
-  font-size: 11px;
+  font-size: 12px;
   gap: 8px;
   color: var(--muted);
 }
@@ -3368,7 +3380,7 @@ details {
 }
 .live-coverage {
   margin: 16px 0;
-  font-size: 11px;
+  font-size: 12px;
 }
 .live-coverage summary {
   font-weight: 500;
@@ -3381,7 +3393,7 @@ details {
 }
 .more-events {
   margin-top: 14px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .live-empty {
   text-align: center;
@@ -3392,10 +3404,10 @@ details {
   font-size: 16px;
 }
 .live-empty p {
-  font-size: 12px;
+  font-size: 13px;
 }
 .event-viewing > .back-link {
-  font-size: 12px;
+  font-size: 13px;
 }
 .event-viewing-header {
   margin: 14px 0 18px;
@@ -3408,12 +3420,15 @@ details {
   letter-spacing: 0.6px;
 }
 .event-viewing-header h1 {
-  font-size: 25px;
+  font-size: 26px;
   line-height: 1.35;
   margin: 8px 0;
+  font-weight: 650;
+  letter-spacing: -0.018em;
+  text-wrap: balance;
 }
 .event-viewing-header p {
-  font-size: 12px;
+  font-size: 13px;
   margin: 6px 0;
 }
 .event-header-actions {
@@ -3445,7 +3460,7 @@ details {
 }
 .player-unavailable .player-bar {
   padding: 8px 16px;
-  font-size: 11px;
+  font-size: 12px;
 }
 .event-viewing .player-unavailable {
   margin-bottom: 14px;
@@ -3462,18 +3477,18 @@ details {
   gap: 12px;
 }
 .viewing-options article h3 {
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 5px;
 }
 .viewing-options .pill {
-  font-size: 9px;
+  font-size: 11px;
   padding: 3px 7px;
 }
 .viewing-options article > a {
-  font-size: 11px;
+  font-size: 12px;
 }
 .viewing-note {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 6px;
 }
@@ -3493,7 +3508,7 @@ details {
 .event-switcher > a {
   padding: 10px 0;
   gap: 4px;
-  font-size: 12px;
+  font-size: 13px;
 }
 .event-switcher > a > span {
   display: none;
@@ -3509,7 +3524,7 @@ details {
   margin: 4px 0;
 }
 .event-data-summary p {
-  font-size: 12px;
+  font-size: 13px;
   margin: 5px 0;
 }
 .event-data-summary .event-score {
@@ -3517,9 +3532,10 @@ details {
 }
 footer {
   flex-wrap: wrap;
+  font-size: 13px;
 }
 .footer-data {
-  font-size: 10px;
+  font-size: 12px;
   max-width: 340px;
 }
 .footer-data summary {
@@ -3568,11 +3584,11 @@ footer {
     gap: 0;
   }
   .watch-toolbar .filter-tabs button {
-    font-size: 12px;
+    font-size: 13px;
     padding: 7px 9px;
   }
   .archive-link {
-    font-size: 11px;
+    font-size: 12px;
   }
   .watch-controls {
     flex-wrap: wrap;
@@ -3597,18 +3613,18 @@ footer {
   }
   .watch-date input {
     width: 114px;
-    font-size: 11px;
+    font-size: 12px;
   }
   .watch-date button {
     padding-inline: 4px;
   }
   .schedule-meta {
-    font-size: 10px;
+    font-size: 12px;
     margin-top: 10px;
   }
   .watch-competition h2 {
     padding: 9px 10px;
-    font-size: 11px;
+    font-size: 12px;
   }
   .live-event-row,
   .live-event-row.live-spotlight {
@@ -3617,10 +3633,10 @@ footer {
     padding: 11px 10px;
   }
   .event-start {
-    font-size: 12px;
+    font-size: 13px;
   }
   .event-start small {
-    font-size: 9px;
+    font-size: 11px;
   }
   .event-access {
     grid-column: auto;
@@ -3635,10 +3651,10 @@ footer {
   }
   .event-access .source-available::after {
     content: "▶";
-    font-size: 12px;
+    font-size: 13px;
   }
   .event-main strong {
-    font-size: 12px;
+    font-size: 13px;
   }
   .watch-teams .crest {
     width: 18px;
@@ -3652,7 +3668,7 @@ footer {
     gap: 7px;
   }
   .event-viewing-header p {
-    font-size: 11px;
+    font-size: 12px;
   }
   .event-switcher {
     display: block;
@@ -3694,7 +3710,7 @@ footer {
   min-height: 50px;
   padding: 0 14px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--ink);
 }
@@ -3724,7 +3740,7 @@ footer {
   align-items: center;
   gap: 9px;
   padding: 10px 8px;
-  font-size: 12px;
+  font-size: 13px;
   border-radius: 5px;
 }
 .sports-picker-grid a:hover {
@@ -3753,7 +3769,7 @@ footer {
   }
   .event-access .stream-status {
     display: block;
-    font-size: 9px;
+    font-size: 11px;
     white-space: normal;
     text-align: right;
   }
@@ -3817,7 +3833,7 @@ footer {
   font-size: 16px;
 }
 .player-empty button {
-  font-size: 11px;
+  font-size: 12px;
   flex-shrink: 0;
 }
 @media (max-width: 700px) {
@@ -3839,5 +3855,43 @@ footer {
   }
   .mobile-menu {
     top: 58px;
+  }
+}
+
+/* Reading and interaction scale shared by the customer-facing pages. */
+.privacy-panel p,
+.settings-panel p,
+.account-panel p {
+  max-width: 68ch;
+  line-height: 1.65;
+}
+.privacy-panel h2:not(:first-child) {
+  margin-top: 28px;
+}
+.account-notice {
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 14px;
+}
+.event-score,
+.watch-teams b {
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 700px) {
+  .watch-toolbar h1 {
+    font-size: 24px;
+  }
+  .event-viewing-header h1 {
+    font-size: 23px;
+  }
+  .watch-date input {
+    width: 130px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
   }
 }

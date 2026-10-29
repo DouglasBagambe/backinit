@@ -11,8 +11,19 @@ describe("public installation defaults", () => {
     expect(resolveEdition("demo")).toBe("real");
     expect(resolveEdition()).toBe("real");
     vi.stubEnv("ALLOW_DEMO_MODE", "true");
+    vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3100");
     expect(resolveEdition("demo")).toBe("demo");
     expect(resolveEdition("real")).toBe("real");
+  });
+  it("never enables demonstration routes on public origins or Vercel, even if mistakenly opted in", () => {
+    vi.stubEnv("ALLOW_DEMO_MODE", "true");
+    vi.stubEnv("SPORTS_DATA_MODE", "demo");
+    vi.stubEnv("APP_ORIGIN", "https://www.backinit.live");
+    expect(demoEnabled()).toBe(false);
+    expect(resolveEdition("demo")).toBe("real");
+    vi.stubEnv("APP_ORIGIN", "http://127.0.0.1:3100");
+    vi.stubEnv("VERCEL", "1");
+    expect(demoEnabled()).toBe(false);
   });
   it("rejects API demo requests and does not substitute snapshots when ingestion is disabled outside tests", async () => {
     vi.stubEnv("ALLOW_DEMO_MODE", undefined);
