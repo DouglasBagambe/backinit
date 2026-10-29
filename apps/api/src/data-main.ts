@@ -5,6 +5,9 @@ import {
   Get,
   Module,
   Query,
+  Param,
+  BadRequestException,
+  NotFoundException,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { APP_GUARD, NestFactory } from "@nestjs/core";
@@ -23,12 +26,34 @@ class DataController {
       sport: "All",
       status: "not-configured",
       message:
-        "Broadcast sources and accounts need persistent storage. This API currently serves real sports data only.",
+        "Custom broadcast sources and accounts need persistent storage. Official publisher embeds are discovered automatically.",
       fetchedAt: null,
     });
-    return watchFeed(feed, date, () => []);
+    return watchFeed(feed, date, (event) => service.broadcastSources(event));
   }
-  @All(["streams", "streams/*path", "videos", "account/*path", "admin/*path"])
+  @Get("streams") async sources(@Query("event") id?: string) {
+    if (!id) return { data: [] };
+    if (!/^[a-z0-9-]{1,80}$/.test(id))
+      throw new BadRequestException("Invalid event");
+    const event = await service.fixture(id, "real");
+    return { data: event ? service.broadcastSources(event) : [] };
+  }
+  @Get("streams/:id/health") async sourceHealth(@Param("id") id: string) {
+    if (!/^official-[a-z0-9-]{1,70}$/.test(id))
+      throw new NotFoundException("Source not found");
+    const event = await service.fixture(id.slice("official-".length), "real");
+    const source =
+      event && service.broadcastSources(event).find((s) => s.id === id);
+    if (!source)
+      throw new NotFoundException("Broadcast ended, expired or unavailable");
+    return {
+      status: "metadata-available",
+      checkedAt: source.validFrom,
+      message:
+        "Official publisher reports live and allows embedding. Actual playback depends on your region and is checked by the player.",
+    };
+  }
+  @All(["streams/*path", "videos", "account/*path", "admin/*path"])
   unavailable() {
     throw new ServiceUnavailableException(
       "Persistent accounts and broadcast sources are not connected on this data-only API.",

@@ -9,7 +9,7 @@ The founder requested Dyson's Render workspace. A new **free** Node web service 
 - Dashboard: `https://dashboard.render.com/web/srv-dbh3nc3l550s73c2so50`
 - Workspace: `tea-d6k1h94r85hc73bscps0` (Dyson's workspace)
 - Service: `srv-dbh3nc3l550s73c2so50`, Frankfurt
-- Repository: `DouglasBagambe/backinit`, branch `feat/sports-foundation`
+- Repository: `DouglasBagambe/backinit`, branch `main` (changed on 29 October Africa/Kampala)
 - Initial deployed commit: `4a6e002ebe14d1b31d00c3072f16e939cf47646d`
 - Initial deploy: `dep-dbh3ncrl550s73c2spl0`, verified `live` on 28 October 2026
 - Automatic deployment: disabled. Reviewed backend changes need an explicit deployment.
@@ -41,6 +41,10 @@ BBC_FEED_LICENSED=false
 ```
 
 Render supplies `PORT`. No database, disk or paid compute plan was provisioned.
+
+## Official broadcasts update — 29 October 2026
+
+The next reviewed release adds stateless official BWF/FIBA live-broadcast discovery and read-only event source/health endpoints. Accounts and custom source administration remain unavailable without durable storage. See [official live evidence and boundaries](OFFICIAL_LIVE_2026-10-29.md). The initial-deployment audit below is historical; public playback must be checked again after this release.
 
 ## What this mode does
 
