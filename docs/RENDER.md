@@ -50,6 +50,8 @@ A synthetic account registered through **https://www.backinit.live**, with a Sec
 
 Custom source administration remains unavailable in hosted data-only mode; no ephemeral SQLite registry is enabled. Official broadcast discovery and playback continue independently of account storage. Removing `DATABASE_URL` disables account routes without deleting their data. No new broadcast rights, email delivery, verified email addresses or browser push were introduced.
 
+PR #10 subsequently deployed `47a65025dce02153679feea9f1a236ec32bcf866` as `dep-dbhr53m7bikc73fbattg`. Public browser checks verified the new eight-character minimum for signup, password change and recovery, rejection of seven characters, the guest account icon and deletion of only the synthetic check account. See [eight-character password evidence](evidence/public-eight-character-accounts-2026-10-29.json).
+
 The deployment notes below describe historical milestones and limitations at their recorded dates.
 
 ## Official broadcasts update — 29 October 2026

@@ -6,41 +6,42 @@ export function Privacy() {
         <h1>Privacy</h1>
       </div>
       <section className="panel privacy-panel">
-        <h2>Your data</h2>
+        <h2>Information we keep</h2>
         <p>
-          When account services are available, accounts store your email
-          address, password hash, role, hashed sessions and recovery codes,
-          favorites and notification preferences. Passwords and recovery codes
-          cannot be retrieved as plain text. Authentication limits use hashed
-          identifiers and expire after 15 minutes.
+          When you create an account, we store your email address, your
+          favourites, notification preferences and the information needed to
+          keep your account secure. Passwords and recovery codes are stored in a
+          protected form and cannot be shown to you again. We limit repeated
+          sign-in attempts to help protect accounts.
         </p>
         <p>
-          Guest favorites, follows and theme preferences stay in your browser.
-          The session cookie is needed to keep you signed in. No advertising
-          trackers or analytics are currently used by BackInIt itself.
+          Your session cookie keeps you signed in. Guest favourites, follows and
+          appearance settings stay in your browser. BackInIt does not currently
+          run its own advertising trackers or analytics.
         </p>
-        <h2>Manage your data</h2>
+        <h2>Your controls</h2>
         <p>
-          When signed in, <Link href="/profile">your profile</Link> lets you
-          export account data, change your password, generate recovery codes,
-          sign out every session and permanently delete your account. Deletion
-          removes active account data immediately. Administrative audit entries
-          are retained with the deleted account ID removed; previously created
-          backups remain until their operator-managed retention expires.
+          In <Link href="/profile">your account</Link>, you can download your
+          data, change your password, generate recovery codes, sign out
+          everywhere or delete your account.
         </p>
         <p>
-          Clearing site data in your browser removes guest preferences and your
-          session cookie. It does not delete an account stored on the server.
+          Deleting your account removes its active account data and signs out
+          your sessions. Administrative audit records are retained with your
+          account ID removed. Backup copies expire under our hosting provider’s
+          retention policy.
         </p>
-        <h2>External services</h2>
         <p>
-          Sports providers receive server-side data requests. Team badges may
-          load from publisher image servers, which receive your IP address.
-          Opening a news link sends you to the publisher. Video preview images
-          contact YouTube’s image servers. Loading a video contacts its source
-          provider; embedded video loads only after consent. Providers may
-          receive your IP address and apply their own privacy policies. Fonts
-          are served locally.
+          Clearing your browser’s site data removes guest preferences and your
+          session cookie. It does not delete your account.
+        </p>
+        <h2>Other providers</h2>
+        <p>
+          Team badges and video thumbnails may load from external image servers.
+          Embedded players load after your consent. Loading a video contacts its
+          publisher. These services may receive your IP address and apply their
+          own privacy policies. News links open the publisher’s website. Fonts
+          are served by BackInIt.
         </p>
         <h2>Contact us</h2>
         <p>
