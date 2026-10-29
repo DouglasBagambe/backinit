@@ -23,6 +23,7 @@ import {
   Heart,
   ShieldCheck,
   UserRound,
+  CircleUserRound,
 } from "lucide-react";
 import {
   sports,
@@ -460,12 +461,12 @@ export function Experience({
             <Star size={19} />
           </Link>
           <Link
-            className="avatar"
+            className={`avatar${user ? " avatar-signed-in" : ""}`}
             href="/profile"
             aria-label={user ? "Account profile" : "Guest profile"}
           >
             {user ? (
-              user.email[0]?.toUpperCase()
+              <CircleUserRound size={23} aria-hidden="true" />
             ) : (
               <UserRound size={18} aria-hidden="true" />
             )}

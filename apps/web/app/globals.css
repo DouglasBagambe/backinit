@@ -239,6 +239,12 @@ kbd {
   background: var(--subtle);
   font-weight: 700;
 }
+.avatar-signed-in {
+  background: var(--accent);
+  color: var(--surface);
+  border-color: var(--accent);
+}
+
 .menu-toggle,
 .mobile-menu {
   display: none;

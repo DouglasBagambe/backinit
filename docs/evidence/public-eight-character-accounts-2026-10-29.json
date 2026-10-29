@@ -1,0 +1,11 @@
+{
+  "origin": "https://www.backinit.live",
+  "checkedAt": "2026-10-29T20:57:39.292Z",
+  "minimumPasswordLength": 8,
+  "sevenCharactersRejected": true,
+  "eightCharacterSignup": true,
+  "eightCharacterPasswordChange": true,
+  "eightCharacterRecovery": true,
+  "guestAccountIcon": true,
+  "ownSyntheticAccountDeleted": true
+}
