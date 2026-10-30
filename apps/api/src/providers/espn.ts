@@ -7,6 +7,7 @@ import {
 } from "../../../../packages/domain/src/index.js";
 import { ProviderCache } from "./cache.js";
 import { safeTeamImage } from "./identities.js";
+import { premierLeagueViewingLinks } from "./premier-league-viewing.js";
 
 const person = z.object({
   id: z.string().optional(),
@@ -96,6 +97,7 @@ export type League = {
   label: string;
   week?: boolean;
 };
+export const espnLeagueId = (path: string) => path.replace(/[^a-z0-9]+/g, "-");
 export const espnLeagues: League[] = [
   { path: "hockey/nhl", sport: "Ice hockey", label: "NHL" },
   { path: "soccer/eng.league_cup", sport: "Football", label: "Carabao Cup" },
@@ -158,7 +160,7 @@ export function normalizeScoreboard(
     if (league.sport === "MMA") {
       return [
         eventSchema.parse({
-          id: `espn-${league.path.replaceAll("/", "-")}-${event.id}`,
+          id: `espn-${espnLeagueId(league.path)}-${event.id}`,
           externalId: event.id,
           kind: "card",
           sport: league.sport,
@@ -228,7 +230,7 @@ export function normalizeScoreboard(
       });
       return [
         eventSchema.parse({
-          id: `espn-${league.path.replaceAll("/", "-")}-${c.id}`,
+          id: `espn-${espnLeagueId(league.path)}-${c.id}`,
           externalId: c.id,
           kind: "score",
           sport: league.sport,
@@ -241,6 +243,10 @@ export function normalizeScoreboard(
           provenance: "provider",
           home: name(home),
           away: name(away),
+          viewingLinks:
+            league.path === "soccer/eng.1"
+              ? premierLeagueViewingLinks(name(home)!, name(away)!, c.date)
+              : undefined,
           homeParticipant: participant(home),
           awayParticipant: participant(away),
           homeScore: numericScore(home),
@@ -273,12 +279,10 @@ export class EspnProvider {
   ) {}
   async lookup(id: string): Promise<SportEvent | undefined> {
     const league = espnLeagues.find((l) =>
-      id.startsWith(`espn-${l.path.replaceAll("/", "-")}-`),
+      id.startsWith(`espn-${espnLeagueId(l.path)}-`),
     );
     if (!league) return undefined;
-    const externalId = id.slice(
-      `espn-${league.path.replaceAll("/", "-")}-`.length,
-    );
+    const externalId = id.slice(`espn-${espnLeagueId(league.path)}-`.length);
     if (!/^\d+$/.test(externalId)) return undefined;
     const r = await this.lookupCache.json(
       `${base}${league.path}/summary?event=${externalId}`,
@@ -315,7 +319,7 @@ export class EspnProvider {
     end.setUTCDate(end.getUTCDate() + 7);
     const dates = league.week
       ? ""
-      : `&dates=${league.sport === "Tennis" || league.sport === "MMA" ? `${from}-${end.toISOString().slice(0, 10).replaceAll("-", "")}` : from}`;
+      : `&dates=${["Football", "Tennis", "MMA"].includes(league.sport) ? `${from}-${end.toISOString().slice(0, 10).replaceAll("-", "")}` : from}`;
     const result = await this.cache.json(
       `${base}${league.path}/scoreboard?limit=500${dates}`,
       30000,

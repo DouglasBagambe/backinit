@@ -10,7 +10,7 @@ import { verifiedSportFixtures } from "./verified-sport.js";
 import { ProviderCache } from "./cache.js";
 import { OpenLigaProvider } from "./openliga.js";
 import { JolpicaProvider } from "./jolpica.js";
-import { EspnProvider, espnLeagues } from "./espn.js";
+import { EspnProvider, espnLeagues, espnLeagueId } from "./espn.js";
 import { WweProvider } from "./wwe.js";
 import {
   OfficialBroadcastProvider,
@@ -211,13 +211,11 @@ export class SportsService {
       process.env.SPORTS_PROVIDERS_DISABLED !== "true"
     ) {
       const league = espnLeagues.find((l) =>
-        id.startsWith(`espn-${l.path.replaceAll("/", "-")}-`),
+        id.startsWith(`espn-${espnLeagueId(l.path)}-`),
       );
       if (
         !league ||
-        !/^\d+$/.test(
-          id.slice(`espn-${league.path.replaceAll("/", "-")}-`.length),
-        )
+        !/^\d+$/.test(id.slice(`espn-${espnLeagueId(league.path)}-`.length))
       )
         return undefined;
       const date =
