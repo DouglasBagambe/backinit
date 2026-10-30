@@ -16,8 +16,7 @@ export function Privacy() {
         </p>
         <p>
           Your session cookie keeps you signed in. Guest favourites, follows and
-          appearance settings stay in your browser. BackInIt does not currently
-          run its own advertising trackers or analytics.
+          appearance and advertising preferences stay in your browser.
         </p>
         <h2>Your controls</h2>
         <p>
@@ -42,6 +41,28 @@ export function Privacy() {
           publisher. These services may receive your IP address and apply their
           own privacy policies. News links open the publisher’s website. Fonts
           are served by BackInIt.
+        </p>
+        <h2>Advertising</h2>
+        <p>
+          With your permission, we load ads from Adsterra and its advertising
+          partners. They may receive your IP address, device and browser
+          information, and use cookies or similar technologies to personalize
+          and measure advertising. We do not send them your BackInIt email,
+          password or favourites.
+        </p>
+        <p>
+          You can decline ads or change your choice using Ad preferences at the
+          bottom of any page. Withdrawing permission stops new ads from loading
+          here; it does not erase information already received by advertising
+          partners. See{" "}
+          <a
+            href="https://adsterra.com/privacy-policy-managed/"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Adsterra’s privacy policy
+          </a>{" "}
+          for its data practices and contact details.
         </p>
         <h2>Contact us</h2>
         <p>
