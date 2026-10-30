@@ -204,6 +204,30 @@ export class SportsService {
       coverage,
     };
   }
+  async trackerFixture(id: string): Promise<SportEvent | undefined> {
+    // A match-specific tracker must not wait for every sport's catalogue.
+    if (
+      id.startsWith("espn-") &&
+      process.env.SPORTS_PROVIDERS_DISABLED !== "true"
+    ) {
+      const league = espnLeagues.find((l) =>
+        id.startsWith(`espn-${l.path.replaceAll("/", "-")}-`),
+      );
+      if (
+        !league ||
+        !/^\d+$/.test(
+          id.slice(`espn-${league.path.replaceAll("/", "-")}-`.length),
+        )
+      )
+        return undefined;
+      const date =
+        this.known.get(id)?.start.slice(0, 10) ||
+        new Date().toISOString().slice(0, 10);
+      const result = await this.espn.events(league, date);
+      return result.value.find((event) => event.id === id);
+    }
+    return this.fixture(id, "real");
+  }
   async fixture(
     id: string,
     edition: "real" | "demo",

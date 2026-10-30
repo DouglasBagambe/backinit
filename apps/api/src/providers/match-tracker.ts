@@ -41,7 +41,13 @@ function same(event: SportEvent, value: z.infer<typeof row>) {
     name(event.home) === name(value.home) &&
     name(event.away) === name(value.away) &&
     Number.isFinite(Date.parse(value.time)) &&
-    Math.abs(Date.parse(event.start) - Date.parse(value.time)) <= 10 * 60000
+    // Tennis court schedules move as earlier matches finish. Exact participants,
+    // the same UTC day and a unique listing still bind the match identity.
+    (event.sport !== "Tennis" ||
+      event.start.slice(0, 10) ===
+        new Date(value.time).toISOString().slice(0, 10)) &&
+    Math.abs(Date.parse(event.start) - Date.parse(value.time)) <=
+      (event.sport === "Tennis" ? 180 : 10) * 60000
   );
 }
 function matchSlug(path: string, sport: string) {
@@ -54,7 +60,7 @@ function matchSlug(path: string, sport: string) {
 /** Public documented attribution-tier API. Uses the publisher's own embed, not its upstream credentials or private feed. */
 export class MatchTrackerProvider {
   constructor(
-    private cache = new ProviderCache(fetch, Date.now, 4000),
+    private cache = new ProviderCache(fetch, Date.now, 8000),
     private now = Date.now,
   ) {}
   async forEvent(event: SportEvent) {

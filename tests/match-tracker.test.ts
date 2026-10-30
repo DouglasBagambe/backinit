@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { MatchTrackerProvider } from "../apps/api/src/providers/match-tracker";
+import { SportsService } from "../apps/api/src/providers/service";
 import { ProviderCache } from "../apps/api/src/providers/cache";
 import { eventSchema, trackerSourceSchema } from "../packages/domain/src/index";
 const at = Date.parse("2026-10-30T13:00:00Z");
@@ -62,7 +63,10 @@ function fixture(
   );
   return { provider, fetcher };
 }
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 it("resolves the exact match to the published embed with no upstream credentials and deduplicates", async () => {
   const { provider, fetcher } = fixture();
   const [a, b] = await Promise.all([
@@ -138,4 +142,77 @@ it("contract never accepts arbitrary tracker frame destinations", () => {
       kind: "publisher-tracker",
     }).success,
   ).toBe(false);
+});
+
+it("matches delayed tennis court schedules only on the same day and without ambiguity", async () => {
+  const delayed = { ...row, time: "2026-10-30T13:25:00Z" };
+  expect(
+    await fixture({ rows: [delayed], detail: delayed }).provider.forEvent(
+      event,
+    ),
+  ).not.toBeNull();
+  for (const rows of [
+    [{ ...row, time: "2026-10-30T16:00:00Z" }],
+    [row, delayed],
+  ])
+    expect(await fixture({ rows }).provider.forEvent(event)).toBeNull();
+  const nearMidnight = { ...event, start: "2026-10-30T00:30:00Z" };
+  expect(
+    await fixture({
+      rows: [{ ...row, time: "2026-10-29T23:50:00Z" }],
+    }).provider.forEvent(nearMidnight),
+  ).toBeNull();
+});
+
+it("resolves a tracker from its league scoreboard without waiting for unrelated sports or the unsupported tennis summary", async () => {
+  const fetcher = vi.fn(async (_input: string | URL | Request) =>
+    Response.json({
+      leagues: [{ name: "ATP Vienna" }],
+      events: [
+        {
+          id: "42",
+          name: "Berrettini vs de Minaur",
+          date: "2026-10-30T19:00:00Z",
+          competitions: [
+            {
+              id: "42",
+              date: "2026-10-30T19:00:00Z",
+              status: { type: { state: "in", name: "STATUS_IN_PROGRESS" } },
+              competitors: [
+                {
+                  id: "1",
+                  homeAway: "home",
+                  athlete: { displayName: "Matteo Berrettini" },
+                },
+                {
+                  id: "2",
+                  homeAway: "away",
+                  athlete: { displayName: "Alex de Minaur" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const service = new SportsService();
+  expect(await service.trackerFixture("espn-tennis-atp-42")).toMatchObject({
+    id: "espn-tennis-atp-42",
+    home: "Matteo Berrettini",
+    away: "Alex de Minaur",
+    status: "live",
+  });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(String(fetcher.mock.calls[0]?.[0])).toMatch(
+    /^https:\/\/site.api.espn.com\/apis\/site\/v2\/sports\/tennis\/atp\/scoreboard\?limit=500&dates=\d{8}-\d{8}$/,
+  );
+  expect(
+    await service.trackerFixture("espn-invalid-league-42"),
+  ).toBeUndefined();
+  expect(
+    await service.trackerFixture("espn-tennis-atp-not-a-number"),
+  ).toBeUndefined();
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });

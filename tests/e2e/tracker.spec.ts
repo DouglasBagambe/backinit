@@ -232,7 +232,11 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
           url: "https://sportscore.com/embed/tracker/football/liverpool-vs-chelsea/",
           sourceUrl: "https://sportscore.com/",
           checkedAt: "2026-10-28T20:05:00Z",
-          validUntil: "2026-10-28T20:07:00Z",
+          validUntil: new Date(
+            Date.parse("2026-10-28T20:05:00Z") +
+              120000 +
+              (refreshes - 1) * 60000,
+          ).toISOString(),
         },
       },
     });
@@ -272,6 +276,17 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
   await page.clock.fastForward(61000);
   await expect.poll(() => refreshes).toBeGreaterThan(1);
   expect(frames).toBe(1);
+  await page.route(`**/api/events/${fixture.id}`, (route) =>
+    route.fulfill({ status: 503, json: { data: null } }),
+  );
+  await page.clock.fastForward(31000);
+  await expect(page.locator(".publisher-tracker iframe")).toHaveCount(1);
+  expect(frames).toBe(1);
+  await page.route(`**/api/events/${fixture.id}`, (route) =>
+    route.fulfill({ json: { data: event } }),
+  );
+  await page.clock.fastForward(31000);
+  await expect(page.locator(".publisher-tracker iframe")).toHaveCount(1);
   await page.route("**/api/trackers/*", (route) =>
     route.fulfill({ json: { data: null } }),
   );
@@ -280,4 +295,91 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
   await expect(
     page.locator(".player-tracker-fallback .event-tracker"),
   ).toBeVisible();
+});
+
+test("a slow publisher navigation stays mounted and recovers without another request", async ({
+  page,
+  baseURL,
+}) => {
+  await page
+    .context()
+    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+  await page.clock.setFixedTime(new Date("2026-10-28T20:05:00Z"));
+  await page.route(`**/api/events/${fixture.id}`, (route) =>
+    route.fulfill({ json: { data: event } }),
+  );
+  await page.route("**/api/trackers/*", (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          provider: "SportScore",
+          kind: "publisher-tracker",
+          eventId: fixture.id,
+          url: "https://sportscore.com/embed/tracker/football/liverpool-vs-chelsea/",
+          sourceUrl: "https://sportscore.com/",
+          checkedAt: "2026-10-28T20:05:00Z",
+          validUntil: "2026-10-28T20:07:00Z",
+        },
+      },
+    }),
+  );
+  let finishLoad: () => void = () => {};
+  const delayed = new Promise<void>((resolve) => {
+    finishLoad = resolve;
+  });
+  let requests = 0;
+  await page.route("https://sportscore.com/embed/tracker/**", async (route) => {
+    requests++;
+    await delayed;
+    await route.fulfill({
+      contentType: "text/html",
+      body: `<html><body>Delayed publisher view<button onclick="parent.postMessage({type:'sportscore:resize',height:740}, '*')">Resize tracker</button></body></html>`,
+    });
+  });
+  await page.goto(`/watch/${fixture.id}`, { waitUntil: "domcontentloaded" });
+  await expect(
+    page.locator(".player-tracker-fallback .event-tracker"),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Statistics", exact: true }).click();
+  await page.getByRole("button", { name: "Overview", exact: true }).click();
+  await page.clock.fastForward(31000);
+  const frame = page.locator(".publisher-tracker iframe");
+  await expect(frame).toHaveCount(1);
+  await expect.poll(() => requests).toBe(1);
+  await frame.evaluate((n) => {
+    n.setAttribute("data-test-instance", "original");
+  });
+  await page.clock.fastForward(21000);
+  await expect(
+    page.getByText(
+      "Live animation is taking longer to load. Scores keep updating.",
+    ),
+  ).toBeVisible();
+  await expect(frame).toHaveCount(1);
+  finishLoad();
+  const publisher = page.frameLocator(".publisher-tracker iframe");
+  await expect(
+    publisher.getByText("Delayed publisher view", { exact: false }),
+  ).toBeVisible();
+  await expect(page.locator(".tracker-recovery")).toHaveCount(0);
+  await expect(frame).toHaveAttribute("data-test-instance", "original");
+  expect(requests).toBe(1);
+  await publisher.getByRole("button", { name: "Resize tracker" }).click();
+  await expect(frame).toHaveCSS("height", "740px");
+  await page.evaluate(() =>
+    window.postMessage({ type: "sportscore:resize", height: 1100 }, "*"),
+  );
+  await expect(frame).toHaveCSS("height", "740px");
+  await page
+    .getByRole("button", { name: "Match summary", exact: true })
+    .click();
+  await expect(page.locator(".tracker-recovery .tracker-score")).toHaveText(
+    "1:0",
+  );
+  await expect(frame).toHaveAttribute("aria-hidden", "true");
+  await page
+    .getByRole("button", { name: "Live animation", exact: true })
+    .click();
+  await expect(page.locator(".tracker-recovery")).toHaveCount(0);
+  await expect(frame).toHaveAttribute("data-test-instance", "original");
 });
