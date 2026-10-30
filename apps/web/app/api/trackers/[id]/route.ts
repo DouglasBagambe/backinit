@@ -10,7 +10,7 @@ export async function GET(
   try {
     const response = await fetch(apiUrl(`/trackers/${id}`), {
       cache: "no-store",
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(30000),
     });
     if (!response.ok) throw new Error();
     const body = await response.json();

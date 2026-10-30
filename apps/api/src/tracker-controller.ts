@@ -14,7 +14,7 @@ export class TrackerController {
     if (!/^[a-z0-9-]{1,80}$/.test(id))
       throw new BadRequestException("Invalid event");
     try {
-      const event = await service.fixture(id, "real");
+      const event = await service.trackerFixture(id);
       return { data: event ? await tracker.forEvent(event) : null };
     } catch {
       throw new ServiceUnavailableException(

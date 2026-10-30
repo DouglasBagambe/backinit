@@ -60,7 +60,10 @@ export function LiveTracker({
       running = true;
       try {
         const response = await fetch(`/api/trackers/${event.id}`, {
-          signal: controller.signal,
+          signal: AbortSignal.any([
+            controller.signal,
+            AbortSignal.timeout(35000),
+          ]),
         });
         if (!response.ok) throw new Error();
         const body = await response.json();

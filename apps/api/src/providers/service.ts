@@ -204,6 +204,15 @@ export class SportsService {
       coverage,
     };
   }
+  async trackerFixture(id: string): Promise<SportEvent | undefined> {
+    // A match-specific tracker must not wait for every sport's catalogue.
+    if (
+      id.startsWith("espn-") &&
+      process.env.SPORTS_PROVIDERS_DISABLED !== "true"
+    )
+      return this.espn.lookup(id);
+    return this.fixture(id, "real");
+  }
   async fixture(
     id: string,
     edition: "real" | "demo",

@@ -1,5 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { MatchTrackerProvider } from "../apps/api/src/providers/match-tracker";
+import { SportsService } from "../apps/api/src/providers/service";
 import { ProviderCache } from "../apps/api/src/providers/cache";
 import { eventSchema, trackerSourceSchema } from "../packages/domain/src/index";
 const at = Date.parse("2026-10-30T13:00:00Z");
@@ -62,7 +63,10 @@ function fixture(
   );
   return { provider, fetcher };
 }
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.unstubAllGlobals();
+});
 it("resolves the exact match to the published embed with no upstream credentials and deduplicates", async () => {
   const { provider, fetcher } = fixture();
   const [a, b] = await Promise.all([
@@ -158,4 +162,49 @@ it("matches delayed tennis court schedules only on the same day and without ambi
       rows: [{ ...row, time: "2026-10-29T23:50:00Z" }],
     }).provider.forEvent(nearMidnight),
   ).toBeNull();
+});
+
+it("resolves a tracker fixture directly without waiting for unrelated sports feeds", async () => {
+  const fetcher = vi.fn(async (_input: string | URL | Request) =>
+    Response.json({
+      header: {
+        id: "42",
+        competitions: [
+          {
+            id: "42",
+            date: "2026-10-30T19:00:00Z",
+            status: { type: { state: "in", name: "STATUS_IN_PROGRESS" } },
+            competitors: [
+              {
+                id: "1",
+                homeAway: "home",
+                athlete: { displayName: "Matteo Berrettini" },
+              },
+              {
+                id: "2",
+                homeAway: "away",
+                athlete: { displayName: "Alex de Minaur" },
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const service = new SportsService();
+  expect(await service.trackerFixture("espn-tennis-atp-42")).toMatchObject({
+    id: "espn-tennis-atp-42",
+    home: "Matteo Berrettini",
+    away: "Alex de Minaur",
+    status: "live",
+  });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(String(fetcher.mock.calls[0]?.[0])).toBe(
+    "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/summary?event=42",
+  );
+  expect(
+    await service.trackerFixture("espn-invalid-league-42"),
+  ).toBeUndefined();
+  expect(fetcher).toHaveBeenCalledTimes(1);
 });

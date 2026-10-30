@@ -60,7 +60,7 @@ function matchSlug(path: string, sport: string) {
 /** Public documented attribution-tier API. Uses the publisher's own embed, not its upstream credentials or private feed. */
 export class MatchTrackerProvider {
   constructor(
-    private cache = new ProviderCache(fetch, Date.now, 4000),
+    private cache = new ProviderCache(fetch, Date.now, 8000),
     private now = Date.now,
   ) {}
   async forEvent(event: SportEvent) {
