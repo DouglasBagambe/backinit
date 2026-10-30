@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-const widths = [360, 390, 430, 768, 1024, 1440, 1920];
+const widths = [303, 320, 360, 390, 430, 768, 1024, 1440, 1920];
 for (const width of widths) {
   test(`responsive home and match at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
@@ -191,4 +191,23 @@ test("mobile accessibility and keyboard match navigation", async ({ page }) => {
   await expect(
     page.getByRole("tab", { name: "Tracker", exact: true }),
   ).toHaveAttribute("aria-selected", "true");
+});
+
+test("narrow listings keep team names readable without repeated sport columns", async ({
+  page,
+}) => {
+  for (const width of [303, 320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.goto("/scores");
+    const row = page.locator(".match-row").first();
+    await expect(row).toBeVisible();
+    await expect(row.locator(".row-sport")).toBeHidden();
+    const teams = await row.locator(".match-teams").boundingBox();
+    expect(teams!.width).toBeGreaterThan(130);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
 });

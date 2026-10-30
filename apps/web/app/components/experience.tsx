@@ -23,7 +23,6 @@ import {
   Heart,
   ShieldCheck,
   UserRound,
-  CircleUserRound,
 } from "lucide-react";
 import {
   sports,
@@ -303,14 +302,16 @@ export function Experience({
               })}
             </time>
           )}
-          {e.status === "live" && <i />}
-          {e.kind === "score"
-            ? e.clock
-            : e.status === "upcoming"
-              ? "Upcoming"
-              : e.status === "finished"
-                ? "Final"
-                : e.status}
+          <span className="match-clock">
+            {e.status === "live" && <i />}
+            {e.kind === "score"
+              ? e.clock
+              : e.status === "upcoming"
+                ? "Upcoming"
+                : e.status === "finished"
+                  ? "Final"
+                  : e.status}
+          </span>
         </div>
         <Link className="match-teams" href={"/match/" + e.id}>
           {e.kind === "score" ? (
@@ -322,7 +323,7 @@ export function Experience({
                     e.kind === "score" ? e.homeParticipant?.imageUrl : undefined
                   }
                 />
-                {e.home}
+                <span className="team-name">{e.home}</span>
                 <b>{e.homeScore ?? "–"}</b>
               </span>
               <span>
@@ -332,18 +333,26 @@ export function Experience({
                     e.kind === "score" ? e.awayParticipant?.imageUrl : undefined
                   }
                 />
-                {e.away}
+                <span className="team-name">{e.away}</span>
                 <b>{e.awayScore ?? "–"}</b>
               </span>
             </>
           ) : (
             <>
               <strong>{e.title}</strong>
-              <small>
-                {e.kind === "card"
-                  ? `${e.bouts.length} matches · Event card`
-                  : `${e.session}${e.laps === null ? "" : ` · ${e.laps} laps`}`}
-              </small>
+              {e.kind === "card" ? (
+                e.bouts.length > 0 && (
+                  <small>
+                    {e.bouts.length}{" "}
+                    {e.bouts.length === 1 ? "match" : "matches"}
+                  </small>
+                )
+              ) : (
+                <small>
+                  {e.session}
+                  {e.laps === null ? "" : ` · ${e.laps} laps`}
+                </small>
+              )}
             </>
           )}
         </Link>
@@ -466,7 +475,19 @@ export function Experience({
             aria-label={user ? "Account profile" : "Guest profile"}
           >
             {user ? (
-              <CircleUserRound size={23} aria-hidden="true" />
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <circle cx="12" cy="7.5" r="4" fill="currentColor" />
+                <path
+                  d="M5 20v-1a7 7 0 0 1 14 0v1a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1Z"
+                  fill="currentColor"
+                />
+              </svg>
             ) : (
               <UserRound size={18} aria-hidden="true" />
             )}
@@ -897,18 +918,22 @@ export function Experience({
                         <div className="fixture-groups">
                           {Array.from(
                             new Set(list.map((e) => e.competition)),
-                          ).map((c) => (
-                            <section className="fixture-group" key={c}>
-                              <div className="league-heading">
-                                <Trophy size={15} />
-                                <h3>{c}</h3>
-                              </div>
-                              {list
-                                .filter((e) => e.competition === c)
-                                .slice(0, isHome && real ? 6 : undefined)
-                                .map(row)}
-                            </section>
-                          ))}
+                          ).map((c) => {
+                            const group = list.filter(
+                              (e) => e.competition === c,
+                            );
+                            return (
+                              <section className="fixture-group" key={c}>
+                                <div className="league-heading">
+                                  <SportMark name={group[0]!.sport} />
+                                  <h3>{c}</h3>
+                                </div>
+                                {group
+                                  .slice(0, isHome && real ? 6 : undefined)
+                                  .map(row)}
+                              </section>
+                            );
+                          })}
                         </div>
                       )}
                     </section>
