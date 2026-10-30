@@ -4,7 +4,7 @@ import { ProviderCache } from "../apps/api/src/providers/cache";
 import { premierLeagueViewingLinks } from "../apps/api/src/providers/premier-league-viewing";
 
 it("fetches the coming football week even when Uganda has crossed midnight before UTC", async () => {
-  const fetcher = vi.fn(async () =>
+  const fetcher = vi.fn(async (_input: string | URL | Request) =>
     Response.json({
       events: [
         {
@@ -30,13 +30,15 @@ it("fetches the coming football week even when Uganda has crossed midnight befor
       ],
     }),
   );
-  const provider = new EspnProvider(new ProviderCache(fetcher as typeof fetch));
+  const cache = new ProviderCache(fetcher as typeof fetch);
+  const provider = new EspnProvider(cache, cache, cache);
   const result = await provider.events(
     { path: "soccer/eng.1", sport: "Football", label: "Premier League" },
     "2026-10-30",
   );
-  expect(String(fetcher.mock.calls[0]?.[0])).toContain(
-    "dates=20261030-20261106",
+  expect(fetcher).toHaveBeenCalledTimes(8);
+  expect(fetcher.mock.calls.map((call) => String(call[0]))).toContain(
+    "https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard?limit=500&dates=20261031",
   );
   expect(result.value).toMatchObject([
     {

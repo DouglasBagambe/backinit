@@ -276,6 +276,7 @@ export class EspnProvider {
   constructor(
     private cache: ProviderCache,
     private lookupCache = new ProviderCache(),
+    private scheduleCache = new ProviderCache(),
   ) {}
   async lookup(id: string): Promise<SportEvent | undefined> {
     const league = espnLeagues.find((l) =>
@@ -315,11 +316,49 @@ export class EspnProvider {
   }
   async events(league: League, date: string) {
     const from = date.replaceAll("-", "");
+    if (league.sport === "Football") {
+      // Football rejects date ranges. Keep future schedules out of the live cache.
+      const days = Array.from({ length: 8 }, (_, index) => {
+        const day = new Date(`${date}T12:00:00Z`);
+        day.setUTCDate(day.getUTCDate() + index);
+        return day.toISOString().slice(0, 10).replaceAll("-", "");
+      });
+      const results = await Promise.allSettled(
+        days.map((day, index) =>
+          (index === 0 ? this.cache : this.scheduleCache).json(
+            `${base}${league.path}/scoreboard?limit=500&dates=${day}`,
+            index === 0 ? 30000 : 900000,
+            (raw) => boardSchema.parse(raw),
+          ),
+        ),
+      );
+      const loaded = results.flatMap((result) =>
+        result.status === "fulfilled" ? [result.value] : [],
+      );
+      if (!loaded.length) throw new Error("Football schedule unavailable");
+      const events = loaded.flatMap((result) =>
+        normalizeScoreboard(
+          result.value,
+          league,
+          result.fetchedAt,
+          result.stale,
+        ),
+      );
+      return {
+        value: [...new Map(events.map((event) => [event.id, event])).values()],
+        fetchedAt: loaded
+          .map((result) => result.fetchedAt)
+          .sort()
+          .at(-1)!,
+        stale:
+          loaded.some((result) => result.stale) || loaded.length < days.length,
+      };
+    }
     const end = new Date(`${date}T12:00:00Z`);
     end.setUTCDate(end.getUTCDate() + 7);
     const dates = league.week
       ? ""
-      : `&dates=${["Football", "Tennis", "MMA"].includes(league.sport) ? `${from}-${end.toISOString().slice(0, 10).replaceAll("-", "")}` : from}`;
+      : `&dates=${["Tennis", "MMA"].includes(league.sport) ? `${from}-${end.toISOString().slice(0, 10).replaceAll("-", "")}` : from}`;
     const result = await this.cache.json(
       `${base}${league.path}/scoreboard?limit=500${dates}`,
       30000,
