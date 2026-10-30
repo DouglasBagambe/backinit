@@ -10,7 +10,7 @@ try {
   const page = await context.newPage();
   await page.goto(base + "/videos");
   await page
-    .getByRole("button", { name: "Load official player", exact: true })
+    .getByRole("button", { name: "Play video", exact: true })
     .waitFor({ timeout: 45000 });
   await expect(page.locator(".official-embed iframe")).toHaveCount(0);
   for (const theme of ["light", "dark"]) {
@@ -46,9 +46,7 @@ try {
       ).toBe(true);
     }
   }
-  await page
-    .getByRole("button", { name: "Load official player", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Play video", exact: true }).click();
   try {
     const frame = page.locator(".official-embed iframe");
     await frame.waitFor({ timeout: 20000 });

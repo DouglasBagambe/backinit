@@ -28,10 +28,7 @@ test("official cup discovery gives Kampala kickoffs, no false live player and fa
   await page.goto(`/watch/${priority}`);
   await expect(page).toHaveURL(new RegExp(`/watch/${priority}$`));
   await expect(
-    page.getByRole("heading", {
-      name: "No stream available",
-      exact: true,
-    }),
+    page.locator(".player-tracker-fallback .event-tracker"),
   ).toBeVisible();
   await expect(page.locator(".event-viewing-header")).toContainText("23:00");
   await expect(page.locator(".viewing-options")).toContainText(
@@ -191,7 +188,10 @@ test("compact discovery shows matches immediately and every sport stays reachabl
   const unavailablePlayer = page.locator(".player-unavailable");
   await expect(unavailablePlayer).toBeVisible();
   const player = await unavailablePlayer.boundingBox();
-  expect(player!.height).toBeLessThan(180);
+  expect(player!.height).toBeLessThan(440);
+  await expect(
+    unavailablePlayer.getByLabel("Match tracker", { exact: true }),
+  ).toBeVisible();
   await expect(page.locator(".viewing-options")).toBeVisible();
 });
 test("admin sources require verification, match only their fixture, expose retry/fallback and honor revocation", async ({
@@ -367,9 +367,12 @@ test("admin sources require verification, match only their fixture, expose retry
     (await post("/api/admin/sources", { ...current, revoked: true })).status(),
   ).toBe(201);
   await page.clock.fastForward(61000);
-  await expect(page.getByLabel("Stream source", { exact: true })).toHaveValue(
-    source.id,
+  await expect(page.getByLabel("Stream source", { exact: true })).toHaveCount(
+    0,
   );
+  await expect
+    .poll(async () => page.locator("video").getAttribute("aria-label"))
+    .toBe(source.name);
   expect(
     (
       await (await page.request.get(`/api/streams?event=${priority}`)).json()

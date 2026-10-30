@@ -103,8 +103,10 @@ const units = {
 };
 export function AdSlot({
   format = "banner",
+  sponsored = false,
 }: {
   format?: "banner" | "rectangle";
+  sponsored?: boolean;
 }) {
   const { enabled, framesApproved, preference } = useContext(Advertising);
   const ref = useRef<HTMLDivElement>(null);
@@ -143,16 +145,24 @@ export function AdSlot({
   return (
     <div ref={ref} className={`ad-slot ad-slot-${format}`}>
       {show && near && <AdvertisingFrame key={unit.key} unit={unit} />}
-      {format === "banner" &&
+      {(format === "banner" || sponsored) &&
         enabled &&
         (!framesApproved || preference === "accepted") && (
           <a
-            className="sponsored-offers"
+            className={`sponsored-offers${format === "rectangle" ? " sponsored-card" : ""}`}
             href="https://asiafilm.org/4/03e480f030ce8a18c8c3de500ca10b7d"
             target="_blank"
             rel="sponsored noopener noreferrer"
           >
-            Sponsored offers ↗
+            {format === "rectangle" ? (
+              <>
+                <small>Sponsored</small>
+                <strong>Explore offers ↗</strong>
+                <span>Support BackInIt</span>
+              </>
+            ) : (
+              "Sponsored offers ↗"
+            )}
           </a>
         )}
     </div>

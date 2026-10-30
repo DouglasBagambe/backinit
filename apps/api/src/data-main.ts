@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { TrackerController } from "./tracker-controller.js";
 import {
   All,
   Controller,
@@ -90,6 +91,7 @@ class DataController {
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }])],
   controllers: [
+    TrackerController,
     SportsController,
     DataController,
     ...(accountRuntime ? [accountRuntime.AccountController] : []),

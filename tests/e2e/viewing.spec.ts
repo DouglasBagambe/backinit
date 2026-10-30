@@ -88,10 +88,26 @@ test("Watch leads with official sport, filters videos and handles player failure
     page.getByRole("heading", { name: "Replays & highlights", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Load official player", exact: true }),
+    page.getByRole("button", { name: "Play video", exact: true }),
   ).toBeVisible();
   expect(requests).toBe(0);
   await expect(page.locator("iframe")).toHaveCount(0);
+  await expect(page.getByText("Publisher player", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByLabel("Stream source", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.locator(".player-information")).not.toHaveAttribute(
+    "open",
+    "",
+  );
+  await page.getByText("Viewing information", { exact: true }).click();
+  await expect(page.locator(".player-information")).toContainText(
+    "connects to YouTube",
+  );
+  expect(requests).toBe(0);
+  await page.getByText("Viewing information", { exact: true }).click();
   await page
     .getByLabel("Filter videos by sport", { exact: true })
     .selectOption("MMA");
@@ -99,9 +115,7 @@ test("Watch leads with official sport, filters videos and handles player failure
     page.locator(".watch-feature > .section-heading h2"),
   ).toContainText("Demetrious Johnson");
   await expect(page.locator(".watch-card")).toHaveCount(1);
-  await page
-    .getByRole("button", { name: "Load official player", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Play video", exact: true }).click();
   await expect(page.getByRole("status")).toContainText(
     "official player could not load",
   );
@@ -129,7 +143,7 @@ for (const theme of ["light", "dark"]) {
     for (const width of [360, 390, 768, 1440]) {
       await page.setViewportSize({ width, height: 1000 });
       await expect(
-        page.getByRole("button", { name: "Load official player", exact: true }),
+        page.getByRole("button", { name: "Play video", exact: true }),
       ).toBeVisible();
       expect(
         await page.evaluate(

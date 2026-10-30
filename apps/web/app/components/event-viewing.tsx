@@ -1,14 +1,20 @@
 "use client";
 import { AdSlot } from "./advertising";
+import { LiveTracker } from "./live-tracker";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { eventTitle, watchFeedSchema, type SportEvent } from "@backinit/domain";
+import {
+  eventTitle,
+  eventSchema,
+  watchFeedSchema,
+  type SportEvent,
+} from "@backinit/domain";
 import { LazyPlayer as Player } from "./lazy-player";
 import { RealDetail } from "./real-detail";
 import { Crest, SportMark } from "./marks";
 import { localStart, localDay, useViewingZone } from "../lib/viewing-time";
 export function EventViewing({
-  event,
+  event: initialEvent,
   events,
   favorite,
 }: {
@@ -16,6 +22,53 @@ export function EventViewing({
   events: SportEvent[];
   favorite: React.ReactNode;
 }) {
+  const [event, setEvent] = useState(initialEvent);
+  const [hasBroadcast, setHasBroadcast] = useState(false);
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1001px)");
+    const read = () => setWide(media.matches);
+    read();
+    media.addEventListener("change", read);
+    return () => media.removeEventListener("change", read);
+  }, []);
+  useEffect(() => {
+    setEvent(initialEvent);
+    const controller = new AbortController();
+    let running = false;
+    const refresh = async () => {
+      if (running || document.hidden) return;
+      running = true;
+      try {
+        const response = await fetch(
+          `/api/events/${encodeURIComponent(initialEvent.id)}`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) throw new Error();
+        const body = await response.json();
+        const current = eventSchema.parse(body.data);
+        if (current.id !== initialEvent.id || current.provenance !== "provider")
+          throw new Error();
+        if (!controller.signal.aborted) setEvent(current);
+      } catch {
+        if (!controller.signal.aborted)
+          setEvent((old) => ({
+            ...old,
+            ...(old.status === "live" ? { status: "unknown" as const } : {}),
+            ...(old.source ? { source: { ...old.source, stale: true } } : {}),
+          }));
+      } finally {
+        running = false;
+      }
+    };
+    const timer = setInterval(() => void refresh(), 30000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [initialEvent]);
   const [tab, setTab] = useState("Overview");
   const [watchableIds, setWatchableIds] = useState<string[]>([]);
   useEffect(() => {
@@ -125,7 +178,15 @@ export function EventViewing({
       </header>
       <div className="event-viewing-layout">
         <div className="event-viewing-main">
-          <Player key={event.id} eventId={event.id} />
+          <Player
+            key={event.id}
+            eventId={event.id}
+            fallback={<LiveTracker event={event} />}
+            onAvailability={setHasBroadcast}
+          />
+          <div className="event-mobile-tracker">
+            {hasBroadcast && !wide && <LiveTracker event={event} compact />}
+          </div>
           <AdSlot />
           <section className="panel viewing-options" id="official-viewing">
             <h2>Viewing options</h2>
@@ -247,23 +308,31 @@ export function EventViewing({
             )}
           </section>
         </div>
-        <aside className="event-switcher">
-          <h2>More to watch</h2>
+        <aside className="event-side">
+          {hasBroadcast && wide && (
+            <div className="event-desktop-tracker">
+              <LiveTracker event={event} compact />
+            </div>
+          )}
+          <AdSlot format="rectangle" sponsored />
+          <section className="event-switcher">
+            <h2>More to watch</h2>
 
-          {related.map((e) => (
-            <Link key={e.id} href={`/watch/${e.id}`}>
-              <small>
-                {e.sport} ·{" "}
-                {e.timeConfirmed === false
-                  ? "Date only"
-                  : localStart(e.start, zone)}
-              </small>
-              <strong>{eventTitle(e)}</strong>
-              <span>Watch →</span>
-            </Link>
-          ))}
-          {!related.length && <p>No other streams available.</p>}
-          <Link href="/fixtures">All fixtures →</Link>
+            {related.map((e) => (
+              <Link key={e.id} href={`/watch/${e.id}`}>
+                <small>
+                  {e.sport} ·{" "}
+                  {e.timeConfirmed === false
+                    ? "Date only"
+                    : localStart(e.start, zone)}
+                </small>
+                <strong>{eventTitle(e)}</strong>
+                <span>Watch →</span>
+              </Link>
+            ))}
+            {!related.length && <p>No other streams available.</p>}
+            <Link href="/fixtures">All fixtures →</Link>
+          </section>
         </aside>
       </div>
     </div>

@@ -44,7 +44,11 @@ export function Privacy({
           Embedded players load after your consent. Loading a video contacts its
           publisher. These services may receive your IP address and apply their
           own privacy policies. News links open the publisher’s website. Fonts
-          are served by BackInIt.
+          are served by BackInIt. Live match visualizations may load from
+          SportScore and its tracker provider when a matching live tracker is
+          available. Those providers receive your IP address and browser
+          information; their own privacy policies apply. They do not receive
+          your BackInIt account credentials.
         </p>
         <h2>Advertising</h2>
         {adFramesApproved ? (

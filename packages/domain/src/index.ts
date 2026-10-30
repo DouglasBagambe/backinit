@@ -170,6 +170,27 @@ export const eventSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 export type SportEvent = z.infer<typeof eventSchema>;
+/** Watch can offer reported match tracking without claiming a video broadcast. */
+export function hasMatchTracker(event: SportEvent): boolean {
+  if (
+    event.provenance !== "provider" ||
+    !event.source ||
+    event.source.stale ||
+    event.scheduleOnly
+  )
+    return false;
+  const detail = event.detail;
+  return Boolean(
+    (event.kind === "score" &&
+      ["live", "finished"].includes(event.status) &&
+      (event.homeScore !== null || event.awayScore !== null)) ||
+    detail?.timeline?.length ||
+    detail?.goals?.length ||
+    detail?.statistics?.length ||
+    detail?.periods?.length ||
+    detail?.classification?.length,
+  );
+}
 const base = { provenance: "demo" as const, start: "2026-10-26T19:00:00Z" };
 export const events: SportEvent[] = [
   {
@@ -512,3 +533,18 @@ export const watchFeedSchema = z.object({
   generatedAt: z.string().datetime(),
 });
 export type WatchEntry = z.infer<typeof watchEntrySchema>;
+
+export const trackerSourceSchema = z.object({
+  provider: z.literal("SportScore"),
+  eventId: z.string().regex(/^[a-z0-9-]{1,80}$/),
+  url: z
+    .string()
+    .regex(
+      /^https:\/\/sportscore\.com\/embed\/tracker\/(football|basketball|tennis|cricket)\/[a-z0-9-]{1,220}\/$/,
+    ),
+  sourceUrl: z.literal("https://sportscore.com/"),
+  checkedAt: z.string().datetime(),
+  validUntil: z.string().datetime(),
+  kind: z.literal("publisher-tracker"),
+});
+export type TrackerSource = z.infer<typeof trackerSourceSchema>;

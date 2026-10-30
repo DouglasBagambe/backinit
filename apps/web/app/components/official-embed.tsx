@@ -44,7 +44,7 @@ export function OfficialEmbed({
         player = new api.Player(target, {
           videoId: new URL(url).pathname.split("/").pop()!,
           host: "https://www.youtube-nocookie.com",
-          playerVars: { playsinline: 1, origin: location.origin },
+          playerVars: { playsinline: 1, autoplay: 1, origin: location.origin },
           events: {
             onReady: () => {
               ready = true;
@@ -54,7 +54,7 @@ export function OfficialEmbed({
                   frame.title = title;
                   frame.referrerPolicy = "strict-origin-when-cross-origin";
                 }
-                onState("Official player ready · press play");
+                onState("Ready to play");
               }
             },
             onError: (event) => {
@@ -71,7 +71,7 @@ export function OfficialEmbed({
               if (disposed) return;
               const states: Record<number, string> = {
                 0: "Playback ended",
-                1: "Playing official video",
+                1: "Playing",
                 2: "Paused",
                 3: "Buffering…",
               };

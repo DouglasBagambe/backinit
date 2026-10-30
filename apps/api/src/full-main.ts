@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { TrackerController } from "./tracker-controller.js";
 import {
   Module,
   Injectable,
@@ -54,6 +55,7 @@ class SportsUpdates implements OnModuleInit, OnModuleDestroy {
     ]),
   ],
   controllers: [
+    TrackerController,
     SportsController,
     AccountController,
     StreamController,

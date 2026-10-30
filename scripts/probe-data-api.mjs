@@ -68,6 +68,9 @@ try {
     (await fetch(api + "/streams/official-missing/health")).status,
     404,
   );
+  assert.deepEqual(await (await fetch(api + "/trackers/missing")).json(), {
+    data: null,
+  });
   assert.equal((await fetch(api + "/events?edition=demo")).status, 403);
   const events = await (await fetch(api + "/events?edition=real")).json();
   assert.equal(events.edition, "real");

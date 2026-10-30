@@ -14,6 +14,7 @@ import {
 import {
   watchFeedSchema,
   eventTitle,
+  hasMatchTracker,
   sports,
   type WatchEntry,
 } from "@backinit/domain";
@@ -37,11 +38,13 @@ export function sourceLabel(entry: WatchEntry) {
   ).length;
   return live
     ? "Watch live"
-    : entry.sources.length
-      ? "Replay"
-      : entry.availability === "external-only"
-        ? "Viewing info"
-        : "No stream";
+    : hasMatchTracker(entry.event)
+      ? "Track"
+      : entry.sources.length
+        ? "Replay"
+        : entry.availability === "external-only"
+          ? "Viewing info"
+          : "No stream";
 }
 export function LiveWatch({ preview = false }: { preview?: boolean }) {
   const params = useSearchParams();
@@ -120,7 +123,9 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
           (day <= (date || today) && endDay >= (date || today)) ||
           (!date && e.status === "live")) &&
         (range !== "live" || e.status === "live") &&
-        sources.some((s) => (s.presentation || "live") === "live") &&
+        (sources.some((s) => (s.presentation || "live") === "live") ||
+          hasMatchTracker(e)) &&
+        (range !== "upcoming" || e.status === "upcoming") &&
         (sport === "All sports" || e.sport === sport) &&
         `${eventTitle(e)} ${e.competition} ${e.sport}`
           .toLowerCase()
@@ -351,7 +356,9 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
                       className={
                         entry.availability === "in-page"
                           ? "pill source-available"
-                          : "stream-status"
+                          : hasMatchTracker(e)
+                            ? "pill tracker-available"
+                            : "stream-status"
                       }
                     >
                       {sourceLabel(entry)}
@@ -405,7 +412,8 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
           <summary>Coverage & viewing information</summary>
           <p>
             Broadcast availability can change and may depend on your location or
-            publisher access. All other events are listed in Fixtures.
+            publisher access. Track opens match data, not a video broadcast. All
+            other events are listed in Fixtures.
           </p>
           <div className="schedule-links">
             {sports.map((s) => (
