@@ -164,31 +164,36 @@ it("matches delayed tennis court schedules only on the same day and without ambi
   ).toBeNull();
 });
 
-it("resolves a tracker fixture directly without waiting for unrelated sports feeds", async () => {
+it("resolves a tracker from its league scoreboard without waiting for unrelated sports or the unsupported tennis summary", async () => {
   const fetcher = vi.fn(async (_input: string | URL | Request) =>
     Response.json({
-      header: {
-        id: "42",
-        competitions: [
-          {
-            id: "42",
-            date: "2026-10-30T19:00:00Z",
-            status: { type: { state: "in", name: "STATUS_IN_PROGRESS" } },
-            competitors: [
-              {
-                id: "1",
-                homeAway: "home",
-                athlete: { displayName: "Matteo Berrettini" },
-              },
-              {
-                id: "2",
-                homeAway: "away",
-                athlete: { displayName: "Alex de Minaur" },
-              },
-            ],
-          },
-        ],
-      },
+      leagues: [{ name: "ATP Vienna" }],
+      events: [
+        {
+          id: "42",
+          name: "Berrettini vs de Minaur",
+          date: "2026-10-30T19:00:00Z",
+          competitions: [
+            {
+              id: "42",
+              date: "2026-10-30T19:00:00Z",
+              status: { type: { state: "in", name: "STATUS_IN_PROGRESS" } },
+              competitors: [
+                {
+                  id: "1",
+                  homeAway: "home",
+                  athlete: { displayName: "Matteo Berrettini" },
+                },
+                {
+                  id: "2",
+                  homeAway: "away",
+                  athlete: { displayName: "Alex de Minaur" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
     }),
   );
   vi.stubGlobal("fetch", fetcher);
@@ -200,11 +205,14 @@ it("resolves a tracker fixture directly without waiting for unrelated sports fee
     status: "live",
   });
   expect(fetcher).toHaveBeenCalledTimes(1);
-  expect(String(fetcher.mock.calls[0]?.[0])).toBe(
-    "https://site.api.espn.com/apis/site/v2/sports/tennis/atp/summary?event=42",
+  expect(String(fetcher.mock.calls[0]?.[0])).toMatch(
+    /^https:\/\/site.api.espn.com\/apis\/site\/v2\/sports\/tennis\/atp\/scoreboard\?limit=500&dates=\d{8}-\d{8}$/,
   );
   expect(
     await service.trackerFixture("espn-invalid-league-42"),
+  ).toBeUndefined();
+  expect(
+    await service.trackerFixture("espn-tennis-atp-not-a-number"),
   ).toBeUndefined();
   expect(fetcher).toHaveBeenCalledTimes(1);
 });

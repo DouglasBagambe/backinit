@@ -209,8 +209,23 @@ export class SportsService {
     if (
       id.startsWith("espn-") &&
       process.env.SPORTS_PROVIDERS_DISABLED !== "true"
-    )
-      return this.espn.lookup(id);
+    ) {
+      const league = espnLeagues.find((l) =>
+        id.startsWith(`espn-${l.path.replaceAll("/", "-")}-`),
+      );
+      if (
+        !league ||
+        !/^\d+$/.test(
+          id.slice(`espn-${league.path.replaceAll("/", "-")}-`.length),
+        )
+      )
+        return undefined;
+      const date =
+        this.known.get(id)?.start.slice(0, 10) ||
+        new Date().toISOString().slice(0, 10);
+      const result = await this.espn.events(league, date);
+      return result.value.find((event) => event.id === id);
+    }
     return this.fixture(id, "real");
   }
   async fixture(
