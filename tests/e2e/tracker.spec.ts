@@ -346,6 +346,12 @@ test("a slow publisher navigation stays mounted and recovers without another req
   const frame = page.locator(".publisher-tracker iframe");
   await expect(frame).toHaveCount(1);
   await expect.poll(() => requests).toBe(1);
+  await expect(page.locator(".tracker-recovery .tracker-score")).toHaveText(
+    "1:0",
+  );
+  await expect(
+    page.getByText("Loading live animation…", { exact: true }),
+  ).toBeVisible();
   await frame.evaluate((n) => {
     n.setAttribute("data-test-instance", "original");
   });
@@ -382,4 +388,18 @@ test("a slow publisher navigation stays mounted and recovers without another req
     .click();
   await expect(page.locator(".tracker-recovery")).toHaveCount(0);
   await expect(frame).toHaveAttribute("data-test-instance", "original");
+  await page
+    .getByRole("button", { name: "Match summary", exact: true })
+    .click();
+  await page.evaluate(() => {
+    document.documentElement.dataset.theme =
+      document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  });
+  await expect.poll(() => requests).toBe(2);
+  await expect(
+    page.getByRole("button", { name: "Live animation", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".tracker-recovery .tracker-score")).toHaveText(
+    "1:0",
+  );
 });
