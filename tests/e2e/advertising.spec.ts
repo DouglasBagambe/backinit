@@ -21,6 +21,9 @@ test("advertising respects consent, adapts to available space, and withdraws imm
   await expect(
     page.getByRole("region", { name: "Advertising preferences" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Sponsored offers" }),
+  ).toHaveCount(0);
   expect(requests).toHaveLength(0);
   await page.getByRole("button", { name: "Decline ads", exact: true }).click();
   await page.reload();
@@ -32,6 +35,13 @@ test("advertising respects consent, adapts to available space, and withdraws imm
     .getByRole("button", { name: "Ad preferences", exact: true })
     .click();
   await page.getByRole("button", { name: "Allow ads", exact: true }).click();
+  const sponsor = page.getByRole("link", { name: "Sponsored offers" });
+  await expect(sponsor).toHaveAttribute(
+    "href",
+    "https://asiafilm.org/4/03e480f030ce8a18c8c3de500ca10b7d",
+  );
+  await expect(sponsor).toHaveAttribute("target", "_blank");
+  await expect(sponsor).toHaveAttribute("rel", /sponsored/);
   const slot = page.locator(".ad-slot-banner");
   await slot.scrollIntoViewIfNeeded();
   const frame = page.getByTitle("Advertisement", { exact: true });

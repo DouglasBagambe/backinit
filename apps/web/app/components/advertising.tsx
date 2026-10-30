@@ -134,6 +134,16 @@ export function AdSlot({
   return (
     <div ref={ref} className={`ad-slot ad-slot-${format}`}>
       {show && near && <AdvertisingFrame key={unit.key} unit={unit} />}
+      {format === "banner" && enabled && preference === "accepted" && (
+        <a
+          className="sponsored-offers"
+          href="https://asiafilm.org/4/03e480f030ce8a18c8c3de500ca10b7d"
+          target="_blank"
+          rel="sponsored noopener noreferrer"
+        >
+          Sponsored offers ↗
+        </a>
+      )}
     </div>
   );
 }
