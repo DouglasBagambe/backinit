@@ -240,9 +240,10 @@ kbd {
   font-weight: 700;
 }
 .avatar-signed-in {
-  background: var(--accent);
-  color: var(--surface);
-  border-color: var(--accent);
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--line);
 }
 
 .menu-toggle,
@@ -4055,4 +4056,100 @@ footer {
 :root[data-theme="dark"] .player-intro .primary {
   background: #a9d7b7;
   color: #142f20;
+}
+
+/* Keep the event name and score usable inside narrow browser panes. */
+.match-clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+.match-teams .team-name {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.match-teams b {
+  flex-shrink: 0;
+}
+.league-heading h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1190px) {
+  .match-row .row-sport {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .fixture-group,
+  .fixtures-panel,
+  .content-columns {
+    min-width: 0;
+  }
+  .match-row {
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr) 32px;
+    gap: 10px;
+    padding: 14px 10px;
+    min-height: 84px;
+  }
+  .match-time {
+    width: auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    font-size: 10px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .match-time time {
+    margin: 0;
+  }
+  .match-clock {
+    flex-wrap: wrap;
+  }
+  .match-teams {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .match-teams > span {
+    gap: 7px;
+    min-width: 0;
+  }
+  .match-teams > strong {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  .league-heading {
+    padding: 10px 12px;
+  }
+  .league-heading h3 {
+    font-size: 11px;
+  }
+  .league-heading .sport-photo,
+  .league-heading .sport-mark {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 350px) {
+  .topbar {
+    padding-inline: 10px;
+    gap: 6px;
+  }
+  .topbar .brand {
+    font-size: 22px !important;
+  }
+  .topbar .brand-symbol {
+    width: 40px;
+  }
+  .topbar .header-actions {
+    gap: 0;
+  }
 }
