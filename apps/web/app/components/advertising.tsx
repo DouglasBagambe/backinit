@@ -108,7 +108,9 @@ export function AdSlot({
       setWidth(entry!.contentRect.width),
     );
     const visible = new IntersectionObserver(
-      ([entry]) => setNear(entry!.isIntersecting),
+      ([entry]) => {
+        if (entry!.isIntersecting) setNear(true);
+      },
       { rootMargin: "200px" },
     );
     resize.observe(node);
