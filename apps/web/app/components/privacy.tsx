@@ -1,5 +1,9 @@
 import Link from "next/link";
-export function Privacy() {
+export function Privacy({
+  adFramesApproved = false,
+}: {
+  adFramesApproved?: boolean;
+}) {
   return (
     <>
       <div className="page-heading">
@@ -43,18 +47,33 @@ export function Privacy() {
           are served by BackInIt.
         </p>
         <h2>Advertising</h2>
+        {adFramesApproved ? (
+          <>
+            <p>
+              With your permission, we load ads from Adsterra and its
+              advertising partners. They may receive your IP address, device and
+              browser information, and use cookies or similar technologies to
+              personalize and measure advertising. We do not send them your
+              BackInIt email, password or favourites.
+            </p>
+            <p>
+              You can decline ads or change your choice using Ad preferences at
+              the bottom of any page. Withdrawing permission stops new ads from
+              loading here; it does not erase information already received by
+              advertising partners.
+            </p>
+          </>
+        ) : (
+          <p>
+            Sponsored offers are external advertising links. Selecting one opens
+            Adsterra or an advertiser, which may receive your IP address and
+            browser information and apply its own cookies and privacy choices.
+            We do not automatically load advertising scripts or send advertisers
+            your BackInIt email, password or favourites.
+          </p>
+        )}
         <p>
-          With your permission, we load ads from Adsterra and its advertising
-          partners. They may receive your IP address, device and browser
-          information, and use cookies or similar technologies to personalize
-          and measure advertising. We do not send them your BackInIt email,
-          password or favourites.
-        </p>
-        <p>
-          You can decline ads or change your choice using Ad preferences at the
-          bottom of any page. Withdrawing permission stops new ads from loading
-          here; it does not erase information already received by advertising
-          partners. See{" "}
+          See{" "}
           <a
             href="https://adsterra.com/privacy-policy-managed/"
             target="_blank"

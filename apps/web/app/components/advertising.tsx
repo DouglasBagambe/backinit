@@ -6,15 +6,23 @@ type Preference = "accepted" | "declined" | null;
 const storageKey = "backinit-ad-preference-v1";
 const Advertising = createContext<{
   enabled: boolean;
+  framesApproved: boolean;
   preference: Preference;
   choose: (value: Preference) => void;
-}>({ enabled: false, preference: null, choose: () => {} });
+}>({
+  enabled: false,
+  framesApproved: false,
+  preference: null,
+  choose: () => {},
+});
 
 export function AdvertisingProvider({
   enabled,
+  framesApproved,
   children,
 }: {
   enabled: boolean;
+  framesApproved: boolean;
   children: React.ReactNode;
 }) {
   const [preference, setPreference] = useState<Preference>(null);
@@ -46,7 +54,7 @@ export function AdvertisingProvider({
   }
   return (
     <Advertising.Provider
-      value={{ enabled: enabled && ready, preference, choose }}
+      value={{ enabled: enabled && ready, framesApproved, preference, choose }}
     >
       {children}
     </Advertising.Provider>
@@ -54,8 +62,9 @@ export function AdvertisingProvider({
 }
 
 export function AdPreferences() {
-  const { enabled, preference, choose } = useContext(Advertising);
-  if (!enabled) return null;
+  const { enabled, framesApproved, preference, choose } =
+    useContext(Advertising);
+  if (!enabled || !framesApproved) return null;
   return (
     <div className="ad-preferences">
       {preference ? (
@@ -97,7 +106,7 @@ export function AdSlot({
 }: {
   format?: "banner" | "rectangle";
 }) {
-  const { enabled, preference } = useContext(Advertising);
+  const { enabled, framesApproved, preference } = useContext(Advertising);
   const ref = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [near, setNear] = useState(false);
@@ -130,20 +139,22 @@ export function AdSlot({
         : width >= 320
           ? units.mobile
           : null;
-  const show = enabled && preference === "accepted" && unit;
+  const show = enabled && framesApproved && preference === "accepted" && unit;
   return (
     <div ref={ref} className={`ad-slot ad-slot-${format}`}>
       {show && near && <AdvertisingFrame key={unit.key} unit={unit} />}
-      {format === "banner" && enabled && preference === "accepted" && (
-        <a
-          className="sponsored-offers"
-          href="https://asiafilm.org/4/03e480f030ce8a18c8c3de500ca10b7d"
-          target="_blank"
-          rel="sponsored noopener noreferrer"
-        >
-          Sponsored offers ↗
-        </a>
-      )}
+      {format === "banner" &&
+        enabled &&
+        (!framesApproved || preference === "accepted") && (
+          <a
+            className="sponsored-offers"
+            href="https://asiafilm.org/4/03e480f030ce8a18c8c3de500ca10b7d"
+            target="_blank"
+            rel="sponsored noopener noreferrer"
+          >
+            Sponsored offers ↗
+          </a>
+        )}
     </div>
   );
 }
@@ -177,7 +188,7 @@ function AdvertisingFrame({
   }, []);
   // Opaque-origin frame isolates ads from account cookies and the application DOM.
   // Top navigation and downloads are forbidden; advertiser links open separately.
-  const html = `<!doctype html><html><head><meta name="referrer" content="strict-origin-when-cross-origin"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body><script>var atOptions=${JSON.stringify({ key: unit.key, format: "iframe", height: unit.height, width: unit.width, params: {} })};new MutationObserver(function(){if(document.querySelector('iframe[src],img[src],a[href]'))parent.postMessage('backinit-ad-content','*');}).observe(document.body,{childList:true,subtree:true});</script><script src="https://czernik.org/22/${unit.key}"></script></body></html>`;
+  const html = `<!doctype html><html><head><meta name="referrer" content="strict-origin-when-cross-origin"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body><script>window.atOptions=${JSON.stringify({ key: unit.key, format: "iframe", height: unit.height, width: unit.width, params: {} })};new MutationObserver(function(){if(document.querySelector('iframe[src],img[src],a[href]'))parent.postMessage('backinit-ad-content','*');}).observe(document.body,{childList:true,subtree:true});</script><script src="https://czernik.org/22/${unit.key}"></script></body></html>`;
   if (status === "empty") return null;
   return (
     <aside aria-label="Advertisement" className={`ad-placement ad-${status}`}>

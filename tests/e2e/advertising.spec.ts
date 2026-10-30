@@ -14,7 +14,7 @@ test("advertising respects consent, adapts to available space, and withdraws imm
     requests.push(route.request().url());
     return route.fulfill({
       contentType: "text/javascript",
-      body: `const ad = document.createElement("a"); ad.href = "https://advertiser.example"; ad.textContent = "Isolated advertising fixture"; document.body.append(ad);`,
+      body: `if (!delete window.atOptions) throw new Error("Publisher configuration must be releasable"); const ad = document.createElement("a"); ad.href = "https://advertiser.example"; ad.textContent = "Isolated advertising fixture"; document.body.append(ad);`,
     });
   });
   await page.goto("/news");
