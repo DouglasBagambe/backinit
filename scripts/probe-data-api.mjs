@@ -42,18 +42,24 @@ try {
   assert(ready, "Data API did not start");
   const health = await (await fetch(api + "/health")).json();
   assert.equal(health.mode, "data-only");
-  for (const path of [
-    "/admin/sources",
-    "/account/me",
-    "/account/register",
-    "/videos",
-  ]) {
+  for (const path of ["/admin/sources", "/account/me", "/account/register"]) {
     const r = await fetch(api + path, {
       method: path.endsWith("register") ? "POST" : "GET",
     });
     assert.equal(r.status, 503, path);
   }
   assert.deepEqual(await (await fetch(api + "/streams")).json(), { data: [] });
+  assert.deepEqual(await (await fetch(api + "/videos")).json(), {
+    data: [],
+    coverage: [],
+  });
+  assert.deepEqual(await (await fetch(api + "/streams?library=1")).json(), {
+    data: [],
+  });
+  assert.equal(
+    (await fetch(api + "/streams/yt-000000000000000000000000/health")).status,
+    404,
+  );
   assert.equal((await fetch(api + "/streams/example/health")).status, 404);
   assert.deepEqual(await (await fetch(api + "/streams?event=missing")).json(), {
     data: [],
