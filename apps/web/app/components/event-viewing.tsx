@@ -1,4 +1,5 @@
 "use client";
+import { AdSlot } from "./advertising";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { eventTitle, watchFeedSchema, type SportEvent } from "@backinit/domain";
@@ -125,6 +126,7 @@ export function EventViewing({
       <div className="event-viewing-layout">
         <div className="event-viewing-main">
           <Player key={event.id} eventId={event.id} />
+          <AdSlot />
           <section className="panel viewing-options" id="official-viewing">
             <h2>Viewing options</h2>
             {event.viewingLinks?.length ? (

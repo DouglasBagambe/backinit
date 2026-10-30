@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { AdvertisingProvider, AdSlot, AdPreferences } from "./advertising";
 import { BrandMark } from "./brand";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -420,7 +421,7 @@ export function Experience({
     )[route] ||
     (real ? "Watch" : "Sport today");
   return (
-    <>
+    <AdvertisingProvider enabled={real}>
       <a className="skip" href="#main">
         Skip to content
       </a>
@@ -938,6 +939,7 @@ export function Experience({
                       )}
                     </section>
                     <aside className="right-rail">
+                      {real && <AdSlot format="rectangle" />}
                       <div className="section-heading">
                         <h2>{real ? "Match information" : "On the horizon"}</h2>
                         <CalendarDays size={17} />
@@ -1026,6 +1028,11 @@ export function Experience({
               )}
             </>
           )}
+          {real &&
+            ["", "watch", "live", "scores", "fixtures", "news"].includes(
+              route,
+            ) && <AdSlot />}
+          <AdPreferences />
           <footer>
             <Link className="footer-brand" href="/">
               <BrandMark />
@@ -1085,6 +1092,6 @@ export function Experience({
           );
         })}
       </nav>
-    </>
+    </AdvertisingProvider>
   );
 }
