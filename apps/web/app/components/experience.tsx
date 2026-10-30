@@ -73,12 +73,13 @@ export function Experience({
   const [editionError, setEditionError] = useState("");
   const [date, setDate] = useState("");
   useEffect(() => {
-    if (!real) return;
+    // Watch owns its feed/detail polling; a route refresh would reset newer tracker data.
+    if (!real || route === "watch" || route.startsWith("watch/")) return;
     const timer = setInterval(() => {
       if (!document.hidden) router.refresh();
     }, 30000);
     return () => clearInterval(timer);
-  }, [real, router]);
+  }, [real, router, route]);
   async function changeEdition() {
     setEditionError("");
     try {

@@ -1,5 +1,6 @@
 "use client";
 import { BrandLoading } from "./brand";
+import { Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { OfficialEmbed } from "./official-embed";
 import {
@@ -15,8 +16,12 @@ export function Player({
   sourceId,
   previewSource,
   onPlaybackReport,
+  fallback,
+  onAvailability,
 }: {
   eventId?: string;
+  fallback?: React.ReactNode;
+  onAvailability?: (available: boolean) => void;
   sourceId?: string;
   previewSource?: StreamSource;
   onPlaybackReport?: (report: PlaybackReport) => void;
@@ -41,6 +46,9 @@ export function Player({
   const reportRef = useRef(onPlaybackReport);
   reportRef.current = onPlaybackReport;
   const source = sources.find((s) => s.id === selected);
+  useEffect(() => {
+    onAvailability?.(Boolean(source));
+  }, [Boolean(source), onAvailability]);
   const sourcesRef = useRef(sources);
   sourcesRef.current = sources;
   useEffect(() => {
@@ -137,11 +145,7 @@ export function Player({
     setLive(false);
     setLevels([]);
     setQuality(-1);
-    setState(
-      source.type === "embed"
-        ? "Publisher player requires consent"
-        : "Loading stream…",
-    );
+    setState(source.type === "embed" ? "Ready to play" : "Loading stream…");
     const check = new AbortController();
     const availability = () => {
       if (previewSource) {
@@ -247,10 +251,14 @@ export function Player({
     /unavailable|could not|disabled|restrict|withdrawn|expired/i.test(state);
   if (eventId && !source)
     return (
-      <section className="player player-unavailable" aria-label="Event player">
+      <section
+        className={`player player-unavailable${fallback ? " player-tracker-fallback" : ""}`}
+        aria-label="Event player"
+      >
+        {fallback}
         <div className="player-empty">
           <div role="status">
-            <h2>
+            <h2 className={fallback ? "sr-only" : undefined}>
               {state === "Checking streams…"
                 ? state
                 : state.startsWith("Streams unavailable")
@@ -311,18 +319,17 @@ export function Player({
                   />
                 )}
                 <div className="player-consent-copy">
-                  <h2>
-                    {source.catalog
-                      ? `Watch with ${source.catalog.publisher}`
-                      : "Publisher player"}
-                  </h2>
-                  <p>
-                    Loading this embed connects to{" "}
-                    {youtube ? "YouTube" : new URL(source.url).hostname}. The
-                    publisher’s privacy policy and playback restrictions apply.
-                  </p>
-                  <button onClick={() => setConsent(true)}>
-                    Load official player
+                  <button
+                    className="player-play"
+                    aria-label="Play video"
+                    onClick={() => setConsent(true)}
+                  >
+                    <Play
+                      size={48}
+                      fill="currentColor"
+                      strokeWidth={0}
+                      aria-hidden="true"
+                    />
                   </button>
                 </div>
               </div>
@@ -433,7 +440,7 @@ export function Player({
                 : (source.presentation || "live").toUpperCase()}
           </span>
         )}
-        {sources.length > 0 && (
+        {sources.length > 1 && (
           <label>
             Source{" "}
             <select
@@ -537,21 +544,32 @@ export function Player({
           </label>
         )}
       </div>
-      {health && <p className="fine">{health}</p>}
       {source && (
+        <details className="player-information">
+          <summary>Viewing information</summary>
+          <p className="fine">
+            {source.type === "embed" && (
+              <>
+                Pressing Play connects to{" "}
+                {youtube ? "YouTube" : new URL(source.url).hostname}. The
+                provider’s privacy policy and playback restrictions apply.{" "}
+              </>
+            )}
+            {source.content === "test"
+              ? "Playback-testing content · not a sports broadcast. "
+              : ""}
+            {source.rightsOwner}.{" "}
+            <a href={source.rightsEvidence} target="_blank" rel="noreferrer">
+              Source information ↗
+            </a>
+          </p>
+          {health && <p className="fine">{health}</p>}
+        </details>
+      )}
+      {failed && source && (
         <p className="fine">
-          {source.content === "test"
-            ? source.id === "dash-live-simulator"
-              ? "DASH-IF live simulator · test pattern. "
-              : "Playback-testing content · not a sports broadcast. "
-            : source.content === "official"
-              ? "Official publisher embed · provider restrictions apply. "
-              : "Event source · availability may vary. "}
-          {source.rightsOwner}.{" "}
           <a href={source.rightsEvidence} target="_blank" rel="noreferrer">
-            {source.content === "official"
-              ? "Open official source ↗"
-              : "Source & rights ↗"}
+            Open official source ↗
           </a>
         </p>
       )}

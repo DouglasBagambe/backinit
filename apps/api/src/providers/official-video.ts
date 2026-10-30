@@ -102,10 +102,41 @@ export function videoCategory(
 }
 export class OfficialVideoCatalog {
   constructor(
-    private readonly streams: Streams,
+    private readonly streams?: Pick<Streams, "admit" | "library">,
     private readonly cache = new ProviderCache(),
   ) {}
+  private pending?: ReturnType<OfficialVideoCatalog["load"]>;
+  private snapshot?: {
+    at: number;
+    result: Awaited<ReturnType<OfficialVideoCatalog["load"]>>;
+  };
   async feed() {
+    if (process.env.SPORTS_PROVIDERS_DISABLED === "true")
+      return { data: [], coverage: [] };
+    if (this.snapshot && Date.now() - this.snapshot.at < 30000) {
+      const result = this.snapshot.result;
+      const admitted = new Set(result.data.map((s) => s.id));
+      return this.streams
+        ? {
+            ...result,
+            data: this.streams.library().filter((s) => admitted.has(s.id)),
+          }
+        : result;
+    }
+    if (!this.pending) {
+      this.pending = this.load()
+        .then((result) => {
+          this.snapshot = { at: Date.now(), result };
+          return result;
+        })
+        .finally(() => {
+          this.pending = undefined;
+        });
+    }
+    return this.pending;
+  }
+  private async load() {
+    const sources = new Map<string, StreamSource>();
     const admitted = new Set<string>();
     const coverage = await Promise.all(
       officialChannels.map(async (channel) => {
@@ -156,7 +187,7 @@ export class OfficialVideoCatalog {
                 throw new Error("Unexpected thumbnail");
               const checkedAt = meta.fetchedAt;
               const sourceId = `yt-${createHash("sha256").update(video.id).digest("hex").slice(0, 24)}`;
-              this.streams.admit({
+              const source: StreamSource = {
                 id: sourceId,
                 name:
                   meta.value.title.length > 100
@@ -185,7 +216,9 @@ export class OfficialVideoCatalog {
                   category: videoCategory(meta.value.title),
                   checkedAt,
                 },
-              });
+              };
+              this.streams?.admit(source);
+              sources.set(sourceId, source);
               admitted.add(sourceId);
               return true;
             }),
@@ -221,8 +254,7 @@ export class OfficialVideoCatalog {
       "Football",
       "Formula 1",
     ];
-    const data = this.streams
-      .library()
+    const data = (this.streams ? this.streams.library() : [...sources.values()])
       .filter((source) => admitted.has(source.id))
       .sort(
         (a, b) =>

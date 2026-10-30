@@ -12,7 +12,7 @@ try {
     try {
       await page.goto(`${base}/videos?sport=${encodeURIComponent(sport)}`);
       const consent = page.getByRole("button", {
-        name: "Load official player",
+        name: "Play video",
         exact: true,
       });
       await consent.waitFor({ timeout: 45000 });

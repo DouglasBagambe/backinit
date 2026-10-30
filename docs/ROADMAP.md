@@ -1,5 +1,7 @@
 # Implementation status and next work
 
+Current viewing/tracking changes are recorded in [30 October viewing status](WATCH_TRACKING_2026-10-30.md). The entries below are historical milestones; earlier database, deployment and authorization statements describe their recorded dates. The production platform is live, but universal sports broadcasts, positional data and full monetization are not complete.
+
 ## Delivered foundation and functional milestone
 
 - Approved shell/navigation preserved; navy/charcoal dark theme; footer-only Light/Dark/System preferences.

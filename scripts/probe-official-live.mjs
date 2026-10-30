@@ -41,17 +41,21 @@ try {
     try {
       await page.goto(base + "/watch/" + row.event.id);
       await page
-        .getByRole("button", { name: "Load official player", exact: true })
+        .getByRole("button", { name: "Play video", exact: true })
         .click({ timeout: 25000 });
       const frame = page.frameLocator(
         'iframe[title="' + row.sources[0].name + '"]',
       );
-      await frame
-        .getByRole("button", { name: "Play video", exact: true })
-        .first()
-        .click({ timeout: 20000 });
       const video = frame.locator("video");
       await video.waitFor({ state: "attached", timeout: 20000 });
+      // Play is requested by the outer button; browsers may still require a native gesture.
+      if (await video.evaluate((v) => v.paused)) {
+        const nativePlay = frame
+          .getByRole("button", { name: "Play video", exact: true })
+          .first();
+        if (await nativePlay.isVisible())
+          await nativePlay.click({ timeout: 5000 });
+      }
       const sample = () =>
         video.evaluate((v) => ({
           currentTime: v.currentTime,

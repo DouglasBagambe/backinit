@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import { TrackerController } from "./tracker-controller.js";
 import {
   All,
   Controller,
@@ -15,6 +16,8 @@ import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
 import helmet from "helmet";
 import { SportsController } from "./sports-controller.js";
 import { service } from "./providers/service.js";
+import { OfficialVideoCatalog } from "./providers/official-video.js";
+const catalog = new OfficialVideoCatalog();
 import { validateScheduleDate, watchFeed } from "./watch-feed.js";
 const accountRuntime = process.env.DATABASE_URL
   ? await import("./hosted-accounts.js")
@@ -35,14 +38,31 @@ class DataController {
     });
     return watchFeed(feed, date, (event) => service.broadcastSources(event));
   }
-  @Get("streams") async sources(@Query("event") id?: string) {
-    if (!id) return { data: [] };
+  @Get("videos") videos() {
+    return catalog.feed();
+  }
+  @Get("streams") async sources(
+    @Query("event") id?: string,
+    @Query("library") library?: string,
+  ) {
+    if (!id)
+      return { data: library === "1" ? (await catalog.feed()).data : [] };
     if (!/^[a-z0-9-]{1,80}$/.test(id))
       throw new BadRequestException("Invalid event");
     const event = await service.fixture(id, "real");
     return { data: event ? service.broadcastSources(event) : [] };
   }
   @Get("streams/:id/health") async sourceHealth(@Param("id") id: string) {
+    if (/^yt-[a-f0-9]{24}$/.test(id)) {
+      const source = (await catalog.feed()).data.find((s) => s.id === id);
+      if (!source) throw new NotFoundException("Video no longer available");
+      return {
+        status: "metadata-available",
+        checkedAt: source.validFrom,
+        message:
+          "Official video metadata is available. The publisher controls playback and regional availability.",
+      };
+    }
     if (!/^official-[a-z0-9-]{1,70}$/.test(id))
       throw new NotFoundException("Source not found");
     const event = await service.fixture(id.slice("official-".length), "real");
@@ -59,7 +79,6 @@ class DataController {
   }
   @All([
     "streams/*path",
-    "videos",
     "admin/*path",
     ...(!accountRuntime ? ["account/*path"] : []),
   ])
@@ -72,6 +91,7 @@ class DataController {
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }])],
   controllers: [
+    TrackerController,
     SportsController,
     DataController,
     ...(accountRuntime ? [accountRuntime.AccountController] : []),

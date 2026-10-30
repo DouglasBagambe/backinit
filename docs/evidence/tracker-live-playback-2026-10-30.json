@@ -1,0 +1,52 @@
+{
+  "at": "2026-10-30T13:04:49.784Z",
+  "origin": "http://127.0.0.1:3000",
+  "publisherReportedLive": 3,
+  "attempts": [
+    {
+      "eventId": "bwf-pbymnyk1jkg",
+      "title": "HYLO Open 2026 | Pornpawee Chochuwong (THA) [1] vs Wen Yu Zhang (CAN) | QF",
+      "publisher": "BWF TV",
+      "checkedAt": "2026-10-30T13:04:49.941Z",
+      "before": {
+        "currentTime": 3910.108163,
+        "width": 1280,
+        "height": 720,
+        "readyState": 1,
+        "paused": false,
+        "frames": 0
+      },
+      "after": {
+        "currentTime": 3920.05024,
+        "width": 1280,
+        "height": 720,
+        "readyState": 4,
+        "paused": false,
+        "frames": 304
+      },
+      "played": true,
+      "mobile": {
+        "overflow": false,
+        "sample": {
+          "currentTime": 3922.441354,
+          "width": 1280,
+          "height": 720,
+          "readyState": 4,
+          "paused": false,
+          "frames": 376
+        }
+      },
+      "afterRefresh": {
+        "currentTime": 3987.541362,
+        "width": 854,
+        "height": 480,
+        "readyState": 4,
+        "paused": false,
+        "frames": 2328
+      },
+      "refreshPreservedPlayback": true
+    }
+  ],
+  "decodedBroadcasts": 1,
+  "status": "LIVE PLAYBACK VERIFIED"
+}

@@ -5,6 +5,7 @@ import {
   events,
   filterEvents,
   eventTitle,
+  hasMatchTracker,
 } from "../packages/domain/src/index";
 describe("provider-independent event contract", () => {
   it("validates every demo event and retains explicit provenance", async () => {
@@ -41,4 +42,25 @@ describe("provider-independent event contract", () => {
     expect(filterEvents(events, { sport: "Rugby" })).toEqual([]);
     expect(filterEvents(events, { query: "not-a-team" })).toEqual([]);
   });
+});
+
+it("offers tracking only for real fresh match data, not demo, stale data or a bare schedule", () => {
+  const event = {
+    ...events[0]!,
+    provenance: "provider" as const,
+    source: {
+      provider: "Contract fixture",
+      url: "https://example.test",
+      license: "Test",
+      stale: false,
+      fetchedAt: new Date().toISOString(),
+    },
+  };
+  expect(hasMatchTracker(event)).toBe(true);
+  expect(hasMatchTracker({ ...event, provenance: "demo" })).toBe(false);
+  expect(
+    hasMatchTracker({ ...event, source: { ...event.source, stale: true } }),
+  ).toBe(false);
+  expect(hasMatchTracker({ ...event, scheduleOnly: true })).toBe(false);
+  expect(hasMatchTracker({ ...event, status: "upcoming" })).toBe(false);
 });
