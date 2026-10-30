@@ -139,3 +139,23 @@ it("contract never accepts arbitrary tracker frame destinations", () => {
     }).success,
   ).toBe(false);
 });
+
+it("matches delayed tennis court schedules only on the same day and without ambiguity", async () => {
+  const delayed = { ...row, time: "2026-10-30T13:25:00Z" };
+  expect(
+    await fixture({ rows: [delayed], detail: delayed }).provider.forEvent(
+      event,
+    ),
+  ).not.toBeNull();
+  for (const rows of [
+    [{ ...row, time: "2026-10-30T16:00:00Z" }],
+    [row, delayed],
+  ])
+    expect(await fixture({ rows }).provider.forEvent(event)).toBeNull();
+  const nearMidnight = { ...event, start: "2026-10-30T00:30:00Z" };
+  expect(
+    await fixture({
+      rows: [{ ...row, time: "2026-10-29T23:50:00Z" }],
+    }).provider.forEvent(nearMidnight),
+  ).toBeNull();
+});

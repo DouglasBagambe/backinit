@@ -4604,3 +4604,32 @@ footer {
     height: 420px;
   }
 }
+
+.tracker-recovery {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  background: var(--surface);
+}
+.tracker-recovery > p {
+  padding: 0 16px 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.tracker-controls {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+}
+.tracker-controls button {
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  padding: 4px;
+}
+.tracker-controls button:hover {
+  color: var(--text);
+}

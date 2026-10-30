@@ -16,12 +16,8 @@ export function LiveTracker({
   compact?: boolean;
 }) {
   const [source, setSource] = useState<TrackerSource | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [failed, setFailed] = useState(false);
   const [attempt, retry] = useState(0);
   const [theme, setTheme] = useState("light");
-  const loadedRef = useRef(loaded);
-  loadedRef.current = loaded;
   const current = useRef(source);
   current.current = source;
   useEffect(() => {
@@ -39,19 +35,28 @@ export function LiveTracker({
   }, []);
   useEffect(() => {
     setSource(null);
-    setFailed(false);
+  }, [event.id]);
+  useEffect(() => {
     if (
       event.kind !== "score" ||
-      event.status !== "live" ||
-      event.source?.stale ||
+      event.status === "finished" ||
+      event.status === "upcoming" ||
       event.scheduleOnly ||
       !["Football", "Basketball", "Tennis", "Cricket"].includes(event.sport)
-    )
+    ) {
+      setSource(null);
       return;
+    }
     const controller = new AbortController();
     let running = false;
     const refresh = async () => {
-      if (running || document.hidden) return;
+      if (
+        running ||
+        document.hidden ||
+        event.status !== "live" ||
+        event.source?.stale
+      )
+        return;
       running = true;
       try {
         const response = await fetch(`/api/trackers/${event.id}`, {
@@ -102,50 +107,108 @@ export function LiveTracker({
     event.scheduleOnly,
     attempt,
   ]);
+  if (!source) return <EventTracker event={event} compact={compact} />;
+  return (
+    <PublisherTracker
+      key={`${source.url}:${theme}:${attempt}`}
+      source={source}
+      event={event}
+      theme={theme}
+      compact={compact}
+      retry={() => retry((n) => n + 1)}
+    />
+  );
+}
+
+function PublisherTracker({
+  source,
+  event,
+  theme,
+  compact,
+  retry,
+}: {
+  source: TrackerSource;
+  event: SportEvent;
+  theme: string;
+  compact: boolean;
+  retry: () => void;
+}) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  const loadedRef = useRef(false);
+  const [loaded, setLoaded] = useState(false);
+  const [slow, setSlow] = useState(false);
+  const [summary, setSummary] = useState(false);
+  const [height, setHeight] = useState<number>();
   useEffect(() => {
-    setLoaded(false);
-    setFailed(false);
-    if (!source) return;
     const timer = setTimeout(() => {
-      if (!loadedRef.current) setFailed(true);
+      if (!loadedRef.current) setSlow(true);
     }, 20000);
-    return () => clearTimeout(timer);
-  }, [source?.url, theme, attempt]);
-  // The timeout guards a stalled navigation; onLoad is not proof of live tracker content.
-  useEffect(() => {
-    if (loaded) setFailed(false);
-  }, [loaded]);
-  if (!source || failed)
-    return (
-      <>
-        <EventTracker event={event} compact={compact} />
-        {failed && (
-          <button className="tracker-retry" onClick={() => retry((n) => n + 1)}>
-            Retry live tracker
-          </button>
-        )}
-      </>
-    );
+    // Published resize protocol; accept messages only from this exact publisher frame.
+    const resize = (message: MessageEvent) => {
+      if (
+        message.origin !== new URL(source.url).origin ||
+        message.source !== frame.current?.contentWindow ||
+        message.data?.type !== "sportscore:resize" ||
+        typeof message.data.height !== "number" ||
+        !Number.isFinite(message.data.height)
+      )
+        return;
+      setHeight(Math.max(420, Math.min(1200, Math.ceil(message.data.height))));
+    };
+    window.addEventListener("message", resize);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("message", resize);
+    };
+  }, [source.url]);
+  const showSummary = summary || (slow && !loaded);
   return (
     <section
       className={`publisher-tracker${compact ? " publisher-tracker-compact" : ""}`}
       aria-label="Live match tracker"
     >
-      <div className="publisher-tracker-frame">
-        {!loaded && (
-          <div className="tracker-loading">
+      <div
+        className="publisher-tracker-frame"
+        style={height ? { height } : undefined}
+      >
+        <iframe
+          ref={frame}
+          title={`${event.sport} live match tracker`}
+          src={`${source.url}?theme=${theme}`}
+          onLoad={() => {
+            loadedRef.current = true;
+            setLoaded(true);
+          }}
+          onError={() => setSlow(true)}
+          sandbox="allow-scripts allow-same-origin allow-popups"
+          referrerPolicy="strict-origin-when-cross-origin"
+          aria-hidden={showSummary || undefined}
+          tabIndex={showSummary ? -1 : undefined}
+        />
+        {!loaded && !showSummary && (
+          <div className="tracker-loading" role="status">
             <BrandLoading label="Loading live tracker" />
           </div>
         )}
-        <iframe
-          key={`${source.url}:${theme}:${attempt}`}
-          title={`${event.sport} live match tracker`}
-          src={`${source.url}?theme=${theme}`}
-          onLoad={() => setLoaded(true)}
-          onError={() => setFailed(true)}
-          sandbox="allow-scripts allow-same-origin allow-popups"
-          referrerPolicy="strict-origin-when-cross-origin"
-        />
+        {showSummary && (
+          <div className="tracker-recovery">
+            <EventTracker event={event} compact={compact} />
+            {slow && !loaded && (
+              <p role="status">
+                Live animation is taking longer to load. Scores keep updating.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="tracker-controls">
+        <button
+          aria-pressed={summary}
+          onClick={() => setSummary((old) => !old)}
+        >
+          {summary ? "Live animation" : "Match summary"}
+        </button>
+        <button onClick={retry}>Reload animation</button>
       </div>
     </section>
   );
