@@ -6,6 +6,7 @@ import {
   type TrackerSource,
 } from "@backinit/domain";
 import { EventTracker } from "./event-tracker";
+import { SportradarTracker } from "./sportradar-tracker";
 
 export function LiveTracker({
   event,
@@ -42,8 +43,7 @@ export function LiveTracker({
       event.kind !== "score" ||
       event.status === "finished" ||
       event.status === "upcoming" ||
-      event.scheduleOnly ||
-      !["Football", "Basketball", "Tennis", "Cricket"].includes(event.sport)
+      event.scheduleOnly
     ) {
       setSource(null);
       return;
@@ -112,6 +112,22 @@ export function LiveTracker({
     attempt,
   ]);
   if (!source) return <EventTracker event={event} compact={compact} />;
+  if (source.provider === "Sportradar")
+    return (
+      <SportradarTracker
+        key={`${source.clientId}:${source.matchId}:${theme}:${attempt}`}
+        source={source}
+        event={event}
+        theme={theme}
+        compact={compact}
+        summary={summary}
+        toggleSummary={() => setSummary((old) => !old)}
+        retry={() => {
+          setSummary(false);
+          retry((n) => n + 1);
+        }}
+      />
+    );
   return (
     <PublisherTracker
       key={`${source.url}:${theme}:${attempt}`}
@@ -138,7 +154,7 @@ function PublisherTracker({
   toggleSummary,
   retry,
 }: {
-  source: TrackerSource;
+  source: Extract<TrackerSource, { provider: "SportScore" }>;
   event: SportEvent;
   theme: string;
   compact: boolean;

@@ -25,6 +25,117 @@ const event = {
     ],
   },
 };
+
+test("licensed tracker waits for real data readiness, recovers on license errors and uses natural height", async ({
+  page,
+  baseURL,
+}) => {
+  await page
+    .context()
+    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+  await page.clock.setFixedTime(new Date(source.fetchedAt));
+  await page.route(`**/api/events/${fixture.id}`, (route) =>
+    route.fulfill({ json: { data: event } }),
+  );
+  await page.route("**/api/trackers/*", (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          provider: "Sportradar",
+          kind: "publisher-tracker",
+          eventId: event.id,
+          clientId: "0".repeat(32),
+          matchId: "sr:match:12345",
+          checkedAt: source.fetchedAt,
+          validUntil: "2026-10-28T20:07:00Z",
+        },
+      },
+    }),
+  );
+  let loads = 0;
+  await page.route("https://widgets.sir.sportradar.com/**", (route) => {
+    loads++;
+    return route.fulfill({
+      contentType: "application/javascript",
+      body: `
+      window.__trackerContract = { adds: 0, removes: 0 };
+      window.BackInItSportradar = function(method, element, name, props) {
+        if (method === 'addWidget') {
+          window.__trackerContract.adds++;
+          element.innerHTML = '<div style="height:840px">Isolated widget contract fixture</div>';
+          window.__trackerContract.track = props.onTrack;
+        }
+        if (method === 'removeWidget') {
+          window.__trackerContract.removes++;
+          element.replaceChildren();
+        }
+      };
+    `,
+    });
+  });
+  await page.goto(`/watch/${event.id}`);
+  await expect(
+    page.locator(".player-tracker-fallback .event-tracker"),
+  ).toBeVisible();
+  await page.clock.fastForward(31000);
+  const widget = page.locator(".sportradar-tracker-content");
+  await expect(widget).toHaveAttribute("aria-hidden", "true");
+  await expect(
+    page.locator(".sportradar-tracker-summary .tracker-score"),
+  ).toHaveText("1:0");
+  // A script load or an unrelated component's update cannot reveal an empty tracker.
+  await expect(widget).toContainText("Isolated widget contract fixture");
+  await page.evaluate(() =>
+    (window as any).__trackerContract.track("data_change", { matchId: 999 }),
+  );
+  await expect(widget).toHaveAttribute("aria-hidden", "true");
+  await page.evaluate(() =>
+    (window as any).__trackerContract.track("data_change", {
+      matchId: 12345,
+      error: null,
+    }),
+  );
+  await expect(widget).not.toHaveAttribute("aria-hidden");
+  await expect(widget).toHaveCSS("height", "840px");
+  await expect(page.locator(".sportradar-tracker-summary")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Match summary", exact: true })
+    .click();
+  await expect(widget).toHaveAttribute("inert", "");
+  await page
+    .getByRole("button", { name: "Live animation", exact: true })
+    .click();
+  await page.evaluate(() =>
+    (window as any).__trackerContract.track("license_error", {
+      error: { code: "NOT_LICENSED" },
+    }),
+  );
+  await expect(page.locator(".sportradar-tracker-summary")).toContainText(
+    "Scores keep updating",
+  );
+  await page
+    .getByRole("button", { name: "Reload animation", exact: true })
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).__trackerContract.adds))
+    .toBe(2);
+  expect(loads).toBe(1);
+  expect(
+    await page.evaluate(() => (window as any).__trackerContract.removes),
+  ).toBe(1);
+  await page.evaluate(() =>
+    (window as any).__trackerContract.track("data_change", { matchId: 12345 }),
+  );
+  await expect(widget).not.toHaveAttribute("aria-hidden");
+  await page.setViewportSize({ width: 375, height: 812 });
+  await expect(widget).toHaveCSS("height", "840px");
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
 test("Watch offers Track for real match updates and updates the main tracker without creating a broadcast", async ({
   page,
   baseURL,
