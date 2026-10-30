@@ -245,6 +245,9 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
     });
   });
   await page.goto(`/watch/${fixture.id}`);
+  await expect(
+    page.locator(".player-tracker-fallback .event-tracker"),
+  ).toBeVisible();
   await page.clock.fastForward(31000);
   await expect(
     page.getByRole("region", { name: "Live match tracker", exact: true }),
@@ -253,10 +256,19 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
     "sandbox",
     "allow-scripts allow-same-origin allow-popups",
   );
-  await expect(page.locator(".publisher-tracker-footer a")).toHaveAttribute(
-    "href",
-    "https://sportscore.com/",
-  );
+  await expect(page.locator(".publisher-tracker-footer")).toHaveCount(0);
+  for (const width of [303, 390, 650, 980, 1440]) {
+    await page.setViewportSize({ width, height: 1000 });
+    const height = await page
+      .locator(".publisher-tracker iframe")
+      .evaluate((n) => n.getBoundingClientRect().height);
+    expect(height).toBeGreaterThanOrEqual(420);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
   await page.clock.fastForward(61000);
   await expect.poll(() => refreshes).toBeGreaterThan(1);
   expect(frames).toBe(1);

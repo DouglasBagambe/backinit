@@ -75,7 +75,8 @@ export class MatchTrackerProvider {
       60000,
       (raw) => fixtures.parse(raw),
     );
-    if (list.stale || list.value.sport !== sport) return null;
+    if (list.stale) throw new Error("Tracker discovery temporarily stale");
+    if (list.value.sport !== sport) return null;
     const matches = list.value.matches.filter(
       (r) => same(event, r) && r.status === "live",
     );
@@ -89,8 +90,8 @@ export class MatchTrackerProvider {
     );
     const value = result.value;
     const updated = Date.parse(value.updated);
+    if (result.stale) throw new Error("Tracker metadata temporarily stale");
     if (
-      result.stale ||
       value.sport !== sport ||
       !same(event, value.match) ||
       value.match.status !== "live" ||

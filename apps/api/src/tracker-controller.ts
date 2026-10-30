@@ -1,4 +1,10 @@
-import { Controller, Get, Param, BadRequestException } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Param,
+  BadRequestException,
+  ServiceUnavailableException,
+} from "@nestjs/common";
 import { MatchTrackerProvider } from "./providers/match-tracker.js";
 import { service } from "./providers/service.js";
 const tracker = new MatchTrackerProvider();
@@ -11,7 +17,9 @@ export class TrackerController {
       const event = await service.fixture(id, "real");
       return { data: event ? await tracker.forEvent(event) : null };
     } catch {
-      return { data: null };
+      throw new ServiceUnavailableException(
+        "Match tracker temporarily unavailable",
+      );
     }
   }
 }

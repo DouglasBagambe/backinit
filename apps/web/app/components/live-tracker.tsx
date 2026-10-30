@@ -69,7 +69,10 @@ export function LiveTracker({
           throw new Error();
         if (!controller.signal.aborted) setSource(next);
       } catch {
-        if (!controller.signal.aborted) setSource(null);
+        if (!controller.signal.aborted)
+          setSource((old) =>
+            old && Date.parse(old.validUntil) > Date.now() ? old : null,
+          );
       } finally {
         running = false;
       }
@@ -143,12 +146,6 @@ export function LiveTracker({
           sandbox="allow-scripts allow-same-origin allow-popups"
           referrerPolicy="strict-origin-when-cross-origin"
         />
-      </div>
-      <div className="publisher-tracker-footer">
-        <span>Match visualization</span>
-        <a href={source.sourceUrl} target="_blank" rel="noopener">
-          SportScore ↗
-        </a>
       </div>
     </section>
   );
