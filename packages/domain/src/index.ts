@@ -534,17 +534,27 @@ export const watchFeedSchema = z.object({
 });
 export type WatchEntry = z.infer<typeof watchEntrySchema>;
 
-export const trackerSourceSchema = z.object({
-  provider: z.literal("SportScore"),
+const trackerLease = z.object({
   eventId: z.string().regex(/^[a-z0-9-]{1,80}$/),
-  url: z
-    .string()
-    .regex(
-      /^https:\/\/sportscore\.com\/embed\/tracker\/(football|basketball|tennis|cricket)\/[a-z0-9-]{1,220}\/$/,
-    ),
-  sourceUrl: z.literal("https://sportscore.com/"),
   checkedAt: z.string().datetime(),
   validUntil: z.string().datetime(),
   kind: z.literal("publisher-tracker"),
 });
+export const trackerSourceSchema = z.discriminatedUnion("provider", [
+  trackerLease.extend({
+    provider: z.literal("SportScore"),
+    url: z
+      .string()
+      .regex(
+        /^https:\/\/sportscore\.com\/embed\/tracker\/(football|basketball|tennis|cricket)\/[a-z0-9-]{1,220}\/$/,
+      ),
+    sourceUrl: z.literal("https://sportscore.com/"),
+  }),
+  trackerLease.extend({
+    provider: z.literal("Sportradar"),
+    // The widget Client ID is public; API keys are never sent to the browser.
+    clientId: z.string().regex(/^[a-f0-9]{32}$/),
+    matchId: z.string().regex(/^sr:match:[1-9][0-9]{0,14}$/),
+  }),
+]);
 export type TrackerSource = z.infer<typeof trackerSourceSchema>;

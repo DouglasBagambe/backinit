@@ -4636,3 +4636,28 @@ footer {
 .tracker-controls button:hover {
   color: var(--text);
 }
+
+.sportradar-tracker {
+  background: var(--surface);
+}
+.sportradar-tracker-body {
+  position: relative;
+  min-width: 0;
+}
+.sportradar-tracker-content {
+  width: 100%;
+  min-width: 0;
+  /* The vendor owns its responsive height. No fixed iframe crop or inner scroll. */
+  min-height: 280px;
+}
+.sportradar-tracker-content[aria-hidden="true"] {
+  position: absolute;
+  inset: 0 0 auto;
+  visibility: hidden;
+  pointer-events: none;
+}
+.sportradar-tracker-summary > p {
+  padding: 0 16px 16px;
+  color: var(--muted);
+  font-size: 12px;
+}

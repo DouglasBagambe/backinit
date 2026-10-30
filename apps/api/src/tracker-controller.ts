@@ -6,8 +6,10 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { MatchTrackerProvider } from "./providers/match-tracker.js";
+import { SportradarTrackerProvider } from "./providers/sportradar-tracker.js";
 import { service } from "./providers/service.js";
 const tracker = new MatchTrackerProvider();
+const sportradar = new SportradarTrackerProvider();
 @Controller()
 export class TrackerController {
   @Get("trackers/:id") async forEvent(@Param("id") id: string) {
@@ -15,7 +17,11 @@ export class TrackerController {
       throw new BadRequestException("Invalid event");
     try {
       const event = await service.trackerFixture(id);
-      return { data: event ? await tracker.forEvent(event) : null };
+      return {
+        data: event
+          ? (sportradar.forEvent(event) ?? (await tracker.forEvent(event)))
+          : null,
+      };
     } catch {
       throw new ServiceUnavailableException(
         "Match tracker temporarily unavailable",
