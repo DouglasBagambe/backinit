@@ -6,7 +6,6 @@ import {
   type TrackerSource,
 } from "@backinit/domain";
 import { EventTracker } from "./event-tracker";
-import { BrandLoading } from "./brand";
 
 export function LiveTracker({
   event,
@@ -17,6 +16,7 @@ export function LiveTracker({
 }) {
   const [source, setSource] = useState<TrackerSource | null>(null);
   const [attempt, retry] = useState(0);
+  const [summary, setSummary] = useState(false);
   const [theme, setTheme] = useState("light");
   const current = useRef(source);
   current.current = source;
@@ -35,6 +35,7 @@ export function LiveTracker({
   }, []);
   useEffect(() => {
     setSource(null);
+    setSummary(false);
   }, [event.id]);
   useEffect(() => {
     if (
@@ -118,7 +119,12 @@ export function LiveTracker({
       event={event}
       theme={theme}
       compact={compact}
-      retry={() => retry((n) => n + 1)}
+      summary={summary}
+      toggleSummary={() => setSummary((old) => !old)}
+      retry={() => {
+        setSummary(false);
+        retry((n) => n + 1);
+      }}
     />
   );
 }
@@ -128,19 +134,22 @@ function PublisherTracker({
   event,
   theme,
   compact,
+  summary,
+  toggleSummary,
   retry,
 }: {
   source: TrackerSource;
   event: SportEvent;
   theme: string;
   compact: boolean;
+  summary: boolean;
+  toggleSummary: () => void;
   retry: () => void;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
   const loadedRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
   const [slow, setSlow] = useState(false);
-  const [summary, setSummary] = useState(false);
   const [height, setHeight] = useState<number>();
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -164,7 +173,7 @@ function PublisherTracker({
       window.removeEventListener("message", resize);
     };
   }, [source.url]);
-  const showSummary = summary || (slow && !loaded);
+  const showSummary = summary || !loaded;
   return (
     <section
       className={`publisher-tracker${compact ? " publisher-tracker-compact" : ""}`}
@@ -188,27 +197,21 @@ function PublisherTracker({
           aria-hidden={showSummary || undefined}
           tabIndex={showSummary ? -1 : undefined}
         />
-        {!loaded && !showSummary && (
-          <div className="tracker-loading" role="status">
-            <BrandLoading label="Loading live tracker" />
-          </div>
-        )}
         {showSummary && (
           <div className="tracker-recovery">
             <EventTracker event={event} compact={compact} />
-            {slow && !loaded && (
+            {!loaded && !summary && (
               <p role="status">
-                Live animation is taking longer to load. Scores keep updating.
+                {slow
+                  ? "Live animation is taking longer to load. Scores keep updating."
+                  : "Loading live animation…"}
               </p>
             )}
           </div>
         )}
       </div>
       <div className="tracker-controls">
-        <button
-          aria-pressed={summary}
-          onClick={() => setSummary((old) => !old)}
-        >
+        <button aria-pressed={summary} onClick={toggleSummary}>
           {summary ? "Live animation" : "Match summary"}
         </button>
         <button onClick={retry}>Reload animation</button>
