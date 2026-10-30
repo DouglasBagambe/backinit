@@ -4206,7 +4206,7 @@ footer {
   padding: 10px 14px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: var(--surface-subtle);
+  background: var(--subtle);
   color: var(--ink);
   font: inherit;
   cursor: pointer;
