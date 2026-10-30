@@ -44,6 +44,8 @@ export default defineConfig({
         ALLOW_DEMO_MODE: "true",
         API_URL: apiOrigin,
         APP_ORIGIN: webOrigin,
+        // Ad requests are intercepted in advertising tests; no network permission is implied.
+        ADSTERRA_IFRAME_APPROVED: "true",
       },
       url: webOrigin,
       reuseExistingServer: !process.env.CI,

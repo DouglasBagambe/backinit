@@ -56,6 +56,7 @@ export function Experience({
   coverage,
   news,
   demoAvailable = false,
+  adFramesApproved = false,
 }: {
   route: string;
   initialEvents: SportEvent[];
@@ -64,6 +65,7 @@ export function Experience({
   coverage: Coverage[];
   news: NewsFeed | null;
   demoAvailable?: boolean;
+  adFramesApproved?: boolean;
 }) {
   const events = initialEvents;
   const router = useRouter();
@@ -421,7 +423,7 @@ export function Experience({
     )[route] ||
     (real ? "Watch" : "Sport today");
   return (
-    <AdvertisingProvider enabled={real}>
+    <AdvertisingProvider enabled={real} framesApproved={adFramesApproved}>
       <a className="skip" href="#main">
         Skip to content
       </a>
@@ -617,7 +619,7 @@ export function Experience({
           ) : match ? (
             <MatchCentre event={match} favorite={favorite(match)} />
           ) : route === "privacy" ? (
-            <Privacy />
+            <Privacy adFramesApproved={adFramesApproved} />
           ) : route === "admin" ? (
             <Admin />
           ) : route === "profile" ? (
