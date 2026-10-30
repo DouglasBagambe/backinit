@@ -261,7 +261,7 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
     "allow-scripts allow-same-origin allow-popups",
   );
   await expect(page.locator(".publisher-tracker-footer")).toHaveCount(0);
-  for (const width of [303, 390, 650, 980, 1440]) {
+  for (const width of [303, 390, 650, 700, 980, 1440]) {
     await page.setViewportSize({ width, height: 1000 });
     const height = await page
       .locator(".publisher-tracker iframe")
