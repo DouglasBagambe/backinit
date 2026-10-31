@@ -88,6 +88,13 @@ test("DASH source selection initializes an in-page video and source failures are
   await expect(page.getByRole("status")).toContainText("Playback unavailable", {
     timeout: 30000,
   });
+  // Media teardown can deliver late progress events after an error. They must
+  // not turn a failed source back into a blank "ready" or buffering player.
+  await page.locator("video").evaluate((video) => {
+    for (const type of ["error", "pause", "waiting", "canplay"])
+      video.dispatchEvent(new Event(type));
+  });
+  await expect(page.getByRole("status")).toContainText("Playback unavailable");
   await page.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(page.locator("video")).toBeVisible();
 });

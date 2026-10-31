@@ -43,6 +43,8 @@ export function Player({
   const [controls, setControls] = useState({ fullscreen: false, pip: false });
   const reported = useRef(false);
   const failedSources = useRef(new Set<string>());
+  const playbackIdentity = useRef({ selected, attempt });
+  playbackIdentity.current = { selected, attempt };
   const liveRef = useRef(false);
   const reportRef = useRef(onPlaybackReport);
   reportRef.current = onPlaybackReport;
@@ -137,7 +139,7 @@ export function Player({
     };
   }, [eventId, sourceId, previewSource, registryAttempt]);
   useEffect(() => {
-    if (!source || !started) return;
+    if (!source || !started || playbackFailed) return;
     // Registry refreshes can select an earlier source after a revocation.
     // Only an explicit Retry or source choice may restart a known failure.
     if (failedSources.current.has(source.id)) {
@@ -259,6 +261,7 @@ export function Player({
     started,
     attempt,
     previewSource,
+    playbackFailed,
   ]);
   const embedState = useCallback((value: string) => {
     setState(value);
@@ -301,6 +304,14 @@ export function Player({
     select(id);
     setConsent(false);
     setHealth("");
+  };
+  const ownsPlayback = () =>
+    source &&
+    playbackIdentity.current.selected === source.id &&
+    playbackIdentity.current.attempt === attempt;
+  const nativeState = (value: string) => {
+    if (ownsPlayback() && source && !failedSources.current.has(source.id))
+      setState(value);
   };
   const sourceSelector = sources.length > 1 && (
     <label>
@@ -438,24 +449,26 @@ export function Player({
               preload="metadata"
               aria-label={source.name}
               onPlaying={() =>
-                setState(
+                nativeState(
                   source.content === "test" ? "Playing test signal" : "Playing",
                 )
               }
-              onPause={() => setState("Paused")}
-              onWaiting={() => setState("Buffering…")}
-              onCanPlay={() => setState("Ready · press play")}
+              onPause={() => nativeState("Paused")}
+              onWaiting={() => nativeState("Buffering…")}
+              onCanPlay={() => nativeState("Ready · press play")}
               onDurationChange={(e) => {
                 if (e.currentTarget.duration === Infinity) {
                   setLive(true);
                   liveRef.current = true;
                 }
               }}
-              onError={() =>
+              onError={() => {
+                if (!ownsPlayback()) return;
+                failedSources.current.add(source.id);
                 setState(
                   "Playback unavailable. Retry or choose another source.",
-                )
-              }
+                );
+              }}
               onTimeUpdate={(e) => {
                 const v = e.currentTarget;
                 if (
