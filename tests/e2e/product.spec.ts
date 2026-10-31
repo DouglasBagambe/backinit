@@ -83,7 +83,7 @@ test("DASH source selection initializes an in-page video and source failures are
   await page
     .getByLabel("Stream source", { exact: true })
     .selectOption("bbb-dash");
-  await page.getByRole("button", { name: "Load test player" }).click();
+  // Selecting a source starts playback immediately; there is no second start step.
   await expect(page.locator("video")).toBeVisible();
   await expect(page.getByRole("status")).toContainText("Playback unavailable", {
     timeout: 30000,

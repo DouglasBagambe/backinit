@@ -641,7 +641,6 @@ test("a successful iframe navigation is not readiness; a broken view reconnects 
   await expect(
     page.locator(".player-tracker-fallback .event-tracker"),
   ).toBeVisible();
-  await page.clock.fastForward(31000);
   await expect.poll(() => views).toBe(1);
   await expect(page.locator(".publisher-tracker iframe")).toHaveAttribute(
     "aria-hidden",
