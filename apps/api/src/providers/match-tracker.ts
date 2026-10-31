@@ -77,7 +77,7 @@ export class MatchTrackerProvider {
       return null;
     const day = event.start.slice(0, 10);
     const list = await this.cache.json(
-      `https://sportscore.com/api/v1/fixtures/?${new URLSearchParams({ sport, date: day, limit: "200" })}`,
+      `https://sportscore.com/api/v1/fixtures/?${new URLSearchParams({ sport, date: day, status: "live", limit: "200" })}`,
       60000,
       (raw) => fixtures.parse(raw),
     );
