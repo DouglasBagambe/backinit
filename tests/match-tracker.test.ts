@@ -89,6 +89,127 @@ it("binds a verified full-name alias without accepting arbitrary surname prefixe
     }).provider.forEvent(alcaraz),
   ).toBeNull();
 });
+it("matches tennis participants independently of home/away order, including complete doubles partnerships", async () => {
+  const vendor = { ...row, home: row.away, away: row.home };
+  expect(
+    await fixture({ rows: [vendor], detail: vendor }).provider.forEvent(event),
+  ).not.toBeNull();
+  const doubles = {
+    ...event,
+    home: "Gabriela Dabrowski / Luisa Stefani",
+    away: "Sara Errani / Jasmine Paolini",
+  };
+  const pair = {
+    ...row,
+    home: "Jasmine Paolini/Sara Errani",
+    away: "Luisa Stefani/Gabriela Dabrowski",
+  };
+  expect(
+    await fixture({ rows: [pair], detail: pair }).provider.forEvent(doubles),
+  ).not.toBeNull();
+  for (const away of [
+    "Luisa Stefani/Gabriela Dabrowski Junior",
+    "L. Stefani/G. Dabrowski",
+    "Luisa Stefani",
+  ]) {
+    const wrong = { ...pair, away };
+    expect(
+      await fixture({ rows: [wrong], detail: wrong }).provider.forEvent(
+        doubles,
+      ),
+    ).toBeNull();
+  }
+  expect(
+    await fixture({ rows: [vendor, row] }).provider.forEvent(event),
+  ).toBeNull();
+});
+it("uses verified ESPN soccer identities to find Barcelona without matching another Barcelona club", async () => {
+  const barca = {
+    ...event,
+    sport: "Football" as const,
+    home: "Barcelona",
+    away: "Alavés",
+    homeParticipant: {
+      id: "83",
+      provider: "ESPN:soccer/esp.1",
+      name: "Barcelona",
+    },
+    awayParticipant: {
+      id: "96",
+      provider: "ESPN:soccer/esp.1",
+      name: "Alavés",
+    },
+  };
+  const vendor = {
+    ...row,
+    home: "FC Barcelona",
+    away: "Deportivo Alavés",
+    url: "/football/match/fc-barcelona-vs-deportivo-alaves/",
+  };
+  let wrongOpponent = false;
+  const fetcher = vi.fn(async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/search/")) {
+      expect(url.searchParams.get("q")).toBe("FC Barcelona");
+      return Response.json({
+        sport: "football",
+        teams: [
+          { name: "FC Barcelona", slug: "fc-barcelona" },
+          { name: "FC Barcelona U19", slug: "fc-barcelona-u19" },
+        ],
+      });
+    }
+    if (url.pathname.endsWith("/fixtures/"))
+      return Response.json({
+        sport: "football",
+        matches:
+          url.searchParams.get("team") === "fc-barcelona"
+            ? [
+                {
+                  ...vendor,
+                  away: wrongOpponent ? "Deportivo Alavés B" : vendor.away,
+                },
+              ]
+            : [],
+      });
+    return Response.json({
+      sport: "football",
+      updated: new Date(at).toISOString(),
+      match: { ...vendor, tracker: { id: "id", sport: "football" } },
+    });
+  });
+  const resolve = () =>
+    new MatchTrackerProvider(
+      new ProviderCache(fetcher as typeof fetch, () => at),
+      () => at,
+    ).forEvent(barca);
+  expect(await resolve()).toMatchObject({
+    url: "https://sportscore.com/embed/tracker/football/fc-barcelona-vs-deportivo-alaves/",
+  });
+  wrongOpponent = true;
+  expect(await resolve()).toBeNull();
+  const wrongClub = {
+    ...barca,
+    homeParticipant: { ...barca.homeParticipant, id: "999" },
+  };
+  const raw = vi.fn(async (input: string | URL | Request) =>
+    Response.json(
+      new URL(String(input)).pathname.endsWith("/search/")
+        ? {
+            sport: "football",
+            teams: [{ name: "FC Barcelona", slug: "fc-barcelona" }],
+          }
+        : { sport: "football", matches: [vendor] },
+    ),
+  );
+  // With no trusted club identity, a superficially similar name is insufficient.
+  expect(
+    await new MatchTrackerProvider(
+      new ProviderCache(raw as typeof fetch, () => at),
+      () => at,
+    ).forEvent(wrongClub),
+  ).toBeNull();
+});
 it("finds a missing live game through the exact publisher team and still validates both participants and kickoff", async () => {
   const bologna = {
     ...event,
