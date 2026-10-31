@@ -537,3 +537,56 @@ test("bottle-green dark mode persists without exposing preview controls", async 
   await page.reload();
   await expect(dark).toHaveAttribute("aria-pressed", "true");
 });
+
+test("large fixture lists render in batches and keep search across every event", async ({
+  page,
+  baseURL,
+}) => {
+  await real(page, baseURL!);
+  await page.clock.install({ time: new Date("2026-10-28T20:05:00Z") });
+  const fixture = verifiedCupFixtures.find((e) => e.id === priority)!;
+  await page.route("**/api/events", (route) =>
+    route.fulfill({
+      json: {
+        edition: "real",
+        source: "Isolated browser test",
+        coverage: [],
+        data: Array.from({ length: 125 }, (_, i) => ({
+          ...fixture,
+          id: `batch-event-${i}`,
+          home: `Batch team ${i}`,
+          away: "Visitors",
+          start: "2026-10-28T20:00:00Z",
+          status: "live",
+          scheduleOnly: false,
+          source: {
+            provider: "Test",
+            url: "https://example.test",
+            license: "Test",
+            fetchedAt: "2026-10-28T20:05:00Z",
+            stale: false,
+          },
+        })),
+      },
+    }),
+  );
+  const hydrated = page.waitForResponse((response) =>
+    response.url().endsWith("/api/account/me"),
+  );
+  await page.goto("/search");
+  await hydrated;
+  await page.clock.fastForward(31000);
+  await expect(page.locator(".match-row")).toHaveCount(60);
+  await page
+    .getByRole("button", {
+      name: "Show more events (65 remaining)",
+      exact: true,
+    })
+    .click();
+  await expect(page.locator(".match-row")).toHaveCount(120);
+  await page
+    .getByRole("textbox", { name: "Search events", exact: true })
+    .fill("Batch team 124");
+  await expect(page.locator(".match-row")).toHaveCount(1);
+  await expect(page.locator(".match-row")).toContainText("Batch team 124");
+});
