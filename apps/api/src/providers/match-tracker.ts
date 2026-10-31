@@ -46,7 +46,35 @@ const name = (value: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
-function participantName(sport: string, value: string) {
+// The official club/league pages use these full senior-club names:
+// https://www.laliga.com/es-GB/partido/temporada-2026-2027-laliga-ea-sports-fc-barcelona-deportivo-alaves-11
+// Scope short-name aliases to ESPN's soccer participant IDs. "Barcelona"
+// alone also finds unrelated clubs and can fill a whole search result page.
+const footballIdentities: Record<string, { label: string; names: string[] }> = {
+  "83": { label: "FC Barcelona", names: ["barcelona", "fcbarcelona"] },
+  "96": { label: "Deportivo Alavés", names: ["alaves", "deportivoalaves"] },
+};
+function participantLabel(event: SportEvent, value: string) {
+  if (event.sport === "Football" && event.kind === "score") {
+    for (const participant of [event.homeParticipant, event.awayParticipant]) {
+      if (!participant?.provider.startsWith("ESPN:soccer/")) continue;
+      const identity = footballIdentities[participant.id];
+      if (identity?.names.includes(name(value))) return identity.label;
+    }
+  }
+  return value;
+}
+function participantName(event: SportEvent, value: string): string {
+  if (event.sport === "Tennis" && value.includes("/"))
+    // Partnership order is presentation, not match identity. Preserve each
+    // complete name and all partners; never match surnames or initials alone.
+    return value
+      .split("/")
+      .map((partner) => participantName(event, partner))
+      .sort()
+      .join("/");
+  const sport = event.sport;
+  value = participantLabel(event, value);
   const normalized = name(value);
   // The senior club's official name is FC Internazionale Milano (inter.it).
   // ESPN calls it Internazionale; the publisher calls it Inter Milan.
@@ -65,12 +93,18 @@ function participantName(sport: string, value: string) {
     : normalized;
 }
 function same(event: SportEvent, value: z.infer<typeof row>) {
+  if (event.kind !== "score") return false;
+  const home = participantName(event, event.home);
+  const away = participantName(event, event.away);
+  const vendorHome = participantName(event, value.home);
+  const vendorAway = participantName(event, value.away);
+  // Tennis does not have home/away teams. Providers can list the same two
+  // players (or doubles partnerships) in opposite order.
+  const participantsMatch =
+    (home === vendorHome && away === vendorAway) ||
+    (event.sport === "Tennis" && home === vendorAway && away === vendorHome);
   return (
-    event.kind === "score" &&
-    participantName(event.sport, event.home) ===
-      participantName(event.sport, value.home) &&
-    participantName(event.sport, event.away) ===
-      participantName(event.sport, value.away) &&
+    participantsMatch &&
     Number.isFinite(Date.parse(value.time)) &&
     // Tennis court schedules move as earlier matches finish. Exact participants,
     // the same UTC day and a unique listing still bind the match identity.
@@ -121,15 +155,15 @@ export class MatchTrackerProvider {
       // Busy live lists can omit a covered game. Resolve the publisher's
       // exact team identity before requesting its narrower fixture list.
       const search = await this.cache.json(
-        `https://sportscore.com/api/v1/search/?${new URLSearchParams({ sport, q: event.home, limit: "20" })}`,
+        `https://sportscore.com/api/v1/search/?${new URLSearchParams({ sport, q: participantLabel(event, event.home), limit: "20" })}`,
         3600000,
         (raw) => teamSearch.parse(raw),
       );
       if (search.stale || search.value.sport !== sport) return null;
       const teams = search.value.teams.filter(
         (team) =>
-          participantName(event.sport, team.name) ===
-          participantName(event.sport, event.home),
+          participantName(event, team.name) ===
+          participantName(event, event.home),
       );
       if (teams.length !== 1) return null;
       const scoped = await this.cache.json(
