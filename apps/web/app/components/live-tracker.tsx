@@ -51,13 +51,9 @@ export function LiveTracker({
     const controller = new AbortController();
     let running = false;
     const refresh = async () => {
-      if (
-        running ||
-        document.hidden ||
-        event.status !== "live" ||
-        event.source?.stale
-      )
-        return;
+      // Metadata discovery revalidates this exact fixture on the backend.
+      // An older score snapshot must not suppress that independent check.
+      if (running || document.hidden) return;
       running = true;
       try {
         const response = await fetch(`/api/trackers/${event.id}`, {
@@ -90,7 +86,9 @@ export function LiveTracker({
       }
     };
     void refresh();
-    const interval = setInterval(() => void refresh(), 60000);
+    // Renew before a cached two-minute metadata lease gets close to expiry.
+    // A 60-second poll could race expiry while a network request was in flight.
+    const interval = setInterval(() => void refresh(), 30000);
     const expiry = setInterval(() => {
       if (
         current.current &&

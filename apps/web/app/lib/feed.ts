@@ -15,8 +15,7 @@ export async function loadEvents(
   try {
     const response = await fetch(apiUrl(`/events?edition=${edition}`), {
       signal: AbortSignal.timeout(timeout),
-      cache: "force-cache",
-      next: { revalidate: 10 },
+      cache: "no-store",
     });
     if (!response.ok) throw new Error("Provider unavailable");
     const body = feedSchema.parse(await response.json());
@@ -59,8 +58,9 @@ export async function loadEvent(id: string, edition: "real" | "demo") {
       apiUrl(`/events/${encodeURIComponent(id)}?edition=${edition}`),
       {
         signal: AbortSignal.timeout(20000),
-        cache: "force-cache",
-        next: { revalidate: 10 },
+        // The backend already coalesces and caches individual scoreboards.
+        // Never serve an older persistent web cache as a current live match.
+        cache: "no-store",
       },
     );
     if (!response.ok) return null;
