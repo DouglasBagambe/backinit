@@ -131,7 +131,27 @@ export class SportsService {
         message: `${league.label} scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.`,
       })),
     ];
-    const results = await Promise.allSettled(providers.map((p) => p.load()));
+    // Multi-step channel discovery must not hold every healthy sport beyond
+    // the website's 15-second request budget. Underlying requests stay bounded
+    // by their provider cache and may warm it for the following refresh.
+    const results = await Promise.allSettled(
+      providers.map(async (p) => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          return await Promise.race([
+            p.load(),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(
+                () => reject(new Error("Provider catalogue deadline")),
+                10000,
+              );
+            }),
+          ]);
+        } finally {
+          clearTimeout(timer);
+        }
+      }),
+    );
     const coverage: Coverage[] = results.map((r, i) => ({
       provider: providers[i].provider,
       sport: providers[i].sport,
