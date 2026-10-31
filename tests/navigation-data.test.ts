@@ -1,9 +1,48 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { loadPageData } from "../apps/web/app/lib/page-loader";
+import { loadEvent, loadEvents } from "../apps/web/app/lib/feed";
 import { verifiedCupFixtures } from "../apps/api/src/providers/efl";
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+});
+it("reads live match and catalogue updates without the persistent frontend cache", async () => {
+  vi.stubEnv("ALLOW_DEMO_MODE", "false");
+  let score = 0;
+  const fetcher = vi.fn(
+    async (input: string | URL | Request, init?: RequestInit) => {
+      expect(init?.cache).toBe("no-store");
+      const event = {
+        ...verifiedCupFixtures[0]!,
+        kind: "score",
+        home: "Home",
+        away: "Away",
+        homeScore: ++score,
+        awayScore: 0,
+        status: "live",
+        scheduleOnly: false,
+        source: {
+          provider: "Test",
+          url: "https://example.test",
+          license: "Test",
+          fetchedAt: new Date().toISOString(),
+          stale: false,
+        },
+      };
+      return Response.json(
+        new URL(String(input)).pathname === "/events"
+          ? { data: [event], edition: "real", source: "Test", coverage: [] }
+          : event,
+      );
+    },
+  );
+  vi.stubGlobal("fetch", fetcher);
+  const first = await loadEvent("test-match", "real");
+  const next = await loadEvent("test-match", "real");
+  expect(first?.kind === "score" && first.homeScore).toBe(1);
+  expect(next?.kind === "score" && next.homeScore).toBe(2);
+  const feed = await loadEvents("real");
+  expect(feed.data[0]?.kind === "score" && feed.data[0].homeScore).toBe(3);
 });
 it("paints a known match from the catalogue without waiting for a second summary request", async () => {
   vi.stubEnv("ALLOW_DEMO_MODE", "false");

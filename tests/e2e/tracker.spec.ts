@@ -807,3 +807,110 @@ test("a slow publisher child never masks or repeatedly restarts a rendered live 
     "1:0",
   );
 });
+
+test("an old score snapshot cannot suppress independently verified live animation discovery", async ({
+  page,
+  baseURL,
+}) => {
+  await page
+    .context()
+    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+  await page.clock.setFixedTime(new Date(source.fetchedAt));
+  await page.route(`**/api/events/${fixture.id}`, (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          ...event,
+          status: "unknown",
+          source: { ...source, stale: true },
+        },
+      },
+    }),
+  );
+  const url =
+    "https://sportscore.com/embed/tracker/football/liverpool-vs-chelsea/";
+  let discovery = 0;
+  await page.route(`**/api/trackers/${fixture.id}`, (route) => {
+    discovery++;
+    return route.fulfill({
+      json: {
+        data: {
+          provider: "SportScore",
+          kind: "publisher-tracker",
+          transport: "publisher",
+          eventId: fixture.id,
+          url,
+          sourceUrl: "https://sportscore.com/",
+          checkedAt: source.fetchedAt,
+          validUntil: "2026-10-28T20:07:00Z",
+        },
+      },
+    });
+  });
+  await page.route(`${url}?**`, (route) =>
+    route.fulfill({
+      contentType: "text/html",
+      body: "Independently verified live animation",
+    }),
+  );
+  await openFixture(page, fixture.id);
+  await expect(
+    page
+      .frameLocator(".publisher-tracker-frame > iframe")
+      .getByText("Independently verified live animation"),
+  ).toBeVisible();
+  expect(discovery).toBeGreaterThan(0);
+  await expect(page.locator(".tracker-recovery")).toHaveCount(0);
+});
+
+test("tracker metadata renews before expiry without remounting a healthy animation", async ({
+  page,
+  baseURL,
+}) => {
+  await page
+    .context()
+    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+  await page.clock.install({ time: new Date(source.fetchedAt) });
+  await page.route(`**/api/events/${fixture.id}`, (route) =>
+    route.fulfill({ json: { data: event } }),
+  );
+  const url =
+    "https://sportscore.com/embed/tracker/football/liverpool-vs-chelsea/";
+  let renewals = 0;
+  let documents = 0;
+  await page.route(`**/api/trackers/${fixture.id}`, (route) => {
+    renewals++;
+    return route.fulfill({
+      json: {
+        data: {
+          provider: "SportScore",
+          kind: "publisher-tracker",
+          transport: "publisher",
+          eventId: fixture.id,
+          url,
+          sourceUrl: "https://sportscore.com/",
+          checkedAt: source.fetchedAt,
+          validUntil:
+            renewals === 1 ? "2026-10-28T20:06:00Z" : "2026-10-28T20:08:00Z",
+        },
+      },
+    });
+  });
+  await page.route(`${url}?**`, (route) => {
+    documents++;
+    return route.fulfill({
+      contentType: "text/html",
+      body: "Continuous live animation",
+    });
+  });
+  await openFixture(page, fixture.id);
+  const animation = page
+    .frameLocator(".publisher-tracker-frame > iframe")
+    .getByText("Continuous live animation");
+  await expect(animation).toBeVisible();
+  await page.clock.fastForward(31000);
+  await expect.poll(() => renewals).toBeGreaterThan(1);
+  await page.clock.fastForward(35000);
+  await expect(animation).toBeVisible();
+  expect(documents).toBe(1);
+});

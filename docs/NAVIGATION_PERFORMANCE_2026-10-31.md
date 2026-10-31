@@ -6,7 +6,7 @@ Changes:
 
 - News and utility/account pages do not request unused sports data. Public news responses are cached separately.
 - The backend coalesces concurrent catalogue requests, reuses recent snapshots and refreshes them in the background. Callers receive independent copies. Live source timestamps older than one minute become explicit stale/unknown snapshots; saved scores are retained.
-- Server-side public feed and match fetches use short persistent caches. Catalogue-dependent page rendering has a 1.5-second budget; Watch's optional catalogue has a 300-millisecond budget. Missing initial data is fetched in the background, with skeletons while it loads. Healthy client data survives navigation instead of being replaced by an empty render.
+- Public live feed and match reads bypass the persistent frontend cache; the backend already coalesces and caches scoreboards. This avoids an older web-cache snapshot suppressing current match updates. Catalogue-dependent page rendering has a 1.5-second budget; Watch owns its separate lightweight discovery feed. Missing initial data is fetched in the background, with skeletons while it loads. Healthy client data survives navigation instead of being replaced by an empty render.
 - Score and match updates fetch data rather than rerendering the entire route. A match already present in the catalogue renders without waiting for another summary request; detailed stats refresh separately.
 - A viewed football match queries one day rather than eight future schedule days. Full fixture pages still retain the future schedule.
 - Related broadcasts use their own Watch response, so a fast match open does not lose the sidebar while the optional catalogue is cold.
