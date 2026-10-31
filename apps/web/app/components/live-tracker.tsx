@@ -169,17 +169,20 @@ function PublisherTracker({
   const loadedRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
   const [slow, setSlow] = useState(false);
+  const [failedNavigation, setFailedNavigation] = useState(false);
   const [navigation, setNavigation] = useState(0);
   const [height, setHeight] = useState<number>();
   useEffect(() => {
     loadedRef.current = false;
     setLoaded(false);
     setSlow(false);
+    setFailedNavigation(false);
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const failed = () => {
       loadedRef.current = false;
       setLoaded(false);
       setSlow(true);
+      setFailedNavigation(true);
       if (navigation < 2 && !retryTimer)
         retryTimer = setTimeout(
           () => setNavigation((n) => n + 1),
@@ -187,7 +190,13 @@ function PublisherTracker({
         );
     };
     let timer = setTimeout(() => {
-      if (!loadedRef.current) failed();
+      if (!loadedRef.current) {
+        // The original publisher document can already contain live animation
+        // while a nested resource holds its load event open. Replacing that
+        // document discards progress and can cause an endless startup loop.
+        if (source.transport === "publisher") setSlow(true);
+        else failed();
+      }
     }, 35000);
     const receive = (message: MessageEvent) => {
       if (
@@ -227,8 +236,10 @@ function PublisherTracker({
       clearTimeout(retryTimer);
       window.removeEventListener("message", receive);
     };
-  }, [event.id, navigation, source.viewUrl]);
-  const showSummary = summary || !loaded;
+  }, [event.id, navigation, source.viewUrl, source.transport]);
+  const showSummary =
+    summary ||
+    (!loaded && (source.transport !== "publisher" || failedNavigation));
   return (
     <section
       className={`publisher-tracker${compact ? " publisher-tracker-compact" : ""}`}
@@ -257,11 +268,13 @@ function PublisherTracker({
             loadedRef.current = true;
             setLoaded(true);
             setSlow(false);
+            setFailedNavigation(false);
           }}
           onError={() => {
             loadedRef.current = false;
             setLoaded(false);
             setSlow(true);
+            setFailedNavigation(true);
           }}
           aria-hidden={showSummary || undefined}
           tabIndex={showSummary ? -1 : undefined}
@@ -279,6 +292,13 @@ function PublisherTracker({
           </div>
         )}
       </div>
+      {source.transport === "publisher" && !loaded && !showSummary && (
+        <p className="tracker-startup-status" role="status">
+          {slow
+            ? "Animation is taking longer to load. Match summary is available below."
+            : "Connecting live animation…"}
+        </p>
+      )}
       <div className="tracker-controls">
         <button aria-pressed={summary} onClick={toggleSummary}>
           {summary ? "Live animation" : "Match summary"}
