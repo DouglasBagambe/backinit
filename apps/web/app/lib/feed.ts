@@ -8,11 +8,12 @@ import {
 import { resolveEdition } from "./edition";
 export async function loadEvents(
   edition: "real" | "demo" = resolveEdition(),
+  timeout = 20000,
 ): Promise<EventFeed> {
   edition = resolveEdition(edition);
   try {
     const response = await fetch(apiUrl(`/events?edition=${edition}`), {
-      signal: AbortSignal.timeout(20000),
+      signal: AbortSignal.timeout(timeout),
       cache: "no-store",
     });
     if (!response.ok) throw new Error("Provider unavailable");

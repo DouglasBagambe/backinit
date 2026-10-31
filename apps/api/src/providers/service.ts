@@ -238,6 +238,18 @@ export class SportsService {
       Date.now() - Date.parse(known.source.fetchedAt) < 30000
     )
       return known;
+    if (
+      edition === "real" &&
+      id.startsWith("espn-") &&
+      process.env.SPORTS_PROVIDERS_DISABLED !== "true"
+    ) {
+      // A viewed match must not wait for every sport and publisher to refresh.
+      const direct = await this.trackerFixture(id).catch(() => undefined);
+      const event =
+        direct ?? (await this.espn.lookup(id).catch(() => undefined));
+      if (event) this.known.set(id, event);
+      return event;
+    }
     const date = known?.start.slice(0, 10);
     let event = (await this.feed(edition, date)).data.find((e) => e.id === id);
     if (
@@ -253,7 +265,7 @@ export class SportsService {
     edition: "real" | "demo",
   ): Promise<SportEvent | undefined> {
     const event = await this.fixture(id, edition);
-    if (event?.source?.provider.startsWith("ESPN:"))
+    if (event?.source?.provider.startsWith("ESPN:") && event.sport !== "Tennis")
       event.detail = await this.espn.detail(event).catch(() => event?.detail);
     if (event?.source?.provider === "OpenLigaDB") {
       const year = new Date(event.start).getUTCFullYear();

@@ -549,6 +549,12 @@ export const trackerSourceSchema = z.discriminatedUnion("provider", [
         /^https:\/\/sportscore\.com\/embed\/tracker\/(football|basketball|tennis|cricket)\/[a-z0-9-]{1,220}\/$/,
       ),
     sourceUrl: z.literal("https://sportscore.com/"),
+    viewUrl: z
+      .string()
+      .regex(
+        /^https:\/\/backinit-api\.onrender\.com\/trackers\/[a-z0-9-]{1,80}\/view$/,
+      )
+      .optional(),
   }),
   trackerLease.extend({
     provider: z.literal("Sportradar"),

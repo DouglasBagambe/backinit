@@ -21,6 +21,10 @@ it("relays only a current matched public embed and preserves its widget and attr
   expect(fetcher.mock.calls).toHaveLength(1);
   expect(html).toContain('base href="https://sportscore.com/"');
   expect(html).toContain("backinit:tracker-ready");
+  expect(html).toContain("backinit:tracker-loading");
+  expect(html).toContain(
+    "new URL(frame.src).hostname!=='widgets.thesports01.com'",
+  );
   expect(html).toContain("Publisher attribution");
   expect(html).toContain("https://widgets.thesports01.com/widget");
 });
@@ -75,4 +79,20 @@ it("serves relay failures as a sandboxed recovery message, never a ready event",
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
   }
+});
+
+it("does not accept a relay on an arbitrary origin", async () => {
+  const { trackerSourceSchema } = await import("../packages/domain/src/index");
+  expect(
+    trackerSourceSchema.safeParse({
+      ...source,
+      viewUrl: "https://evil.test/trackers/match-one/view",
+    }).success,
+  ).toBe(false);
+  expect(
+    trackerSourceSchema.safeParse({
+      ...source,
+      viewUrl: "https://backinit-api.onrender.com/trackers/match-one/view",
+    }).success,
+  ).toBe(true);
 });
