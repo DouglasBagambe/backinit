@@ -366,11 +366,11 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
       },
     });
   });
-  await page.route("https://sportscore.com/embed/tracker/**", (route) => {
+  await page.route("**/api/trackers/*/view?**", (route) => {
     frames++;
     return route.fulfill({
       contentType: "text/html",
-      body: "<html><body>Isolated publisher tracker test</body></html>",
+      body: `<html><body>Isolated publisher tracker test<script>parent.postMessage({type:"backinit:tracker-ready",eventId:${JSON.stringify(fixture.id)}},"*")</script></body></html>`,
     });
   });
   await page.goto(`/watch/${fixture.id}`);
@@ -383,7 +383,7 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
   ).toBeVisible();
   await expect(page.locator(".publisher-tracker iframe")).toHaveAttribute(
     "sandbox",
-    "allow-scripts allow-same-origin allow-popups",
+    "allow-scripts allow-popups",
   );
   await expect(page.locator(".publisher-tracker-footer")).toHaveCount(0);
   for (const width of [303, 390, 650, 700, 980, 1440]) {
@@ -453,12 +453,12 @@ test("a slow publisher navigation stays mounted and recovers without another req
     finishLoad = resolve;
   });
   let requests = 0;
-  await page.route("https://sportscore.com/embed/tracker/**", async (route) => {
+  await page.route("**/api/trackers/*/view?**", async (route) => {
     requests++;
     await delayed;
     await route.fulfill({
       contentType: "text/html",
-      body: `<html><body>Delayed publisher view<button onclick="parent.postMessage({type:'sportscore:resize',height:740}, '*')">Resize tracker</button></body></html>`,
+      body: `<html><body><script>parent.postMessage({type:"backinit:tracker-ready",eventId:"${fixture.id}"},"*")</script>Delayed publisher view<button onclick="parent.postMessage({type:'backinit:tracker-size',eventId:'${fixture.id}',height:740}, '*')">Resize tracker</button></body></html>`,
     });
   });
   await page.goto(`/watch/${fixture.id}`, { waitUntil: "domcontentloaded" });
@@ -480,11 +480,9 @@ test("a slow publisher navigation stays mounted and recovers without another req
   await frame.evaluate((n) => {
     n.setAttribute("data-test-instance", "original");
   });
-  await page.clock.fastForward(21000);
+  await page.clock.fastForward(36000);
   await expect(
-    page.getByText(
-      "Live animation is taking longer to load. Scores keep updating.",
-    ),
+    page.getByText("Live animation is reconnecting. Scores keep updating."),
   ).toBeVisible();
   await expect(frame).toHaveCount(1);
   finishLoad();
@@ -527,4 +525,67 @@ test("a slow publisher navigation stays mounted and recovers without another req
   await expect(page.locator(".tracker-recovery .tracker-score")).toHaveText(
     "1:0",
   );
+});
+
+test("a successful iframe navigation is not readiness; a broken view reconnects without exposing the browser error", async ({
+  page,
+  baseURL,
+}) => {
+  await page
+    .context()
+    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+  await page.clock.setFixedTime(new Date(source.fetchedAt));
+  await page.route(`**/api/events/${fixture.id}`, (r) =>
+    r.fulfill({ json: { data: event } }),
+  );
+  await page.route(`**/api/trackers/${fixture.id}`, (r) =>
+    r.fulfill({
+      json: {
+        data: {
+          provider: "SportScore",
+          kind: "publisher-tracker",
+          eventId: fixture.id,
+          url: "https://sportscore.com/embed/tracker/football/liverpool-vs-chelsea/",
+          sourceUrl: "https://sportscore.com/",
+          checkedAt: source.fetchedAt,
+          validUntil: "2026-10-28T20:07:00Z",
+        },
+      },
+    }),
+  );
+  let views = 0;
+  await page.route("**/api/trackers/*/view?**", (r) => {
+    views++;
+    return r.fulfill({
+      contentType: "text/html",
+      body:
+        views === 1
+          ? `<html><body>Error document</body><script>parent.postMessage({type:'backinit:tracker-error',eventId:'${fixture.id}'},'*')</script></html>`
+          : `<html><body>Recovered publisher widget<script>parent.postMessage({type:'backinit:tracker-ready',eventId:'${fixture.id}'},'*')</script></body></html>`,
+    });
+  });
+  await page.goto(`/watch/${fixture.id}`);
+  await expect(
+    page.locator(".player-tracker-fallback .event-tracker"),
+  ).toBeVisible();
+  await page.clock.fastForward(31000);
+  await expect.poll(() => views).toBe(1);
+  await expect(page.locator(".publisher-tracker iframe")).toHaveAttribute(
+    "aria-hidden",
+    "true",
+  );
+  await expect(page.locator(".tracker-recovery .tracker-score")).toHaveText(
+    "1:0",
+  );
+  await page.clock.fastForward(6000);
+  await expect.poll(() => views).toBe(2);
+  await expect(page.locator(".tracker-recovery")).toHaveCount(0);
+  await expect(page.locator(".publisher-tracker iframe")).not.toHaveAttribute(
+    "aria-hidden",
+  );
+  await expect(
+    page
+      .frameLocator(".publisher-tracker iframe")
+      .getByText("Recovered publisher widget"),
+  ).toBeVisible();
 });

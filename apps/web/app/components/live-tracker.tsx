@@ -166,29 +166,56 @@ function PublisherTracker({
   const loadedRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
   const [slow, setSlow] = useState(false);
+  const [navigation, setNavigation] = useState(0);
   const [height, setHeight] = useState<number>();
   useEffect(() => {
+    loadedRef.current = false;
+    setLoaded(false);
+    setSlow(false);
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    const failed = () => {
+      loadedRef.current = false;
+      setLoaded(false);
+      setSlow(true);
+      if (navigation < 2 && !retryTimer)
+        retryTimer = setTimeout(
+          () => setNavigation((n) => n + 1),
+          5000 * (navigation + 1),
+        );
+    };
     const timer = setTimeout(() => {
-      if (!loadedRef.current) setSlow(true);
-    }, 20000);
-    // Published resize protocol; accept messages only from this exact publisher frame.
-    const resize = (message: MessageEvent) => {
+      if (!loadedRef.current) failed();
+    }, 35000);
+    const receive = (message: MessageEvent) => {
       if (
-        message.origin !== new URL(source.url).origin ||
         message.source !== frame.current?.contentWindow ||
-        message.data?.type !== "sportscore:resize" ||
-        typeof message.data.height !== "number" ||
-        !Number.isFinite(message.data.height)
+        message.data?.eventId !== event.id ||
+        message.origin !== "null"
       )
         return;
-      setHeight(Math.max(420, Math.min(1200, Math.ceil(message.data.height))));
+      if (message.data.type === "backinit:tracker-ready") {
+        loadedRef.current = true;
+        setLoaded(true);
+        setSlow(false);
+        clearTimeout(retryTimer);
+      }
+      if (message.data.type === "backinit:tracker-error") failed();
+      if (
+        message.data.type === "backinit:tracker-size" &&
+        typeof message.data.height === "number" &&
+        Number.isFinite(message.data.height)
+      )
+        setHeight(
+          Math.max(420, Math.min(1600, Math.ceil(message.data.height))),
+        );
     };
-    window.addEventListener("message", resize);
+    window.addEventListener("message", receive);
     return () => {
       clearTimeout(timer);
-      window.removeEventListener("message", resize);
+      clearTimeout(retryTimer);
+      window.removeEventListener("message", receive);
     };
-  }, [source.url]);
+  }, [event.id, navigation]);
   const showSummary = summary || !loaded;
   return (
     <section
@@ -202,13 +229,9 @@ function PublisherTracker({
         <iframe
           ref={frame}
           title={`${event.sport} live match tracker`}
-          src={`${source.url}?theme=${theme}`}
-          onLoad={() => {
-            loadedRef.current = true;
-            setLoaded(true);
-          }}
-          onError={() => setSlow(true)}
-          sandbox="allow-scripts allow-same-origin allow-popups"
+          key={navigation}
+          src={`/api/trackers/${event.id}/view?theme=${theme}&attempt=${navigation}`}
+          sandbox="allow-scripts allow-popups"
           referrerPolicy="strict-origin-when-cross-origin"
           aria-hidden={showSummary || undefined}
           tabIndex={showSummary ? -1 : undefined}
@@ -219,7 +242,7 @@ function PublisherTracker({
             {!loaded && !summary && (
               <p role="status">
                 {slow
-                  ? "Live animation is taking longer to load. Scores keep updating."
+                  ? "Live animation is reconnecting. Scores keep updating."
                   : "Loading live animation…"}
               </p>
             )}
