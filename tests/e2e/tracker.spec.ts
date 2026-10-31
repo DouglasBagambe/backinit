@@ -1,6 +1,13 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { verifiedCupFixtures } from "../../apps/api/src/providers/efl";
+async function openFixture(page: Page, id: string) {
+  const hydrated = page.waitForResponse((r) =>
+    r.url().includes("/api/streams?event="),
+  );
+  await page.goto(`/watch/${id}`);
+  await hydrated;
+}
 const fixture = verifiedCupFixtures.find((e) =>
   e.id.includes("liverpool-chelsea"),
 )!;
@@ -73,7 +80,11 @@ test("licensed tracker waits for real data readiness, recovers on license errors
     `,
     });
   });
+  const hydrated = page.waitForResponse((r) =>
+    r.url().includes("/api/streams?event="),
+  );
   await page.goto(`/watch/${event.id}`);
+  await hydrated;
   await expect(
     page.locator(".player-tracker-fallback .event-tracker"),
   ).toBeVisible();
@@ -286,7 +297,7 @@ test("a broadcast keeps its tracker beside desktop video and below mobile video,
   await page.addInitScript(() =>
     localStorage.setItem("backinit-ad-preference-v1", "accepted"),
   );
-  await page.goto(`/watch/${fixture.id}`);
+  await openFixture(page, fixture.id);
   const play = page.getByRole("button", { name: "Play video", exact: true });
   await expect(play).toBeVisible();
   await expect(play).toHaveText("");
@@ -373,7 +384,7 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
       body: `<html><body>Isolated publisher tracker test<script>parent.postMessage({type:"backinit:tracker-ready",eventId:${JSON.stringify(fixture.id)}},"*")</script></body></html>`,
     });
   });
-  await page.goto(`/watch/${fixture.id}`);
+  await openFixture(page, fixture.id);
   await expect(
     page.locator(".player-tracker-fallback .event-tracker"),
   ).toBeVisible();
@@ -564,7 +575,7 @@ test("a successful iframe navigation is not readiness; a broken view reconnects 
           : `<html><body>Recovered publisher widget<script>parent.postMessage({type:'backinit:tracker-ready',eventId:'${fixture.id}'},'*')</script></body></html>`,
     });
   });
-  await page.goto(`/watch/${fixture.id}`);
+  await openFixture(page, fixture.id);
   await expect(
     page.locator(".player-tracker-fallback .event-tracker"),
   ).toBeVisible();
@@ -588,4 +599,76 @@ test("a successful iframe navigation is not readiness; a broken view reconnects 
       .frameLocator(".publisher-tracker iframe")
       .getByText("Recovered publisher widget"),
   ).toBeVisible();
+});
+
+test("isolated backend relay permits the nested widget's own data requests without application-origin access", async ({
+  page,
+  baseURL,
+}) => {
+  await page
+    .context()
+    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+  await page.clock.setFixedTime(new Date(source.fetchedAt));
+  await page.route(`**/api/events/${fixture.id}`, (r) =>
+    r.fulfill({ json: { data: event } }),
+  );
+  const viewUrl = `https://backinit-api.onrender.com/trackers/${fixture.id}/view`;
+  await page.route(`**/api/trackers/${fixture.id}`, (r) =>
+    r.fulfill({
+      json: {
+        data: {
+          provider: "SportScore",
+          kind: "publisher-tracker",
+          eventId: fixture.id,
+          url: "https://sportscore.com/embed/tracker/football/liverpool-vs-chelsea/",
+          viewUrl,
+          sourceUrl: "https://sportscore.com/",
+          checkedAt: source.fetchedAt,
+          validUntil: "2026-10-28T20:07:00Z",
+        },
+      },
+    }),
+  );
+  await page.route(`${viewUrl}?**`, (r) =>
+    r.fulfill({
+      contentType: "text/html",
+      headers: {
+        "Content-Security-Policy": `sandbox allow-scripts allow-same-origin; default-src 'none'; script-src 'unsafe-inline'; frame-src https://widgets.thesports01.com; connect-src 'none'; frame-ancestors ${baseURL}`,
+      },
+      body: `<html><body><iframe title="Publisher widget" src="https://widgets.thesports01.com/contract" onload="parent.postMessage({type:'backinit:tracker-ready',eventId:'${fixture.id}'},'*')"></iframe></body></html>`,
+    }),
+  );
+  await page.route("https://widgets.thesports01.com/contract", (r) =>
+    r.fulfill({
+      contentType: "text/html",
+      body: `<html><body><div id="score"></div><script>fetch('/contract-data').then(r=>r.json()).then(r=>document.getElementById('score').textContent=r.score)</script></body></html>`,
+    }),
+  );
+  await page.route("https://widgets.thesports01.com/contract-data", (r) =>
+    r.fulfill({ json: { score: "Live game 40:30" } }),
+  );
+  const hydrated = page.waitForResponse((r) =>
+    r.url().includes("/api/streams?event="),
+  );
+  await openFixture(page, fixture.id);
+  await hydrated;
+  await expect(
+    page.locator(".player-tracker-fallback .event-tracker"),
+  ).toBeVisible();
+  await page.clock.fastForward(31000);
+  const frame = page.locator(
+    ".publisher-tracker > .publisher-tracker-frame > iframe",
+  );
+  await expect(frame).toHaveAttribute(
+    "sandbox",
+    "allow-scripts allow-same-origin",
+  );
+  await expect(frame).toHaveAttribute("credentialless", "");
+  await expect(
+    page
+      .frameLocator(".publisher-tracker-frame > iframe")
+      .frameLocator("iframe")
+      .getByText("Live game 40:30"),
+  ).toBeVisible();
+  await expect(page.locator(".tracker-recovery")).toHaveCount(0);
 });

@@ -73,7 +73,10 @@ export function LiveTracker({
         if (
           next &&
           (next.eventId !== event.id ||
-            Date.parse(next.validUntil) <= Date.now())
+            Date.parse(next.validUntil) <= Date.now() ||
+            (next.provider === "SportScore" &&
+              next.viewUrl &&
+              new URL(next.viewUrl).pathname !== `/trackers/${event.id}/view`))
         )
           throw new Error();
         if (!controller.signal.aborted) setSource(next);
@@ -183,16 +186,25 @@ function PublisherTracker({
           5000 * (navigation + 1),
         );
     };
-    const timer = setTimeout(() => {
+    let timer = setTimeout(() => {
       if (!loadedRef.current) failed();
     }, 35000);
     const receive = (message: MessageEvent) => {
       if (
         message.source !== frame.current?.contentWindow ||
         message.data?.eventId !== event.id ||
-        message.origin !== "null"
+        message.origin !==
+          (source.viewUrl ? new URL(source.viewUrl).origin : "null")
       )
         return;
+      if (message.data.type === "backinit:tracker-loading") {
+        loadedRef.current = false;
+        setLoaded(false);
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          if (!loadedRef.current) failed();
+        }, 35000);
+      }
       if (message.data.type === "backinit:tracker-ready") {
         loadedRef.current = true;
         setLoaded(true);
@@ -215,7 +227,7 @@ function PublisherTracker({
       clearTimeout(retryTimer);
       window.removeEventListener("message", receive);
     };
-  }, [event.id, navigation]);
+  }, [event.id, navigation, source.viewUrl]);
   const showSummary = summary || !loaded;
   return (
     <section
@@ -230,8 +242,13 @@ function PublisherTracker({
           ref={frame}
           title={`${event.sport} live match tracker`}
           key={navigation}
-          src={`/api/trackers/${event.id}/view?theme=${theme}&attempt=${navigation}`}
-          sandbox="allow-scripts allow-popups"
+          {...{ credentialless: true }}
+          src={`${source.viewUrl || `/api/trackers/${event.id}/view`}?theme=${theme}&attempt=${navigation}`}
+          sandbox={
+            source.viewUrl
+              ? "allow-scripts allow-same-origin"
+              : "allow-scripts allow-popups"
+          }
           referrerPolicy="strict-origin-when-cross-origin"
           aria-hidden={showSummary || undefined}
           tabIndex={showSummary ? -1 : undefined}
