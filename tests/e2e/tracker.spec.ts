@@ -317,6 +317,20 @@ test("a broadcast keeps its tracker beside desktop video and below mobile video,
     path: "artifacts/tracker-broadcast-mobile.png",
     fullPage: true,
   });
+  // A published source is not proof it can play in this visitor's browser.
+  // On playback failure, promote the tracker to the main area and remove the rail copy.
+  await page.getByRole("button", { name: "Play video", exact: true }).click();
+  await expect(
+    page.locator(".player-tracker-fallback .event-tracker"),
+  ).toBeVisible();
+  await expect(
+    page.locator(".event-mobile-tracker .event-tracker"),
+  ).toHaveCount(0);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(
+    page.locator(".event-desktop-tracker .event-tracker"),
+  ).toHaveCount(0);
+  await expect(page.locator(".event-tracker")).toHaveCount(1);
 });
 
 test("publisher tracker uses only a matched frame, preserves it across lease refresh and falls back on expiry", async ({

@@ -76,7 +76,7 @@ export default async function Page({
       coverage={feed.coverage}
       news={news}
       demoAvailable={demoEnabled()}
-      adFramesApproved={process.env.ADSTERRA_IFRAME_APPROVED === "true"}
+      nativeAdsEnabled={process.env.ADSTERRA_NATIVE_ENABLED !== "false"}
     />
   );
 }

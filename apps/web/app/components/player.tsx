@@ -46,9 +46,13 @@ export function Player({
   const reportRef = useRef(onPlaybackReport);
   reportRef.current = onPlaybackReport;
   const source = sources.find((s) => s.id === selected);
+  const playbackFailed =
+    /unavailable|could not|disabled|restrict|withdrawn|expired/i.test(state) &&
+    !state.startsWith("Streams unavailable") &&
+    !state.includes("viewing mode");
   useEffect(() => {
-    onAvailability?.(Boolean(source));
-  }, [Boolean(source), onAvailability]);
+    onAvailability?.(Boolean(source) && !playbackFailed);
+  }, [Boolean(source), playbackFailed, onAvailability]);
   const sourcesRef = useRef(sources);
   sourcesRef.current = sources;
   useEffect(() => {
@@ -134,7 +138,7 @@ export function Player({
       select(alternatives[0]?.id || "");
       start(alternatives.length > 0);
       setConsent(false);
-      setState(message);
+      setState(alternatives.length ? "Switching source…" : message);
     };
     const fail = () => {
       if (!disposed)
@@ -249,7 +253,47 @@ export function Player({
     source && new URL(source.url).hostname === "www.youtube-nocookie.com";
   const failed =
     /unavailable|could not|disabled|restrict|withdrawn|expired/i.test(state);
-  if (eventId && !source)
+  const retryPlayback = () => {
+    setState("Ready to play");
+    retry((n) => n + 1);
+  };
+  const selectSource = (id: string) => {
+    setState("Ready to play");
+    select(id);
+    setConsent(false);
+    setHealth("");
+  };
+  const sourceSelector = sources.length > 1 && (
+    <label>
+      Source{" "}
+      <select
+        aria-label="Stream source"
+        value={selected}
+        onChange={(e) => selectSource(e.target.value)}
+      >
+        {sources.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
+            {s.content === "sports" ? ` · ${s.presentation || "live"}` : ""}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+  const nextSource = failed && sources.length > 1 && (
+    <button
+      onClick={() =>
+        selectSource(
+          sources[
+            (sources.findIndex((s) => s.id === selected) + 1) % sources.length
+          ]!.id,
+        )
+      }
+    >
+      Try next source
+    </button>
+  );
+  if (eventId && (!source || (playbackFailed && fallback)))
     return (
       <section
         className={`player player-unavailable${fallback ? " player-tracker-fallback" : ""}`}
@@ -263,10 +307,23 @@ export function Player({
                 ? state
                 : state.startsWith("Streams unavailable")
                   ? "Unable to check streams"
-                  : "No stream available"}
+                  : failed && source
+                    ? "Stream unavailable here"
+                    : "No stream available"}
             </h2>
+            {source && <span className="sr-only">{state}</span>}
           </div>
-          <button onClick={() => reload((n) => n + 1)}>Check streams</button>
+          {sourceSelector}
+          {nextSource}
+          {source && <button onClick={retryPlayback}>Retry</button>}
+          <button
+            onClick={() => {
+              retryPlayback();
+              reload((n) => n + 1);
+            }}
+          >
+            Check streams
+          </button>
         </div>
       </section>
     );
@@ -440,47 +497,9 @@ export function Player({
                 : (source.presentation || "live").toUpperCase()}
           </span>
         )}
-        {sources.length > 1 && (
-          <label>
-            Source{" "}
-            <select
-              aria-label="Stream source"
-              value={selected}
-              onChange={(e) => {
-                select(e.target.value);
-                setConsent(false);
-                setHealth("");
-              }}
-            >
-              {sources.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                  {s.content === "sports"
-                    ? ` · ${s.presentation || "live"}`
-                    : ""}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        {started && source && (
-          <button onClick={() => retry((a) => a + 1)}>Retry</button>
-        )}
-        {failed && sources.length > 1 && (
-          <button
-            onClick={() => {
-              select(
-                sources[
-                  (sources.findIndex((s) => s.id === selected) + 1) %
-                    sources.length
-                ]!.id,
-              );
-              setConsent(false);
-            }}
-          >
-            Try next source
-          </button>
-        )}
+        {sourceSelector}
+        {started && source && <button onClick={retryPlayback}>Retry</button>}
+        {nextSource}
         {!source && (
           <button onClick={() => reload((a) => a + 1)}>
             Check sources again

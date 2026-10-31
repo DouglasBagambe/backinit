@@ -40,6 +40,7 @@ import { News } from "./news";
 import { Utility } from "./utility";
 import { SportMark } from "./marks";
 import { LiveWatch } from "./live-watch";
+import { WeekendMatches } from "./weekend-matches";
 import { EventViewing } from "./event-viewing";
 import { WatchHub } from "./watch-hub";
 import { Privacy } from "./privacy";
@@ -56,7 +57,7 @@ export function Experience({
   coverage,
   news,
   demoAvailable = false,
-  adFramesApproved = false,
+  nativeAdsEnabled = false,
 }: {
   route: string;
   initialEvents: SportEvent[];
@@ -65,7 +66,7 @@ export function Experience({
   coverage: Coverage[];
   news: NewsFeed | null;
   demoAvailable?: boolean;
-  adFramesApproved?: boolean;
+  nativeAdsEnabled?: boolean;
 }) {
   const events = initialEvents;
   const router = useRouter();
@@ -424,7 +425,7 @@ export function Experience({
     )[route] ||
     (real ? "Watch" : "Sport today");
   return (
-    <AdvertisingProvider enabled={real} framesApproved={adFramesApproved}>
+    <AdvertisingProvider enabled={real} nativeEnabled={nativeAdsEnabled}>
       <a className="skip" href="#main">
         Skip to content
       </a>
@@ -620,7 +621,7 @@ export function Experience({
           ) : match ? (
             <MatchCentre event={match} favorite={favorite(match)} />
           ) : route === "privacy" ? (
-            <Privacy adFramesApproved={adFramesApproved} />
+            <Privacy nativeAdsEnabled={nativeAdsEnabled} />
           ) : route === "admin" ? (
             <Admin />
           ) : route === "profile" ? (
@@ -659,7 +660,10 @@ export function Experience({
                 </div>
               )}
               {route === "watch" ? (
-                <LiveWatch />
+                <>
+                  {real && <WeekendMatches initialEvents={events} poll />}
+                  <LiveWatch />
+                </>
               ) : route === "videos" ? (
                 <WatchHub />
               ) : route === "playback" ? (
@@ -678,7 +682,12 @@ export function Experience({
                 <News feed={news} real={real} />
               ) : (
                 <>
-                  {isHome && real && <LiveWatch preview />}
+                  {isHome && real && (
+                    <>
+                      <WeekendMatches initialEvents={events} />
+                      <LiveWatch preview />
+                    </>
+                  )}
                   {(isHome || route === "live") &&
                     (!real || (isHome && featuredEvents.length > 0)) && (
                       <>
@@ -1034,7 +1043,7 @@ export function Experience({
           {real &&
             ["", "watch", "live", "scores", "fixtures", "news"].includes(
               route,
-            ) && <AdSlot />}
+            ) && <AdSlot native />}
           <AdPreferences />
           <footer>
             <Link className="footer-brand" href="/">

@@ -6,23 +6,23 @@ type Preference = "accepted" | "declined" | null;
 const storageKey = "backinit-ad-preference-v1";
 const Advertising = createContext<{
   enabled: boolean;
-  framesApproved: boolean;
+  nativeEnabled: boolean;
   preference: Preference;
   choose: (value: Preference) => void;
 }>({
   enabled: false,
-  framesApproved: false,
+  nativeEnabled: false,
   preference: null,
   choose: () => {},
 });
 
 export function AdvertisingProvider({
   enabled,
-  framesApproved,
+  nativeEnabled,
   children,
 }: {
   enabled: boolean;
-  framesApproved: boolean;
+  nativeEnabled: boolean;
   children: React.ReactNode;
 }) {
   const [preference, setPreference] = useState<Preference>(null);
@@ -54,7 +54,7 @@ export function AdvertisingProvider({
   }
   return (
     <Advertising.Provider
-      value={{ enabled: enabled && ready, framesApproved, preference, choose }}
+      value={{ enabled: enabled && ready, nativeEnabled, preference, choose }}
     >
       {children}
     </Advertising.Provider>
@@ -62,9 +62,9 @@ export function AdvertisingProvider({
 }
 
 export function AdPreferences() {
-  const { enabled, framesApproved, preference, choose } =
+  const { enabled, nativeEnabled, preference, choose } =
     useContext(Advertising);
-  if (!enabled || !framesApproved) return null;
+  if (!enabled || !nativeEnabled) return null;
   return (
     <div className="ad-preferences">
       {preference ? (
@@ -91,63 +91,26 @@ export function AdPreferences() {
   );
 }
 
-// Publisher-issued public placement IDs. Never put account credentials in these tags.
-const units = {
-  rectangle: {
-    key: "8012e7c6a2ca269c4f61b668b5547ea1",
-    width: 300,
-    height: 250,
-  },
-  mobile: { key: "576edab930bc072648fb2ebc5443a5db", width: 320, height: 50 },
-  desktop: { key: "208c83c78501d240404891d74ed085e2", width: 728, height: 90 },
-};
+// Account-issued Native Banner tag, supplied by the publisher. One unit per page.
+const nativeKey = "b9e9a122a56fe6638c4236bbf4696b47";
 export function AdSlot({
   format = "banner",
   sponsored = false,
+  native = false,
 }: {
   format?: "banner" | "rectangle";
   sponsored?: boolean;
+  native?: boolean;
 }) {
-  const { enabled, framesApproved, preference } = useContext(Advertising);
-  const ref = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  const [near, setNear] = useState(false);
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    const resize = new ResizeObserver(([entry]) =>
-      setWidth(entry!.contentRect.width),
-    );
-    const visible = new IntersectionObserver(
-      ([entry]) => {
-        if (entry!.isIntersecting) setNear(true);
-      },
-      { rootMargin: "200px" },
-    );
-    resize.observe(node);
-    visible.observe(node);
-    return () => {
-      resize.disconnect();
-      visible.disconnect();
-    };
-  }, []);
-  const unit =
-    format === "rectangle"
-      ? width >= 300
-        ? units.rectangle
-        : null
-      : width >= 728
-        ? units.desktop
-        : width >= 320
-          ? units.mobile
-          : null;
-  const show = enabled && framesApproved && preference === "accepted" && unit;
+  const { enabled, nativeEnabled, preference } = useContext(Advertising);
   return (
-    <div ref={ref} className={`ad-slot ad-slot-${format}`}>
-      {show && near && <AdvertisingFrame key={unit.key} unit={unit} />}
+    <div className={`ad-slot ad-slot-${format}`}>
+      {native && enabled && nativeEnabled && preference === "accepted" && (
+        <NativeAdvertising />
+      )}
       {(format === "banner" || sponsored) &&
         enabled &&
-        (!framesApproved || preference === "accepted") && (
+        (!nativeEnabled || preference === "accepted") && (
           <a
             className={`sponsored-offers${format === "rectangle" ? " sponsored-card" : ""}`}
             href="https://asiafilm.org/4/03e480f030ce8a18c8c3de500ca10b7d"
@@ -169,49 +132,56 @@ export function AdSlot({
   );
 }
 
-function AdvertisingFrame({
-  unit,
-}: {
-  unit: (typeof units)[keyof typeof units];
-}) {
-  const frame = useRef<HTMLIFrameElement>(null);
-  const [status, setStatus] = useState<"loading" | "ready" | "empty">(
-    "loading",
-  );
+function NativeAdvertising() {
+  const host = useRef<HTMLDivElement>(null);
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    const receive = (event: MessageEvent) => {
-      if (
-        event.source === frame.current?.contentWindow &&
-        event.data === "backinit-ad-content"
-      )
-        setStatus("ready");
-    };
-    window.addEventListener("message", receive);
-    const timer = setTimeout(
-      () => setStatus((value) => (value === "ready" ? value : "empty")),
-      12000,
+    const node = host.current;
+    if (!node) return;
+    let started = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const container = document.createElement("div");
+    container.id = `container-${nativeKey}`;
+    const script = document.createElement("script");
+    script.async = true;
+    script.setAttribute("data-cfasync", "false");
+    script.src = `https://czernik.org/21/${nativeKey}`;
+    const content = new MutationObserver(() => {
+      if (container.querySelector("iframe, img, a[href]")) setReady(true);
+    });
+    content.observe(container, { childList: true, subtree: true });
+    const visible = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting || started) return;
+        started = true;
+        visible.disconnect();
+        // Execute the original asynchronous tag directly, without an iframe wrapper.
+        node.append(container, script);
+        timer = setTimeout(() => {
+          if (!container.querySelector("iframe, img, a[href]")) {
+            script.remove();
+            container.remove();
+          }
+        }, 12000);
+      },
+      { rootMargin: "200px" },
     );
+    visible.observe(node);
     return () => {
-      window.removeEventListener("message", receive);
+      visible.disconnect();
+      content.disconnect();
       clearTimeout(timer);
+      script.remove();
+      container.remove();
     };
   }, []);
-  // Opaque-origin frame isolates ads from account cookies and the application DOM.
-  // Top navigation and downloads are forbidden; advertiser links open separately.
-  const html = `<!doctype html><html><head><meta name="referrer" content="strict-origin-when-cross-origin"><style>html,body{margin:0;padding:0;overflow:hidden;background:transparent}</style></head><body><script>window.atOptions=${JSON.stringify({ key: unit.key, format: "iframe", height: unit.height, width: unit.width, params: {} })};new MutationObserver(function(){if(document.querySelector('iframe[src],img[src],a[href]'))parent.postMessage('backinit-ad-content','*');}).observe(document.body,{childList:true,subtree:true});</script><script src="https://czernik.org/22/${unit.key}"></script></body></html>`;
-  if (status === "empty") return null;
   return (
-    <aside aria-label="Advertisement" className={`ad-placement ad-${status}`}>
-      {status === "ready" && <small>Advertisement</small>}
-      <iframe
-        ref={frame}
-        title="Advertisement"
-        width={unit.width}
-        height={unit.height}
-        srcDoc={html}
-        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
-        referrerPolicy="strict-origin-when-cross-origin"
-      />
+    <aside
+      aria-label="Advertisement"
+      className={`ad-placement ad-native${ready ? " ad-ready" : ""}`}
+    >
+      {ready && <small>Advertisement</small>}
+      <div ref={host} className="ad-native-content" />
     </aside>
   );
 }
