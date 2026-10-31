@@ -67,7 +67,7 @@ async function openFixture(page: Page, id: string) {
   const hydrated = page.waitForResponse((r) =>
     r.url().includes("/api/streams?event="),
   );
-  await page.goto(`/watch/${id}`);
+  await page.goto(`/watch/${id}`, { waitUntil: "domcontentloaded" });
   await hydrated;
 }
 const fixture = verifiedCupFixtures.find((e) =>
@@ -732,4 +732,78 @@ test("isolated backend relay permits the nested widget's own data requests witho
       .getByText("Live game 40:30"),
   ).toBeVisible();
   await expect(page.locator(".tracker-recovery")).toHaveCount(0);
+});
+
+test("a slow publisher child never masks or repeatedly restarts a rendered live tracker", async ({
+  page,
+  baseURL,
+}) => {
+  await page
+    .context()
+    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+  await page.clock.install({ time: new Date(source.fetchedAt) });
+  await page.route(`**/api/events/${fixture.id}`, (route) =>
+    route.fulfill({ json: { data: event } }),
+  );
+  const url =
+    "https://sportscore.com/embed/tracker/football/liverpool-vs-chelsea/";
+  await page.route(`**/api/trackers/${fixture.id}`, (route) =>
+    route.fulfill({
+      json: {
+        data: {
+          provider: "SportScore",
+          kind: "publisher-tracker",
+          transport: "publisher",
+          eventId: fixture.id,
+          url,
+          sourceUrl: "https://sportscore.com/",
+          checkedAt: source.fetchedAt,
+          validUntil: "2026-10-28T20:07:00Z",
+        },
+      },
+    }),
+  );
+  let documents = 0;
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route(`${url}?**`, (route) => {
+    documents++;
+    return route.fulfill({
+      contentType: "text/html",
+      body: '<html><body><p>Live animation document</p><iframe title="Slow resource" src="https://widgets.thesports01.com/slow-contract"></iframe></body></html>',
+    });
+  });
+  await page.route(
+    "https://widgets.thesports01.com/slow-contract",
+    async (route) => {
+      await pending;
+      await route.fulfill({
+        contentType: "text/html",
+        body: "Reported live play",
+      });
+    },
+  );
+  await openFixture(page, fixture.id);
+  const publisher = page.frameLocator(".publisher-tracker-frame > iframe");
+  await expect(publisher.getByText("Live animation document")).toBeVisible();
+  await expect(page.locator(".tracker-recovery")).toHaveCount(0);
+  await page.clock.fastForward(45000);
+  expect(documents).toBe(1);
+  await expect(publisher.getByText("Live animation document")).toBeVisible();
+  await expect(
+    page.getByRole("status").filter({ hasText: "Animation is taking longer" }),
+  ).toBeVisible();
+  release();
+  await expect(
+    publisher.frameLocator("iframe").getByText("Reported live play"),
+  ).toBeVisible();
+  await expect(page.locator(".tracker-startup-status")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Match summary", exact: true })
+    .click();
+  await expect(page.locator(".tracker-recovery .tracker-score")).toHaveText(
+    "1:0",
+  );
 });

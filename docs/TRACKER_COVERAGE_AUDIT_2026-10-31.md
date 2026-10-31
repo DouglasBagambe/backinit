@@ -19,3 +19,11 @@ The same public Watch response contained 438 entries and 446,614 bytes, even tho
 These external coverage limits prevent a truthful claim of universal animated tracking or video coverage. They must not be hidden by inventing ball movement, substituting another match or labelling a scorecard as a broadcast.
 
 References: [SportScore supported sports](https://sportscore.com/about/), [documented API](https://sportscore.com/developers/api/), [official embed instructions](https://sportscore.com/embed/).
+
+## Later live startup audit (approximately 18:00 UTC)
+
+Current public metadata resolved six live singles/football games: Lehecka–Struff, Zverev–de Minaur, Udinese–Roma, Vallejo–Dimitrov, Tottenham–Crystal Palace and Betis–Málaga. The Jakupovic/Radisic doubles match remained absent from the provider's live fixture list, so no substitute match was used.
+
+The original Zverev–de Minaur publisher page initially displayed a black court area, then rendered the real 3D tennis court, set/game points, serving player and score table. This exposed a local startup fault: BackInIt's 35-second load watchdog restarted the entire publisher document while nested resources were still loading, and a scorecard overlay covered any already-rendered animation until the outer load event completed. Publisher transport now remains visible during startup and a slow-resource timeout reports delay without discarding its document. Confirmed navigation errors and explicit Reload retain their recovery path. The contract test holds a nested resource beyond the watchdog and verifies that rendered content remains visible with only one publisher navigation, then completes the load and checks the summary control.
+
+The documented `/api/widget/tracker/` endpoint returned an HTML iframe wrapper, not positional JSON; it cannot provide an independent real-position renderer. The publisher's [official embed integration](https://sportscore.com/embed/) displays the embed directly. No provider credentials were extracted or reused. The owner declined a new support email, so none was sent. The existing Sportradar enquiry still had no reply at this audit.
