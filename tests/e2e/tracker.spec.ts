@@ -34,7 +34,7 @@ test("publisher transport retains the authorized publisher origin for nested liv
   await page.route(`${url}?**`, (r) =>
     r.fulfill({
       contentType: "text/html",
-      body: '<html><body><iframe title="Publisher animation" src="https://widgets.thesports01.com/origin-contract"></iframe></body></html>',
+      body: `<html><body><iframe title="Publisher animation" src="https://widgets.thesports01.com/origin-contract"></iframe><button onclick="parent.postMessage({type:'sportscore:resize',height:845},'*')">Report widget height</button></body></html>`,
     }),
   );
   await page.route("https://widgets.thesports01.com/origin-contract", (r) =>
@@ -56,6 +56,21 @@ test("publisher transport retains the authorized publisher origin for nested liv
       .frameLocator("iframe")
       .getByText("Authorized match animation 40:30"),
   ).toBeVisible();
+  await page
+    .frameLocator(".publisher-tracker-frame > iframe")
+    .getByRole("button", { name: "Report widget height" })
+    .click();
+  await expect(page.locator(".publisher-tracker-frame")).toHaveCSS(
+    "height",
+    "845px",
+  );
+  await page.evaluate(() => {
+    window.postMessage({ type: "sportscore:resize", height: 200 }, "*");
+  });
+  await expect(page.locator(".publisher-tracker-frame")).toHaveCSS(
+    "height",
+    "845px",
+  );
   await page
     .getByRole("button", { name: "Match summary", exact: true })
     .click();

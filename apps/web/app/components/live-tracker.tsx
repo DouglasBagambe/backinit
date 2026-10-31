@@ -197,6 +197,23 @@ function PublisherTracker({
       }
     }, 35000);
     const receive = (message: MessageEvent) => {
+      // Original publisher embeds use the public embed.js resize protocol,
+      // without our relay's eventId. Accept it only from this exact frame and
+      // its configured publisher origin, never from another widget on the page.
+      if (
+        source.transport === "publisher" &&
+        message.source === frame.current?.contentWindow &&
+        message.origin === new URL(source.url).origin &&
+        message.data?.type === "sportscore:resize" &&
+        typeof message.data.height === "number" &&
+        Number.isFinite(message.data.height) &&
+        message.data.height > 0
+      ) {
+        setHeight(
+          Math.max(160, Math.min(1200, Math.ceil(message.data.height))),
+        );
+        return;
+      }
       if (
         message.source !== frame.current?.contentWindow ||
         message.data?.eventId !== event.id ||
