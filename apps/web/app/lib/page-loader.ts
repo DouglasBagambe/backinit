@@ -11,7 +11,7 @@ export async function loadPageData(
   const detail =
     ["match", "watch"].includes(parts[0] || "") && parts.length === 2;
   const [snapshot, news] = await Promise.all([
-    usesCatalogue(route)
+    usesCatalogue(route) && route !== "watch"
       ? loadEvents(requestedEdition, catalogueRenderBudget(route))
       : Promise.resolve({
           data: [],
@@ -32,9 +32,9 @@ export async function loadPageData(
   const feed = match
     ? {
         ...snapshot,
-        data: snapshot.data.some((e) => e.id === match.id)
-          ? snapshot.data.map((e) => (e.id === match.id ? match : e))
-          : [match, ...snapshot.data],
+        // Related broadcasts load independently. Never serialize hundreds of
+        // unrelated fixtures into an individual game's document.
+        data: [match],
       }
     : snapshot;
   return { feed, news };

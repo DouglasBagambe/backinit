@@ -11,7 +11,7 @@ it("paints a known match from the catalogue without waiting for a second summary
   const fetcher = vi.fn(async (input: string | URL | Request) => {
     expect(new URL(String(input)).pathname).toBe("/events");
     return Response.json({
-      data: [event],
+      data: [event, { ...event, id: "another-fixture" }],
       edition: "real",
       source: "Test",
       coverage: [],
@@ -20,7 +20,16 @@ it("paints a known match from the catalogue without waiting for a second summary
   vi.stubGlobal("fetch", fetcher);
   const page = await loadPageData(`watch/${event.id}`, "real");
   expect(page.feed.data[0]?.id).toBe(event.id);
+  expect(page.feed.data).toHaveLength(1);
   expect(fetcher).toHaveBeenCalledTimes(1);
+});
+
+it("lets Watch own its lightweight discovery feed without loading the entire catalogue", async () => {
+  vi.stubEnv("ALLOW_DEMO_MODE", "false");
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  expect((await loadPageData("watch", "real")).feed.data).toEqual([]);
+  expect(fetcher).not.toHaveBeenCalled();
 });
 
 it("does not fetch the sports catalogue before rendering News or account/utility pages", async () => {

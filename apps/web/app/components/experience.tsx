@@ -106,6 +106,7 @@ export function Experience({
   const real = edition === "real";
   const [editionError, setEditionError] = useState("");
   const [date, setDate] = useState("");
+  const [visibleCount, setVisibleCount] = useState(60);
   useEffect(() => {
     // Refresh data without rerendering the whole route or blocking a navigation.
     if (
@@ -189,6 +190,7 @@ export function Experience({
   const [theme, setTheme] = useState("system");
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") || "");
+  useEffect(() => setVisibleCount(60), [route, date, query]);
   const [user, setUser] = useState<AccountUser | null>(null);
   const [accountVersion, setAccountVersion] = useState(0);
   const [syncing, setSyncing] = useState(true);
@@ -494,6 +496,7 @@ export function Experience({
         .sort((a, b) => b.start.localeCompare(a.start))
         .slice(0, 3)
     : events.filter((e) => e.status === "live" && e.kind === "score");
+  const visibleList = list.slice(0, visibleCount);
   const editorialEvent = real
     ? featuredEvents.find((e) => e.detail?.goals?.length)
     : events.find((e) => e.id === "north-london");
@@ -1021,9 +1024,9 @@ export function Experience({
                       ) : (
                         <div className="fixture-groups">
                           {Array.from(
-                            new Set(list.map((e) => e.competition)),
+                            new Set(visibleList.map((e) => e.competition)),
                           ).map((c) => {
-                            const group = list.filter(
+                            const group = visibleList.filter(
                               (e) => e.competition === c,
                             );
                             return (
@@ -1038,6 +1041,14 @@ export function Experience({
                               </section>
                             );
                           })}
+                          {list.length > visibleCount && (
+                            <button
+                              onClick={() => setVisibleCount((n) => n + 60)}
+                            >
+                              Show more events ({list.length - visibleCount}{" "}
+                              remaining)
+                            </button>
+                          )}
                         </div>
                       )}
                     </section>
