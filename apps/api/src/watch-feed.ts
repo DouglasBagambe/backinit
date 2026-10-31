@@ -4,6 +4,7 @@ import type {
   SportEvent,
   StreamSource,
 } from "../../../packages/domain/src/index.js";
+import { hasMatchTracker } from "../../../packages/domain/src/index.js";
 export function validateScheduleDate(date?: string) {
   if (
     date &&
@@ -23,6 +24,7 @@ export function watchFeed(
     data: feed.data
       .filter(
         (e) =>
+          e.status !== "finished" &&
           (e.status === "live" ||
             Date.parse(e.end || e.start) >= now - 86400000) &&
           Date.parse(e.start) <= now + 14 * 86400000,
@@ -40,7 +42,14 @@ export function watchFeed(
               ? ("external-only" as const)
               : ("unavailable" as const),
         };
-      }),
+      })
+      // Match the Watch screen's eligibility before transferring the payload.
+      // Fixtures without a broadcast or reported tracking data remain in Fixtures.
+      .filter(
+        ({ event, sources }) =>
+          hasMatchTracker(event) ||
+          sources.some((source) => (source.presentation || "live") === "live"),
+      ),
     coverage: feed.coverage,
     generatedAt: new Date().toISOString(),
   };

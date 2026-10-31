@@ -19,6 +19,17 @@ const fixtures = z.object({
   sport: z.string(),
   matches: z.array(row).max(200),
 });
+const teamSearch = z.object({
+  sport: z.string(),
+  teams: z
+    .array(
+      z.object({
+        name: z.string(),
+        slug: z.string().regex(/^[a-z0-9-]{1,160}$/),
+      }),
+    )
+    .max(200),
+});
 const detail = z.object({
   sport: z.string(),
   updated: z.string(),
@@ -35,11 +46,23 @@ const name = (value: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
+function participantName(sport: string, value: string) {
+  const normalized = name(value);
+  // RFET's published player record names Carlos Alcaraz Garfia;
+  // ESPN uses Carlos Alcaraz. Keep this an explicit identity alias,
+  // rather than accepting arbitrary first-name/surname prefix matches.
+  // https://www.rfet.es/media/file/competicion/masinfo/626_Documento.pdf
+  return sport === "Tennis" && normalized === "carlosalcarazgarfia"
+    ? "carlosalcaraz"
+    : normalized;
+}
 function same(event: SportEvent, value: z.infer<typeof row>) {
   return (
     event.kind === "score" &&
-    name(event.home) === name(value.home) &&
-    name(event.away) === name(value.away) &&
+    participantName(event.sport, event.home) ===
+      participantName(event.sport, value.home) &&
+    participantName(event.sport, event.away) ===
+      participantName(event.sport, value.away) &&
     Number.isFinite(Date.parse(value.time)) &&
     // Tennis court schedules move as earlier matches finish. Exact participants,
     // the same UTC day and a unique listing still bind the match identity.
@@ -83,9 +106,32 @@ export class MatchTrackerProvider {
     );
     if (list.stale) throw new Error("Tracker discovery temporarily stale");
     if (list.value.sport !== sport) return null;
-    const matches = list.value.matches.filter(
+    let matches = list.value.matches.filter(
       (r) => same(event, r) && r.status === "live",
     );
+    if (matches.length === 0 && event.sport !== "Tennis") {
+      // Busy live lists can omit a covered game. Resolve the publisher's
+      // exact team identity before requesting its narrower fixture list.
+      const search = await this.cache.json(
+        `https://sportscore.com/api/v1/search/?${new URLSearchParams({ sport, q: event.home, limit: "20" })}`,
+        3600000,
+        (raw) => teamSearch.parse(raw),
+      );
+      if (search.stale || search.value.sport !== sport) return null;
+      const teams = search.value.teams.filter(
+        (team) => name(team.name) === name(event.home),
+      );
+      if (teams.length !== 1) return null;
+      const scoped = await this.cache.json(
+        `https://sportscore.com/api/v1/fixtures/?${new URLSearchParams({ sport, date: day, team: teams[0]!.slug, limit: "200" })}`,
+        60000,
+        (raw) => fixtures.parse(raw),
+      );
+      if (scoped.stale || scoped.value.sport !== sport) return null;
+      matches = scoped.value.matches.filter(
+        (r) => same(event, r) && r.status === "live",
+      );
+    }
     if (matches.length !== 1) return null;
     const slug = matchSlug(matches[0]!.url, sport);
     if (!slug) return null;

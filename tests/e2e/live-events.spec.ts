@@ -4,6 +4,54 @@ import { execFileSync } from "node:child_process";
 import { sports } from "../../packages/domain/src/index";
 import { verifiedCupFixtures } from "../../apps/api/src/providers/efl";
 const priority = "efl-20261028-liverpool-chelsea";
+test("Watch times out a stalled request and recovers on Retry without overlapping polls", async ({
+  page,
+  baseURL,
+}) => {
+  await real(page, baseURL!);
+  await page.clock.install({ time: new Date("2026-10-28T20:05:00Z") });
+  let requests = 0;
+  await page.route("**/api/watch*", async (route) => {
+    requests++;
+    if (requests === 1) return;
+    const event = {
+      ...verifiedCupFixtures.find((e) => e.id === priority)!,
+      status: "live",
+      scheduleOnly: false,
+      homeScore: 1,
+      awayScore: 0,
+      source: {
+        provider: "Test",
+        url: "https://example.test",
+        license: "Test",
+        fetchedAt: new Date().toISOString(),
+        stale: false,
+      },
+    };
+    await route.fulfill({
+      json: {
+        data: [{ event, sources: [], availability: "unavailable" }],
+        coverage: [],
+        generatedAt: new Date().toISOString(),
+      },
+    });
+  });
+  await page.goto("/watch");
+  await expect.poll(() => requests).toBe(1);
+  await page.clock.fastForward(21000);
+  const alert = page
+    .getByRole("region", { name: "Live event discovery" })
+    .getByRole("alert");
+  await expect(alert).toContainText("Events unavailable");
+  await expect(page.getByText("Loading events", { exact: true })).toHaveCount(
+    0,
+  );
+  expect(requests).toBe(1);
+  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await expect(page.locator(".live-event-row")).toHaveCount(1);
+  await expect(alert).toHaveCount(0);
+  expect(requests).toBe(2);
+});
 async function real(page: Page, baseURL: string) {
   await page
     .context()
