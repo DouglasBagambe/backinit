@@ -148,6 +148,54 @@ it("finds a missing live game through the exact publisher team and still validat
   wrongOpponent = true;
   expect(await resolve()).toBeNull();
 });
+it("matches the senior Inter identity across providers without matching youth teams", async () => {
+  const inter = {
+    ...event,
+    sport: "Football" as const,
+    home: "Internazionale",
+    away: "AC Milan",
+  };
+  let youth = false;
+  const vendor = {
+    ...row,
+    home: "Inter Milan",
+    away: "AC Milan",
+    url: "/football/match/inter-milan-vs-ac-milan/",
+  };
+  const fetcher = vi.fn(async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/search/"))
+      return Response.json({
+        sport: "football",
+        teams: [
+          {
+            name: youth ? "Inter Milan U19" : "Inter Milan",
+            slug: "inter-milan",
+          },
+        ],
+      });
+    if (url.pathname.endsWith("/fixtures/"))
+      return Response.json({
+        sport: "football",
+        matches: url.searchParams.has("team") ? [vendor] : [],
+      });
+    return Response.json({
+      sport: "football",
+      updated: new Date(at).toISOString(),
+      match: { ...vendor, tracker: { id: "id", sport: "football" } },
+    });
+  });
+  const resolve = () =>
+    new MatchTrackerProvider(
+      new ProviderCache(fetcher as typeof fetch, () => at),
+      () => at,
+    ).forEvent(inter);
+  expect(await resolve()).toMatchObject({
+    url: "https://sportscore.com/embed/tracker/football/inter-milan-vs-ac-milan/",
+  });
+  youth = true;
+  expect(await resolve()).toBeNull();
+});
 it("resolves the exact match to the published embed with no upstream credentials and deduplicates", async () => {
   const { provider, fetcher } = fixture();
   const [a, b] = await Promise.all([
