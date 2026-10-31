@@ -80,11 +80,18 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
   }, [requestedRange, requestedDate]);
   useEffect(() => {
     const controller = new AbortController();
+    let running = false;
     async function load() {
+      if (running || controller.signal.aborted) return;
+      running = true;
+      const deadline = new AbortController();
+      const timeout = setTimeout(() => deadline.abort(), 20000);
       try {
         const r = await fetch(
           `/api/watch${date ? `?date=${encodeURIComponent(date)}` : ""}`,
-          { signal: controller.signal },
+          {
+            signal: AbortSignal.any([controller.signal, deadline.signal]),
+          },
         );
         if (!r.ok) throw new Error();
         const result = watchFeedSchema.parse(await r.json());
@@ -94,6 +101,8 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
         if (!controller.signal.aborted)
           setError("Events unavailable. Try again.");
       } finally {
+        clearTimeout(timeout);
+        running = false;
         if (!controller.signal.aborted) setLoading(false);
       }
     }

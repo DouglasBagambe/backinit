@@ -67,6 +67,87 @@ afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
+it("binds a verified full-name alias without accepting arbitrary surname prefixes", async () => {
+  const alcaraz = { ...event, home: "Daniil Medvedev", away: "Carlos Alcaraz" };
+  const vendor = {
+    ...row,
+    home: "Daniil Medvedev",
+    away: "Carlos Alcaraz Garfia",
+  };
+  const data = {
+    sport: "tennis",
+    updated: new Date(at).toISOString(),
+    match: { ...vendor, tracker: { id: "id", sport: "tennis" } },
+  };
+  expect(
+    await fixture({ rows: [vendor], data }).provider.forEvent(alcaraz),
+  ).not.toBeNull();
+  expect(
+    await fixture({
+      rows: [{ ...vendor, away: "Carlos Alcaraz Junior" }],
+      data,
+    }).provider.forEvent(alcaraz),
+  ).toBeNull();
+});
+it("finds a missing live game through the exact publisher team and still validates both participants and kickoff", async () => {
+  const bologna = {
+    ...event,
+    sport: "Football" as const,
+    home: "Bologna",
+    away: "Monza",
+  };
+  const vendor = {
+    ...row,
+    home: "Bologna",
+    away: "Monza",
+    url: "/football/match/monza-vs-bologna/vendorid/",
+  };
+  let duplicateTeam = false;
+  let wrongOpponent = false;
+  const fetcher = vi.fn(async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/search/"))
+      return Response.json({
+        sport: "football",
+        teams: duplicateTeam
+          ? [
+              { name: "Bologna", slug: "bologna" },
+              { name: "Bologna", slug: "other" },
+            ]
+          : [
+              { name: "Bologna", slug: "bologna" },
+              { name: "Bologna U19", slug: "bologna-u19" },
+            ],
+      });
+    if (url.pathname.endsWith("/fixtures/"))
+      return Response.json({
+        sport: "football",
+        matches:
+          url.searchParams.get("team") === "bologna"
+            ? [{ ...vendor, away: wrongOpponent ? "Another club" : "Monza" }]
+            : [],
+      });
+    return Response.json({
+      sport: "football",
+      updated: new Date(at).toISOString(),
+      match: { ...vendor, tracker: { id: "id", sport: "football" } },
+    });
+  });
+  const resolve = () =>
+    new MatchTrackerProvider(
+      new ProviderCache(fetcher as typeof fetch, () => at),
+      () => at,
+    ).forEvent(bologna);
+  expect(await resolve()).toMatchObject({
+    url: "https://sportscore.com/embed/tracker/football/monza-vs-bologna/",
+  });
+  expect(fetcher.mock.calls).toHaveLength(4);
+  duplicateTeam = true;
+  expect(await resolve()).toBeNull();
+  duplicateTeam = false;
+  wrongOpponent = true;
+  expect(await resolve()).toBeNull();
+});
 it("resolves the exact match to the published embed with no upstream credentials and deduplicates", async () => {
   const { provider, fetcher } = fixture();
   const [a, b] = await Promise.all([
