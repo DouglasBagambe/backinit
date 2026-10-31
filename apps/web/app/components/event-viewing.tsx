@@ -42,7 +42,12 @@ export function EventViewing({
       try {
         const response = await fetch(
           `/api/events/${encodeURIComponent(initialEvent.id)}`,
-          { signal: controller.signal },
+          {
+            signal: AbortSignal.any([
+              controller.signal,
+              AbortSignal.timeout(25000),
+            ]),
+          },
         );
         if (!response.ok) throw new Error();
         const body = await response.json();
@@ -62,6 +67,7 @@ export function EventViewing({
       }
     };
     const timer = setInterval(() => void refresh(), 30000);
+    void refresh();
     document.addEventListener("visibilitychange", refresh);
     return () => {
       controller.abort();
@@ -71,15 +77,24 @@ export function EventViewing({
   }, [initialEvent]);
   const [tab, setTab] = useState("Overview");
   const [watchableIds, setWatchableIds] = useState<string[]>([]);
+  const [watchEvents, setWatchEvents] = useState<SportEvent[]>([]);
   useEffect(() => {
     const controller = new AbortController();
+    let running = false;
     const load = async () => {
+      if (running || controller.signal.aborted) return;
+      running = true;
       try {
         const response = await fetch("/api/watch", {
-          signal: controller.signal,
+          signal: AbortSignal.any([
+            controller.signal,
+            AbortSignal.timeout(20000),
+          ]),
         });
         if (!response.ok) throw new Error();
         const feed = watchFeedSchema.parse(await response.json());
+        if (!controller.signal.aborted)
+          setWatchEvents(feed.data.map((entry) => entry.event));
         if (!controller.signal.aborted)
           setWatchableIds(
             feed.data
@@ -92,6 +107,8 @@ export function EventViewing({
           );
       } catch {
         if (!controller.signal.aborted) setWatchableIds([]);
+      } finally {
+        running = false;
       }
     };
     void load();
@@ -104,7 +121,7 @@ export function EventViewing({
     };
   }, []);
   const { zone } = useViewingZone();
-  const related = events
+  const related = (watchEvents.length ? watchEvents : events)
     .filter(
       (e) =>
         watchableIds.includes(e.id) &&

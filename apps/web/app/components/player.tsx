@@ -42,6 +42,7 @@ export function Player({
   const [isLive, setLive] = useState(false);
   const [controls, setControls] = useState({ fullscreen: false, pip: false });
   const reported = useRef(false);
+  const failedSources = useRef(new Set<string>());
   const liveRef = useRef(false);
   const reportRef = useRef(onPlaybackReport);
   reportRef.current = onPlaybackReport;
@@ -70,12 +71,20 @@ export function Player({
       return;
     }
     const controller = new AbortController();
+    let running = false;
     let first = true;
     async function load() {
+      if (running || controller.signal.aborted) return;
+      running = true;
       try {
         const response = await fetch(
           `/api/streams${eventId ? `?event=${encodeURIComponent(eventId)}` : sourceId ? "?library=1" : ""}`,
-          { signal: controller.signal },
+          {
+            signal: AbortSignal.any([
+              controller.signal,
+              AbortSignal.timeout(20000),
+            ]),
+          },
         );
         if (!response.ok) throw new Error();
         const result = z
@@ -114,6 +123,8 @@ export function Player({
       } catch {
         if (!controller.signal.aborted)
           setState("Streams unavailable. Try again.");
+      } finally {
+        running = false;
       }
     }
     void load();
@@ -134,15 +145,26 @@ export function Player({
       const alternatives = sourcesRef.current.filter(
         (s) => s.id !== source.id && sourceIsActive(s),
       );
+      const next = alternatives.find(
+        (item) => !failedSources.current.has(item.id),
+      );
       setSources(alternatives);
-      select(alternatives[0]?.id || "");
-      start(alternatives.length > 0);
+      select(next?.id || alternatives[0]?.id || "");
+      start(Boolean(next));
       setConsent(false);
-      setState(alternatives.length ? "Switching source…" : message);
+      setState(
+        next
+          ? "Switching source…"
+          : alternatives.length
+            ? "Playback unavailable. Retry or choose another source."
+            : message,
+      );
     };
     const fail = () => {
-      if (!disposed)
+      if (!disposed) {
+        failedSources.current.add(source.id);
         setState("Playback unavailable. Retry or choose another source.");
+      }
     };
     reported.current = false;
     liveRef.current = false;
@@ -150,6 +172,10 @@ export function Player({
     setLevels([]);
     setQuality(-1);
     setState(source.type === "embed" ? "Ready to play" : "Loading stream…");
+    const loadingTimer =
+      source.type === "embed" ? undefined : setTimeout(fail, 15000);
+    const decoded = () => clearTimeout(loadingTimer);
+    element?.addEventListener("loadeddata", decoded);
     const check = new AbortController();
     const availability = () => {
       if (previewSource) {
@@ -205,6 +231,8 @@ export function Player({
     return () => {
       disposed = true;
       check.abort();
+      clearTimeout(loadingTimer);
+      element?.removeEventListener("loadeddata", decoded);
       clearInterval(healthTimer);
       clearInterval(expiry);
       transport?.destroy();
@@ -254,10 +282,14 @@ export function Player({
   const failed =
     /unavailable|could not|disabled|restrict|withdrawn|expired/i.test(state);
   const retryPlayback = () => {
+    if (source) failedSources.current.delete(source.id);
+    start(true);
     setState("Ready to play");
     retry((n) => n + 1);
   };
   const selectSource = (id: string) => {
+    failedSources.current.delete(id);
+    start(true);
     setState("Ready to play");
     select(id);
     setConsent(false);

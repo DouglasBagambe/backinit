@@ -1,10 +1,9 @@
-import { resolveEdition, demoEnabled } from "../lib/edition";
+import { demoEnabled } from "../lib/edition";
 import { notFound } from "next/navigation";
 import { sports } from "@backinit/domain";
 import { cookies } from "next/headers";
-import { loadEvents, loadEvent } from "../lib/feed";
-import { loadNews } from "../lib/news";
 import { Experience } from "../components/experience";
+import { loadPageData } from "../lib/page-loader";
 export default async function Page({
   params,
 }: {
@@ -32,9 +31,17 @@ export default async function Page({
     "videos",
     "playback",
   ];
+  if (
+    !pages.includes(route) &&
+    !(slug.length === 2 && ["match", "watch"].includes(slug[0]!)) &&
+    !(
+      slug[0] === "sport" &&
+      slug.length === 2 &&
+      sports.some((s) => s.toLowerCase().replaceAll(" ", "-") === slug[1])
+    )
+  )
+    notFound();
   const selected = (await cookies()).get("backinit-edition")?.value;
-  const detail =
-    ["match", "watch"].includes(slug[0] || "") && slug.length === 2;
   const requestedEdition =
     route === "watch" || route.startsWith("watch/")
       ? "real"
@@ -43,17 +50,7 @@ export default async function Page({
         : selected === "real"
           ? "real"
           : undefined;
-  const [feed, news, match] = await Promise.all([
-    loadEvents(requestedEdition, detail ? 5000 : 20000),
-    route === "" || route === "news" ? loadNews() : Promise.resolve(null),
-    detail
-      ? loadEvent(slug[1]!, resolveEdition(requestedEdition))
-      : Promise.resolve(null),
-  ]);
-  if (match)
-    feed.data = feed.data.some((e) => e.id === match.id)
-      ? feed.data.map((e) => (e.id === match.id ? match : e))
-      : [match, ...feed.data];
+  const { feed, news } = await loadPageData(route, requestedEdition);
   if (
     !pages.includes(route) &&
     !(

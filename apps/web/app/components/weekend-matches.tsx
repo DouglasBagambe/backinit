@@ -79,13 +79,14 @@ export function WeekendMatches({
       }
     };
     const timer = setInterval(() => void refresh(), 30000);
+    if (poll && !initialEvents.length) void refresh();
     document.addEventListener("visibilitychange", refresh);
     return () => {
       controller.abort();
       clearInterval(timer);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [poll]);
+  }, [poll, initialEvents.length]);
   const sport = params.get("sport");
   if (
     (sport && sport !== "Football" && sport !== "All sports") ||
