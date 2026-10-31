@@ -370,9 +370,14 @@ test("admin sources require verification, match only their fixture, expose retry
   await expect(page.getByLabel("Stream source", { exact: true })).toHaveCount(
     0,
   );
-  await expect
-    .poll(async () => page.locator("video").getAttribute("aria-label"))
-    .toBe(source.name);
+  // Both media requests are deliberately aborted. After revocation, retain the
+  // main tracker and retry control rather than leaving a failed video surface.
+  await expect(
+    page.locator(".player-tracker-fallback .event-tracker"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Retry", exact: true }),
+  ).toBeVisible();
   expect(
     (
       await (await page.request.get(`/api/streams?event=${priority}`)).json()
