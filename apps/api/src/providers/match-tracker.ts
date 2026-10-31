@@ -48,6 +48,14 @@ const name = (value: string) =>
     .replace(/[^a-z0-9]/g, "");
 function participantName(sport: string, value: string) {
   const normalized = name(value);
+  // The senior club's official name is FC Internazionale Milano (inter.it).
+  // ESPN calls it Internazionale; the publisher calls it Inter Milan.
+  // Keep youth/women's teams and other clubs containing "Inter" distinct.
+  if (
+    sport === "Football" &&
+    ["internazionale", "intermilan"].includes(normalized)
+  )
+    return "fcinternazionalemilano";
   // RFET's published player record names Carlos Alcaraz Garfia;
   // ESPN uses Carlos Alcaraz. Keep this an explicit identity alias,
   // rather than accepting arbitrary first-name/surname prefix matches.
@@ -119,7 +127,9 @@ export class MatchTrackerProvider {
       );
       if (search.stale || search.value.sport !== sport) return null;
       const teams = search.value.teams.filter(
-        (team) => name(team.name) === name(event.home),
+        (team) =>
+          participantName(event.sport, team.name) ===
+          participantName(event.sport, event.home),
       );
       if (teams.length !== 1) return null;
       const scoped = await this.cache.json(
