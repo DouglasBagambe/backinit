@@ -138,6 +138,13 @@ export function Player({
   }, [eventId, sourceId, previewSource, registryAttempt]);
   useEffect(() => {
     if (!source || !started) return;
+    // Registry refreshes can select an earlier source after a revocation.
+    // Only an explicit Retry or source choice may restart a known failure.
+    if (failedSources.current.has(source.id)) {
+      start(false);
+      setState("Playback unavailable. Retry or choose another source.");
+      return;
+    }
     let disposed = false;
     let transport: Transport | undefined;
     const element = video.current;
