@@ -237,3 +237,45 @@ it("uses a single cached documented API batch instead of watch-page parsing when
     fetcher.mock.calls.some(([url]) => String(url).includes("/watch?")),
   ).toBe(false);
 });
+
+it("includes only verified FIFA match broadcasts, excluding studio and news streams", () => {
+  const fifa = broadcastPublishers.find((p) => p.key === "fifa")!;
+  const raw = metadata(true, true, fifa.channel);
+  const match = {
+    ...raw,
+    videoDetails: {
+      ...raw.videoDetails,
+      title: "LIVE | Team A v Team B | FIFA tournament",
+    },
+  };
+  expect(
+    normalizeBroadcast(match, videoId, fifa, new Date(at).toISOString(), false)
+      ?.sport,
+  ).toBe("Football");
+  for (const title of [
+    "LIVE | FIFA press conference",
+    "LIVE | Team A v Team B watch-along",
+    "LIVE | FIFA news",
+  ])
+    expect(
+      normalizeBroadcast(
+        { ...match, videoDetails: { ...match.videoDetails, title } },
+        videoId,
+        fifa,
+        new Date(at).toISOString(),
+        false,
+      ),
+    ).toBeNull();
+  expect(
+    normalizeBroadcast(
+      {
+        ...match,
+        videoDetails: { ...match.videoDetails, channelId: "UCwrong" },
+      },
+      videoId,
+      fifa,
+      new Date(at).toISOString(),
+      false,
+    ),
+  ).toBeNull();
+});

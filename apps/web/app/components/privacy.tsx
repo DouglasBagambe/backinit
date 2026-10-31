@@ -1,8 +1,8 @@
 import Link from "next/link";
 export function Privacy({
-  adFramesApproved = false,
+  nativeAdsEnabled = false,
 }: {
-  adFramesApproved?: boolean;
+  nativeAdsEnabled?: boolean;
 }) {
   return (
     <>
@@ -51,7 +51,7 @@ export function Privacy({
           your BackInIt account credentials.
         </p>
         <h2>Advertising</h2>
-        {adFramesApproved ? (
+        {nativeAdsEnabled ? (
           <>
             <p>
               With your permission, we load ads from Adsterra and its

@@ -28,6 +28,13 @@ export const broadcastPublishers = [
     channel: "UCtInrnU3QbWqFGsdKT1GZtg",
     sport: "Basketball",
   },
+  {
+    key: "fifa",
+    name: "FIFA",
+    owner: "FIFA",
+    channel: "UCpcTrCXblq78GZrTUTLWeBw",
+    sport: "Football",
+  },
 ] as const;
 type Publisher = (typeof broadcastPublishers)[number];
 const freshFor = 120000;
@@ -103,6 +110,14 @@ export function normalizeBroadcast(
     typeof video.title !== "string" ||
     typeof live.startTimestamp !== "string" ||
     !Number.isFinite(Date.parse(live.startTimestamp))
+  )
+    return null;
+  if (
+    publisher.key === "fifa" &&
+    (/press conference|draw|watch.?along|preview|highlights|reaction/i.test(
+      video.title,
+    ) ||
+      !/\b(vs?\.?|x)\b| - |\bmatch\b/i.test(video.title))
   )
     return null;
   const ended =

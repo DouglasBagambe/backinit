@@ -103,6 +103,8 @@ export const espnLeagues: League[] = [
   { path: "soccer/eng.league_cup", sport: "Football", label: "Carabao Cup" },
   { path: "soccer/eng.1", sport: "Football", label: "Premier League" },
   { path: "soccer/esp.1", sport: "Football", label: "La Liga" },
+  { path: "soccer/ita.1", sport: "Football", label: "Serie A" },
+  { path: "soccer/fra.1", sport: "Football", label: "Ligue 1" },
   {
     path: "soccer/uefa.champions",
     sport: "Football",

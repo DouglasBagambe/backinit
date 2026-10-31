@@ -46,9 +46,13 @@ export function Player({
   const reportRef = useRef(onPlaybackReport);
   reportRef.current = onPlaybackReport;
   const source = sources.find((s) => s.id === selected);
+  const playbackFailed =
+    /unavailable|could not|disabled|restrict|withdrawn|expired/i.test(state) &&
+    !state.startsWith("Streams unavailable") &&
+    !state.includes("viewing mode");
   useEffect(() => {
-    onAvailability?.(Boolean(source));
-  }, [Boolean(source), onAvailability]);
+    onAvailability?.(Boolean(source) && !playbackFailed);
+  }, [Boolean(source), playbackFailed, onAvailability]);
   const sourcesRef = useRef(sources);
   sourcesRef.current = sources;
   useEffect(() => {
@@ -249,7 +253,7 @@ export function Player({
     source && new URL(source.url).hostname === "www.youtube-nocookie.com";
   const failed =
     /unavailable|could not|disabled|restrict|withdrawn|expired/i.test(state);
-  if (eventId && !source)
+  if (eventId && (!source || (playbackFailed && fallback)))
     return (
       <section
         className={`player player-unavailable${fallback ? " player-tracker-fallback" : ""}`}
@@ -263,7 +267,9 @@ export function Player({
                 ? state
                 : state.startsWith("Streams unavailable")
                   ? "Unable to check streams"
-                  : "No stream available"}
+                  : failed && source
+                    ? "Stream unavailable here"
+                    : "No stream available"}
             </h2>
           </div>
           <button onClick={() => reload((n) => n + 1)}>Check streams</button>

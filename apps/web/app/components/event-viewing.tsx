@@ -314,7 +314,7 @@ export function EventViewing({
               <LiveTracker event={event} compact />
             </div>
           )}
-          <AdSlot format="rectangle" sponsored />
+          <AdSlot format="rectangle" sponsored native />
           <section className="event-switcher">
             <h2>More to watch</h2>
 
