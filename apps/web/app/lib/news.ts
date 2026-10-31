@@ -3,8 +3,9 @@ import { newsFeedSchema, type NewsFeed } from "@backinit/domain";
 export async function loadNews(): Promise<NewsFeed> {
   try {
     const response = await fetch(apiUrl(`/news`), {
-      cache: "no-store",
-      signal: AbortSignal.timeout(9000),
+      cache: "force-cache",
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(1500),
     });
     if (!response.ok) throw new Error();
     return newsFeedSchema.parse(await response.json());

@@ -382,6 +382,34 @@ export const feedSchema = z.object({
   coverage: z.array(coverageSchema),
 });
 export type EventFeed = z.infer<typeof feedSchema>;
+
+/** Cached live snapshots must never masquerade as current after their source expires. */
+export function freshEventFeed(feed: EventFeed, now = Date.now()): EventFeed {
+  const delayed = new Set<string>();
+  const data = feed.data.map((event) => {
+    if (
+      event.provenance !== "provider" ||
+      event.status !== "live" ||
+      !event.source ||
+      now - Date.parse(event.source.fetchedAt) <= 60000
+    )
+      return event;
+    delayed.add(event.source.provider);
+    return {
+      ...event,
+      status: "unknown" as const,
+      source: { ...event.source, stale: true },
+      ...(event.kind === "score" ? { clock: "Last update" } : {}),
+    };
+  });
+  return {
+    ...feed,
+    data,
+    coverage: feed.coverage.map((row) =>
+      delayed.has(row.provider) ? { ...row, status: "stale" as const } : row,
+    ),
+  };
+}
 export const streamSourceSchema = z
   .object({
     id: z.string().regex(/^[a-z0-9-]{1,80}$/),

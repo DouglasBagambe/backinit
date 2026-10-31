@@ -3,6 +3,7 @@ import {
   DemoProvider,
   feedSchema,
   eventSchema,
+  freshEventFeed,
   type EventFeed,
 } from "@backinit/domain";
 import { resolveEdition } from "./edition";
@@ -14,7 +15,8 @@ export async function loadEvents(
   try {
     const response = await fetch(apiUrl(`/events?edition=${edition}`), {
       signal: AbortSignal.timeout(timeout),
-      cache: "no-store",
+      cache: "force-cache",
+      next: { revalidate: 10 },
     });
     if (!response.ok) throw new Error("Provider unavailable");
     const body = feedSchema.parse(await response.json());
@@ -25,7 +27,7 @@ export async function loadEvents(
       )
     )
       throw new Error("Mismatched provenance");
-    return body;
+    return freshEventFeed(body);
   } catch {
     return edition === "demo"
       ? {
@@ -55,12 +57,21 @@ export async function loadEvent(id: string, edition: "real" | "demo") {
   try {
     const response = await fetch(
       apiUrl(`/events/${encodeURIComponent(id)}?edition=${edition}`),
-      { signal: AbortSignal.timeout(20000), cache: "no-store" },
+      {
+        signal: AbortSignal.timeout(20000),
+        cache: "force-cache",
+        next: { revalidate: 10 },
+      },
     );
     if (!response.ok) return null;
     const event = eventSchema.parse(await response.json());
     return event.provenance === (edition === "real" ? "provider" : "demo")
-      ? event
+      ? freshEventFeed({
+          data: [event],
+          edition,
+          source: "Public match",
+          coverage: [],
+        }).data[0]!
       : null;
   } catch {
     return null;

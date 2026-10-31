@@ -1,6 +1,7 @@
 import { ForbiddenException } from "@nestjs/common";
 import {
   DemoProvider,
+  freshEventFeed,
   type EventFeed,
   type SportEvent,
   type Coverage,
@@ -34,9 +35,41 @@ export class SportsService {
     return this.broadcasts.flatMap((p) => p.sourcesFor(event));
   }
   private known = new Map<string, SportEvent>();
+  private snapshots = new Map<string, { value: EventFeed; at: number }>();
+  private feedRequests = new Map<string, Promise<EventFeed>>();
   async feed(
     edition: "real" | "demo" = "real",
     date = new Date().toISOString().slice(0, 10),
+  ): Promise<EventFeed> {
+    if (edition !== "real" || process.env.SPORTS_PROVIDERS_DISABLED === "true")
+      return this.loadFeed(edition, date);
+    const cached = this.snapshots.get(date);
+    const refresh = () => {
+      let task = this.feedRequests.get(date);
+      if (!task) {
+        task = this.loadFeed(edition, date).then((value) => {
+          if (this.snapshots.size >= 8 && !this.snapshots.has(date))
+            this.snapshots.delete(this.snapshots.keys().next().value!);
+          this.snapshots.set(date, {
+            value: structuredClone(value),
+            at: Date.now(),
+          });
+          return value;
+        });
+        this.feedRequests.set(date, task);
+        void task.finally(() => this.feedRequests.delete(date)).catch(() => {});
+      }
+      return task;
+    };
+    if (cached && Date.now() - cached.at < 60000) {
+      if (Date.now() - cached.at >= 10000) void refresh().catch(() => {});
+      return freshEventFeed(structuredClone(cached.value));
+    }
+    return freshEventFeed(structuredClone(await refresh()));
+  }
+  private async loadFeed(
+    edition: "real" | "demo",
+    date: string,
   ): Promise<EventFeed> {
     if (edition === "demo" && process.env.ALLOW_DEMO_MODE !== "true")
       throw new ForbiddenException("Demo mode is disabled.");
@@ -241,7 +274,7 @@ export class SportsService {
       const date =
         this.known.get(id)?.start.slice(0, 10) ||
         new Date().toISOString().slice(0, 10);
-      const result = await this.espn.events(league, date);
+      const result = await this.espn.events(league, date, false);
       return result.value.find((event) => event.id === id);
     }
     return this.fixture(id, "real");

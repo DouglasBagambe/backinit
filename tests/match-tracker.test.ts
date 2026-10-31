@@ -348,3 +348,34 @@ it("keeps viewed tennis matches independent of unrelated catalogue failures and 
   });
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it("loads a viewed football match from one day rather than waiting for eight schedule days", async () => {
+  const fetcher = vi.fn(async () =>
+    Response.json({
+      leagues: [{ name: "Premier League" }],
+      events: [
+        {
+          id: "42",
+          name: "Home vs Away",
+          date: new Date().toISOString(),
+          competitions: [
+            {
+              id: "42",
+              date: new Date().toISOString(),
+              status: { type: { state: "in" } },
+              competitors: [
+                { id: "1", homeAway: "home", team: { displayName: "Home" } },
+                { id: "2", homeAway: "away", team: { displayName: "Away" } },
+              ],
+            },
+          ],
+        },
+      ],
+    }),
+  );
+  vi.stubGlobal("fetch", fetcher);
+  expect(
+    await new SportsService().trackerFixture("espn-soccer-eng-1-42"),
+  ).toMatchObject({ home: "Home", away: "Away" });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});

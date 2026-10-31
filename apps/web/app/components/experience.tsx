@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { AdvertisingProvider, AdSlot, AdPreferences } from "./advertising";
-import { BrandMark } from "./brand";
+import { BrandMark, EventSkeleton } from "./brand";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
@@ -32,6 +32,7 @@ import {
   type SportEvent,
   type Coverage,
   type NewsFeed,
+  type EventFeed,
 } from "@backinit/domain";
 import { LazyPlayer as Player } from "./lazy-player";
 import { Crest, Empty } from "./primitives";
@@ -47,14 +48,16 @@ import { Privacy } from "./privacy";
 import { Account, accountRequest, type AccountUser } from "./account";
 import { Admin } from "./admin";
 import { Directory, type Follow } from "./directory";
+import { usesCatalogue } from "../lib/page-data";
+import { feedSchema, eventSchema, freshEventFeed } from "@backinit/domain";
 const sportUrl = (s: string) =>
   "/sport/" + s.toLowerCase().replaceAll(" ", "-");
 export function Experience({
   route,
   initialEvents,
-  feedSource,
+  feedSource: seedSource,
   edition,
-  coverage,
+  coverage: seedCoverage,
   news,
   demoAvailable = false,
   nativeAdsEnabled = false,
@@ -68,19 +71,105 @@ export function Experience({
   demoAvailable?: boolean;
   nativeAdsEnabled?: boolean;
 }) {
-  const events = initialEvents;
+  const [liveFeed, setLiveFeed] = useState<EventFeed>({
+    data: initialEvents,
+    source: seedSource,
+    coverage: seedCoverage,
+    edition,
+  });
+  const [catalogueLoading, setCatalogueLoading] = useState(
+    edition === "real" && usesCatalogue(route) && !initialEvents.length,
+  );
+  const events = liveFeed.data;
+  const feedSource = liveFeed.source;
+  const coverage = liveFeed.coverage;
+  useEffect(() => {
+    setLiveFeed((old) =>
+      initialEvents.length || old.edition !== edition || !old.data.length
+        ? {
+            data: initialEvents,
+            source: seedSource,
+            coverage: seedCoverage,
+            edition,
+          }
+        : freshEventFeed(old),
+    );
+  }, [initialEvents, seedSource, seedCoverage, edition, route]);
+  useEffect(
+    () =>
+      setCatalogueLoading(
+        edition === "real" && usesCatalogue(route) && !liveFeed.data.length,
+      ),
+    [route, edition, initialEvents.length, liveFeed.data.length],
+  );
   const router = useRouter();
   const real = edition === "real";
   const [editionError, setEditionError] = useState("");
   const [date, setDate] = useState("");
   useEffect(() => {
-    // Watch owns its feed/detail polling; a route refresh would reset newer tracker data.
-    if (!real || route === "watch" || route.startsWith("watch/")) return;
+    // Refresh data without rerendering the whole route or blocking a navigation.
+    if (
+      !real ||
+      !usesCatalogue(route) ||
+      route === "watch" ||
+      route.startsWith("watch/")
+    )
+      return;
+    const controller = new AbortController();
+    const matchId = route.startsWith("match/") ? route.split("/")[1] : null;
+    let running = false;
+    const refresh = async () => {
+      if (running || document.hidden || controller.signal.aborted) return;
+      running = true;
+      try {
+        const response = await fetch(
+          matchId
+            ? `/api/events/${encodeURIComponent(matchId)}`
+            : "/api/events",
+          {
+            signal: AbortSignal.any([
+              controller.signal,
+              AbortSignal.timeout(20000),
+            ]),
+          },
+        );
+        if (!response.ok) return;
+        const body = await response.json();
+        if (matchId) {
+          const event = eventSchema.parse(body.data);
+          if (event.id !== matchId || event.provenance !== "provider")
+            throw new Error("Wrong match");
+          if (!controller.signal.aborted)
+            setLiveFeed((old) =>
+              freshEventFeed({
+                ...old,
+                data: old.data.some((e) => e.id === event.id)
+                  ? old.data.map((e) => (e.id === event.id ? event : e))
+                  : [event, ...old.data],
+              }),
+            );
+          return;
+        }
+        const feed = freshEventFeed(feedSchema.parse(body));
+        if (!controller.signal.aborted && feed.edition === "real")
+          setLiveFeed(feed);
+      } catch {
+        if (!controller.signal.aborted)
+          setLiveFeed((old) => freshEventFeed(old));
+      } finally {
+        running = false;
+        if (!controller.signal.aborted) setCatalogueLoading(false);
+      }
+    };
+    if (!initialEvents.length || matchId) void refresh();
     const timer = setInterval(() => {
-      if (!document.hidden) router.refresh();
+      void refresh();
     }, 30000);
-    return () => clearInterval(timer);
-  }, [real, router, route]);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [real, route, initialEvents.length]);
   async function changeEdition() {
     setEditionError("");
     try {
@@ -914,7 +1003,9 @@ export function Experience({
                           <span>Fixed demo calendar</span>
                         </div>
                       )}
-                      {list.length === 0 ? (
+                      {catalogueLoading && !events.length ? (
+                        <EventSkeleton />
+                      ) : list.length === 0 ? (
                         <Empty
                           title={
                             route === "favorites"

@@ -316,11 +316,11 @@ export class EspnProvider {
       r.stale,
     ).find((e) => e.id === id);
   }
-  async events(league: League, date: string) {
+  async events(league: League, date: string, includeFuture = true) {
     const from = date.replaceAll("-", "");
     if (league.sport === "Football") {
       // Football rejects date ranges. Keep future schedules out of the live cache.
-      const days = Array.from({ length: 8 }, (_, index) => {
+      const days = Array.from({ length: includeFuture ? 8 : 1 }, (_, index) => {
         const day = new Date(`${date}T12:00:00Z`);
         day.setUTCDate(day.getUTCDate() + index);
         return day.toISOString().slice(0, 10).replaceAll("-", "");
