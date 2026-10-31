@@ -1,4 +1,4 @@
-import { demoEnabled } from "../lib/edition";
+import { resolveEdition, demoEnabled } from "../lib/edition";
 import { notFound } from "next/navigation";
 import { sports } from "@backinit/domain";
 import { cookies } from "next/headers";
@@ -33,22 +33,23 @@ export default async function Page({
     "playback",
   ];
   const selected = (await cookies()).get("backinit-edition")?.value;
-  const [feed, news] = await Promise.all([
-    loadEvents(
-      route === "watch" || route.startsWith("watch/")
-        ? "real"
-        : selected === "demo"
-          ? "demo"
-          : selected === "real"
-            ? "real"
-            : undefined,
-    ),
+  const detail =
+    ["match", "watch"].includes(slug[0] || "") && slug.length === 2;
+  const requestedEdition =
+    route === "watch" || route.startsWith("watch/")
+      ? "real"
+      : selected === "demo"
+        ? "demo"
+        : selected === "real"
+          ? "real"
+          : undefined;
+  const [feed, news, match] = await Promise.all([
+    loadEvents(requestedEdition, detail ? 5000 : 20000),
     route === "" || route === "news" ? loadNews() : Promise.resolve(null),
+    detail
+      ? loadEvent(slug[1]!, resolveEdition(requestedEdition))
+      : Promise.resolve(null),
   ]);
-  const match =
-    ["match", "watch"].includes(slug[0] || "") && slug.length === 2
-      ? await loadEvent(slug[1]!, feed.edition)
-      : null;
   if (match)
     feed.data = feed.data.some((e) => e.id === match.id)
       ? feed.data.map((e) => (e.id === match.id ? match : e))

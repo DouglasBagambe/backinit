@@ -216,3 +216,51 @@ it("resolves a tracker from its league scoreboard without waiting for unrelated 
   ).toBeUndefined();
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it("keeps viewed tennis matches independent of unrelated catalogue failures and unsupported summary endpoints", async () => {
+  const fetcher = vi.fn(async (input: string | URL | Request) => {
+    expect(String(input)).toContain("/tennis/atp/scoreboard?");
+    return Response.json({
+      leagues: [{ name: "ATP Paris" }],
+      events: [
+        {
+          id: "42",
+          name: "A vs B",
+          date: new Date().toISOString(),
+          competitions: [
+            {
+              id: "42",
+              date: new Date().toISOString(),
+              status: { type: { state: "in", name: "STATUS_IN_PROGRESS" } },
+              competitors: [
+                {
+                  id: "1",
+                  homeAway: "home",
+                  athlete: { displayName: "Player A" },
+                },
+                {
+                  id: "2",
+                  homeAway: "away",
+                  athlete: { displayName: "Player B" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+  });
+  vi.stubGlobal("fetch", fetcher);
+  const service = new SportsService();
+  const first = await service.event("espn-tennis-atp-42", "real");
+  expect(first).toMatchObject({
+    status: "live",
+    home: "Player A",
+    away: "Player B",
+  });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(await service.event("espn-tennis-atp-42", "real")).toMatchObject({
+    status: "live",
+  });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+});
