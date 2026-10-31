@@ -133,7 +133,7 @@ export function LiveTracker({
     );
   return (
     <PublisherTracker
-      key={`${source.url}:${theme}:${attempt}`}
+      key={`${source.url}:${source.transport}:${theme}:${attempt}`}
       source={source}
       event={event}
       theme={theme}
@@ -243,13 +243,26 @@ function PublisherTracker({
           title={`${event.sport} live match tracker`}
           key={navigation}
           {...{ credentialless: true }}
-          src={`${source.viewUrl || `/api/trackers/${event.id}/view`}?theme=${theme}&attempt=${navigation}`}
+          src={`${source.transport === "publisher" ? source.url : source.viewUrl || `/api/trackers/${event.id}/view`}?theme=${theme}&attempt=${navigation}`}
           sandbox={
-            source.viewUrl
+            source.transport === "publisher" || source.viewUrl
               ? "allow-scripts allow-same-origin"
               : "allow-scripts allow-popups"
           }
           referrerPolicy="strict-origin-when-cross-origin"
+          onLoad={() => {
+            // The publisher does not expose a data-ready callback. This only
+            // reveals its document; its own UI reports upstream availability.
+            if (source.transport !== "publisher") return;
+            loadedRef.current = true;
+            setLoaded(true);
+            setSlow(false);
+          }}
+          onError={() => {
+            loadedRef.current = false;
+            setLoaded(false);
+            setSlow(true);
+          }}
           aria-hidden={showSummary || undefined}
           tabIndex={showSummary ? -1 : undefined}
         />

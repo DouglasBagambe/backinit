@@ -1,6 +1,68 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { verifiedCupFixtures } from "../../apps/api/src/providers/efl";
+
+test("publisher transport retains the authorized publisher origin for nested live data", async ({
+  page,
+  baseURL,
+}) => {
+  await page
+    .context()
+    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+  await page.clock.setFixedTime(new Date("2026-10-28T20:05:00Z"));
+  await page.route(`**/api/events/${fixture.id}`, (r) =>
+    r.fulfill({ json: { data: event } }),
+  );
+  const url =
+    "https://sportscore.com/embed/tracker/football/liverpool-vs-chelsea/";
+  await page.route(`**/api/trackers/${fixture.id}`, (r) =>
+    r.fulfill({
+      json: {
+        data: {
+          provider: "SportScore",
+          kind: "publisher-tracker",
+          transport: "publisher",
+          eventId: fixture.id,
+          url,
+          sourceUrl: "https://sportscore.com/",
+          checkedAt: source.fetchedAt,
+          validUntil: "2026-10-28T20:07:00Z",
+        },
+      },
+    }),
+  );
+  await page.route(`${url}?**`, (r) =>
+    r.fulfill({
+      contentType: "text/html",
+      body: '<html><body><iframe title="Publisher animation" src="https://widgets.thesports01.com/origin-contract"></iframe></body></html>',
+    }),
+  );
+  await page.route("https://widgets.thesports01.com/origin-contract", (r) =>
+    r.fulfill({
+      contentType: "text/html",
+      body: `<html><body><p id="state"></p><script>document.getElementById('state').textContent = new URL(document.referrer).origin === 'https://sportscore.com' ? 'Authorized match animation 40:30' : 'This domain is unauthorized';</script></body></html>`,
+    }),
+  );
+  await openFixture(page, fixture.id);
+  await page.clock.fastForward(31000);
+  const frame = page.locator(".publisher-tracker-frame > iframe");
+  await expect(frame).toHaveAttribute(
+    "src",
+    /^https:\/\/sportscore\.com\/embed\/tracker\//,
+  );
+  await expect(
+    page
+      .frameLocator(".publisher-tracker-frame > iframe")
+      .frameLocator("iframe")
+      .getByText("Authorized match animation 40:30"),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "Match summary", exact: true })
+    .click();
+  await expect(page.locator(".tracker-recovery .tracker-score")).toHaveText(
+    "1:0",
+  );
+});
 async function openFixture(page: Page, id: string) {
   const hydrated = page.waitForResponse((r) =>
     r.url().includes("/api/streams?event="),
