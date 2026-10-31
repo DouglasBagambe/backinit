@@ -56,7 +56,7 @@ export class TrackerController {
           data?.provider === "SportScore"
             ? {
                 ...data,
-                viewUrl: `https://backinit-api.onrender.com/trackers/${id}/view`,
+                transport: "publisher",
               }
             : data,
       };

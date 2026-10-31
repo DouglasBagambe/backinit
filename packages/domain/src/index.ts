@@ -549,6 +549,7 @@ export const trackerSourceSchema = z.discriminatedUnion("provider", [
         /^https:\/\/sportscore\.com\/embed\/tracker\/(football|basketball|tennis|cricket)\/[a-z0-9-]{1,220}\/$/,
       ),
     sourceUrl: z.literal("https://sportscore.com/"),
+    transport: z.literal("publisher").optional(),
     viewUrl: z
       .string()
       .regex(

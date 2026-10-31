@@ -78,6 +78,9 @@ it("resolves the exact match to the published embed with no upstream credentials
     "https://sportscore.com/embed/tracker/tennis/adrian-mannarino-vs-daniil-medvedev/",
   );
   expect(fetcher).toHaveBeenCalledTimes(2);
+  // The unfiltered daily list truncates before major afternoon fixtures.
+  const discovery = new URL(String(fetcher.mock.calls[0]![0]));
+  expect(discovery.searchParams.get("status")).toBe("live");
   expect(JSON.stringify(a)).not.toMatch(/profile|uuid|thesports/);
 });
 it("rejects wrong participants, dates, ambiguous matches and hostile canonical URLs", async () => {
