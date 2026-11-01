@@ -1,29 +1,109 @@
+"use client";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { WatchHub } from "./watch-hub";
 import { ArrowUpRight, Globe2 } from "lucide-react";
-import type { NewsFeed } from "@backinit/domain";
+import { newsFeedSchema, type NewsFeed } from "@backinit/domain";
 export function News({
   compact = false,
-  feed,
+  feed: initialFeed,
   real = false,
 }: {
   compact?: boolean;
   feed?: NewsFeed | null;
   real?: boolean;
 }) {
+  const [feed, setFeed] = useState(initialFeed);
+  const [loading, setLoading] = useState(false);
+  const [attempt, retry] = useState(0);
+  useEffect(
+    () =>
+      setFeed((old) =>
+        !old?.data.length ||
+        (initialFeed?.data.length &&
+          Date.parse(initialFeed.fetchedAt || "") >
+            Date.parse(old.fetchedAt || ""))
+          ? initialFeed
+          : old,
+      ),
+    [initialFeed],
+  );
+  useEffect(() => {
+    if (!real) return;
+    const controller = new AbortController();
+    let running = false;
+    const refresh = async () => {
+      if (running || document.hidden) return;
+      running = true;
+      setLoading(true);
+      try {
+        const response = await fetch("/api/news", {
+          signal: AbortSignal.any([
+            controller.signal,
+            AbortSignal.timeout(12000),
+          ]),
+        });
+        if (!response.ok) throw new Error();
+        const next = newsFeedSchema.parse(await response.json());
+        if (!controller.signal.aborted) setFeed(next);
+      } catch {
+        /* Keep the most recent readable snapshot during a transient failure. */
+      } finally {
+        running = false;
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+    void refresh();
+    const timer = setInterval(() => void refresh(), 300000);
+    document.addEventListener("visibilitychange", refresh);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", refresh);
+    };
+  }, [real, attempt]);
   return (
     <section className="news-section">
-      {real && !compact && <WatchHub preview />}
-      {real && !compact && !feed?.data.length && <p>No articles available.</p>}
+      {real && !feed?.data.length && loading && (
+        <div
+          className="news-grid"
+          role="status"
+          aria-label="Loading sports news"
+          aria-busy="true"
+        >
+          {[1, 2, 3].map((n) => (
+            <div className="panel news-card" key={n}>
+              <div className="skeleton-copy" aria-hidden="true" />
+              <div className="skeleton-copy" aria-hidden="true" />
+            </div>
+          ))}
+        </div>
+      )}
+      {real && !compact && !feed?.data.length && !loading && (
+        <div className="panel">
+          <p>{feed?.message || "News updates are temporarily unavailable."}</p>
+          <button onClick={() => retry((n) => n + 1)}>Retry news</button>
+        </div>
+      )}
       {feed && (!real || feed.data.length > 0) && (
         <>
           <div className="section-heading">
             <h2>Latest news</h2>
-            <span className="pill">{feed.status}</span>
+            <span className="pill">
+              {feed.status === "stale" ? "Updates delayed" : "Updated"}
+            </span>
           </div>
           <details>
             <summary>News coverage</summary>
             <p>{feed.message}</p>
+            {feed.attribution && (
+              <p>
+                News index:{" "}
+                <a href={feed.attribution.url} target="_blank" rel="noreferrer">
+                  {feed.attribution.name} ↗
+                </a>
+              </p>
+            )}
           </details>
           {feed.data.length > 0 && (
             <div className="news-grid">
@@ -42,6 +122,7 @@ export function News({
                   <h3>{item.title}</h3>
                   <p>
                     {item.source} ·{" "}
+                    {item.dateKind === "indexed" ? "Indexed " : ""}
                     <time dateTime={item.publishedAt}>
                       {new Date(item.publishedAt).toLocaleString("en-GB", {
                         timeZone: "UTC",
@@ -56,6 +137,7 @@ export function News({
           )}
         </>
       )}
+      {real && !compact && <WatchHub preview />}
       {!real && (
         <>
           <div className="section-heading">

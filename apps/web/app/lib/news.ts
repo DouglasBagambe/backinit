@@ -5,7 +5,7 @@ export async function loadNews(): Promise<NewsFeed> {
     const response = await fetch(apiUrl(`/news`), {
       cache: "force-cache",
       next: { revalidate: 300 },
-      signal: AbortSignal.timeout(1500),
+      signal: AbortSignal.timeout(350),
     });
     if (!response.ok) throw new Error();
     return newsFeedSchema.parse(await response.json());
@@ -13,7 +13,8 @@ export async function loadNews(): Promise<NewsFeed> {
     return {
       data: [],
       status: "unavailable",
-      message: "News service unavailable. Product guides are shown below.",
+      message:
+        "News updates are temporarily unavailable. Please retry shortly.",
       fetchedAt: null,
     };
   }

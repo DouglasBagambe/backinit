@@ -3,9 +3,12 @@ import { databasePool, checkAccountSchema } from "./postgres.js";
 import { PostgresAccounts } from "./postgres-accounts.js";
 import { PostgresNotifications } from "./postgres-notifications.js";
 import { createAccountController } from "./account-routes.js";
+import { PostgresStreams, checkStreamSchema } from "./postgres-streams.js";
 const pool = databasePool(process.env.DATABASE_URL!);
 await checkAccountSchema(pool);
+await checkStreamSchema(pool);
 export const accounts = new PostgresAccounts(pool);
+export const streams = new PostgresStreams(pool);
 export const notifications = new PostgresNotifications(accounts);
 export const AccountController = createAccountController(
   accounts,

@@ -2,7 +2,7 @@
 
 A multi-sport platform for official viewing, scores and following your sport.
 
-Watch leads with live/upcoming event discovery and dedicated event viewing pages. Official archive videos and test signals are separate from live sport. Provider adapters supply Bundesliga and Formula 1 scores/schedules when available. Accounts include favorites, recovery codes, privacy controls and opt-in in-app updates. The original demo is a separate, explicit edition. **This is not complete global coverage: guaranteed live feeds, most structured sports feeds, licensed syndicated news and direct live sports broadcasts remain unavailable.** Public launch requires further security, rights and infrastructure work and founder approval.
+Watch combines official publisher broadcasts with reported match tracking. Accounts, favorites, recovery codes and notification preferences use persistent PostgreSQL storage in production. Administrator broadcast sources and playback verification use the same durable backend. News links come from the free, attributed GDELT index, with its bulk RSS feed as a fallback; articles remain on their publishers’ websites. The original demo is a separate edition. Broadcasts and animated tracker coverage remain dependent on the upstream providers and regional availability; no universal live sports coverage is claimed.
 
 - [Local development and current capabilities](docs/DEVELOPMENT.md)
 - [Architecture and decisions](docs/ARCHITECTURE.md)

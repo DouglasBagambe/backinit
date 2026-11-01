@@ -12,7 +12,7 @@ class DatabaseWebSocket extends WebSocket {
   }
 }
 neonConfig.webSocketConstructor = DatabaseWebSocket;
-interface DatabaseQuery {
+export interface DatabaseQuery {
   query<R extends QueryResultRow = QueryResultRow>(
     text: string,
     values?: unknown[],
