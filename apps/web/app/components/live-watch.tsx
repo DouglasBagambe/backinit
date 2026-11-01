@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { WeekendMatches } from "./weekend-matches";
 import { EventSkeleton } from "./brand";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -46,7 +47,13 @@ export function sourceLabel(entry: WatchEntry) {
           ? "Viewing info"
           : "No stream";
 }
-export function LiveWatch({ preview = false }: { preview?: boolean }) {
+export function LiveWatch({
+  preview = false,
+  weekend = false,
+}: {
+  preview?: boolean;
+  weekend?: boolean;
+}) {
   const params = useSearchParams();
   const selectedSport = params.get("sport") || "All sports";
   const requestedRange = params.get("range");
@@ -173,279 +180,292 @@ export function LiveWatch({ preview = false }: { preview?: boolean }) {
     setRange("today");
   }
   return (
-    <section className="live-discovery" aria-label="Live event discovery">
-      <div className="watch-toolbar">
-        <h1>{preview ? "Sport today" : "Watch"}</h1>
-        <div className="filter-tabs" role="group" aria-label="Event schedule">
-          {[
-            ["live", "Live"],
-            ["today", "Today"],
-            ["upcoming", "Upcoming"],
-          ].map(([value, label]) => (
-            <button
-              key={value}
-              aria-pressed={range === value}
-              onClick={() => {
-                setRange(value);
-                setDate("");
-              }}
-            >
-              {value === "live" && <Radio size={13} />} {label}
-            </button>
-          ))}
-        </div>
-        <Link className="archive-link" href="/videos">
-          Highlights <ChevronRight size={14} />
-        </Link>
-      </div>
-      <div className="watch-controls">
-        <div className="watch-date">
-          <button aria-label="Previous day" onClick={() => shiftDate(-1)}>
-            <ChevronLeft size={16} />
-          </button>
-          <input
-            aria-label="Event date"
-            type="date"
-            value={selectedDate}
-            onChange={(e) => {
-              setDate(e.target.value);
-              setRange("today");
-            }}
-          />
-          <button aria-label="Next day" onClick={() => shiftDate(1)}>
-            <ChevronRight size={16} />
-          </button>
-        </div>
-        <label className="watch-search">
-          <Search size={16} />
-          <input
-            aria-label="Find an event"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Team or competition"
-          />
-        </label>
-        <details className="watch-options">
-          <summary aria-label="Filters">
-            <SlidersHorizontal size={16} />
-            <span>Filters</span>
-          </summary>
-          <div className="watch-options-panel">
-            <label>
-              Sport
-              <select
-                aria-label="Event sport"
-                value={sport}
-                onChange={(e) => {
-                  setSport(e.target.value);
-                  setLimit(30);
+    <>
+      {weekend &&
+        !date &&
+        !query &&
+        range !== "live" &&
+        ["All sports", "Football"].includes(sport) && (
+          <WeekendMatches initialEvents={entries.map((entry) => entry.event)} />
+        )}
+      <section className="live-discovery" aria-label="Live event discovery">
+        <div className="watch-toolbar">
+          <h1>{preview ? "Sport today" : "Watch"}</h1>
+          <div className="filter-tabs" role="group" aria-label="Event schedule">
+            {[
+              ["live", "Live"],
+              ["today", "Today"],
+              ["upcoming", "Upcoming"],
+            ].map(([value, label]) => (
+              <button
+                key={value}
+                aria-pressed={range === value}
+                onClick={() => {
+                  setRange(value);
+                  setDate("");
                 }}
               >
-                {["All sports", ...sports].map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Timezone
-              <select
-                aria-label="Viewing timezone"
-                value={zone}
-                onChange={(e) => choose(e.target.value)}
-              >
-                {[
-                  ...new Set([
-                    zone,
-                    "Africa/Kampala",
-                    "UTC",
-                    "Europe/London",
-                    "America/New_York",
-                    "Asia/Tokyo",
-                  ]),
-                ].map((z) => (
-                  <option key={z}>{z}</option>
-                ))}
-              </select>
-            </label>
+                {value === "live" && <Radio size={13} />} {label}
+              </button>
+            ))}
           </div>
-        </details>
-      </div>
-      <div className="schedule-meta">
-        <span>
-          {sport === "All sports" ? "All sports" : sport} · {filtered.length}{" "}
-          events
-        </span>
-        <span>{zone}</span>
-      </div>
-      {loading && <EventSkeleton />}
-      {error && (
-        <p role="alert">
-          {error} <button onClick={() => retry((a) => a + 1)}>Retry</button>
-        </p>
-      )}
-      <div className="live-event-list">
-        {[...groups].map(([name, items]) => (
-          <section className="watch-competition" key={name} aria-label={name}>
-            <h2>
-              <SportMark name={items[0]!.event.sport} />
-              {name}
-            </h2>
-            {items.map((entry) => {
-              const e = entry.event;
-              const featured =
-                e.id === "efl-20261028-liverpool-chelsea" &&
-                localDay(e.start, zone) === today;
-              return (
-                <Link
-                  className={`live-event-row${featured ? " live-spotlight" : ""}`}
-                  href={`/watch/${e.id}`}
-                  key={e.id}
-                >
-                  <div
-                    className={`event-start${e.status === "live" ? " event-is-live" : ""}`}
-                  >
-                    <time dateTime={e.start}>
-                      {e.status === "live"
-                        ? e.kind === "score"
-                          ? e.clock || "Live"
-                          : "Live"
-                        : e.timeConfirmed === false
-                          ? "Date only"
-                          : localStart(e.start, zone, false)}
-                    </time>
-                    <small>
-                      {e.status === "live"
-                        ? "LIVE"
-                        : e.timeConfirmed === false && e.end
-                          ? "Tournament"
-                          : new Intl.DateTimeFormat("en-GB", {
-                              timeZone: zone,
-                              day: "numeric",
-                              month: "short",
-                            }).format(new Date(e.start))}
-                    </small>
-                  </div>
-                  <div className="event-main">
-                    {featured && (
-                      <span className="featured-label">Tonight’s pick</span>
-                    )}
-                    {e.kind === "score" ? (
-                      <div className="watch-teams">
-                        <span>
-                          <Crest
-                            name={e.home}
-                            imageUrl={
-                              e.kind === "score"
-                                ? e.homeParticipant?.imageUrl
-                                : undefined
-                            }
-                          />
-                          <strong>{e.home}</strong>
-                          <b>{e.homeScore ?? ""}</b>
-                        </span>
-                        <span>
-                          <Crest
-                            name={e.away}
-                            imageUrl={
-                              e.kind === "score"
-                                ? e.awayParticipant?.imageUrl
-                                : undefined
-                            }
-                          />
-                          <strong>{e.away}</strong>
-                          <b>{e.awayScore ?? ""}</b>
-                        </span>
-                      </div>
-                    ) : (
-                      <strong>{eventTitle(e)}</strong>
-                    )}
-                  </div>
-                  <div className="event-access">
-                    <span
-                      className={
-                        entry.availability === "in-page"
-                          ? "pill source-available"
-                          : hasMatchTracker(e)
-                            ? "pill tracker-available"
-                            : "stream-status"
-                      }
-                    >
-                      {sourceLabel(entry)}
-                    </span>
-                    <ChevronRight size={16} />
-                  </div>
-                </Link>
-              );
-            })}
-          </section>
-        ))}
-      </div>
-      {!loading && !filtered.length && (
-        <div className="live-empty">
-          <h2>No streams available</h2>
-          <p>
-            Try another date or sport, or browse all fixtures.{" "}
-            <Link href="/fixtures">
-              Fixtures <ChevronRight size={14} />
-            </Link>
-          </p>
-          {range === "today" && (
-            <button
-              className="empty-upcoming"
-              onClick={() => {
-                setRange("upcoming");
-                setDate("");
-              }}
-            >
-              Upcoming events
-            </button>
-          )}
-          {sport !== "All sports" && (
-            <a href={officialSchedules[sport]} target="_blank" rel="noreferrer">
-              {sport} schedule ↗
-            </a>
-          )}
+          <Link className="archive-link" href="/videos">
+            Highlights <ChevronRight size={14} />
+          </Link>
         </div>
-      )}
-      {preview ? (
-        <Link className="more-events" href="/watch?range=upcoming">
-          All upcoming events <ChevronRight size={15} />
-        </Link>
-      ) : (
-        filtered.length > limit && (
-          <button onClick={() => setLimit((n) => n + 30)}>Show more</button>
-        )
-      )}
-      <div className="live-coverage">
-        <details>
-          <summary>Coverage & viewing information</summary>
-          <p>
-            Broadcast availability can change and may depend on your location or
-            publisher access. Track opens match data, not a video broadcast. All
-            other events are listed in Fixtures.
+        <div className="watch-controls">
+          <div className="watch-date">
+            <button aria-label="Previous day" onClick={() => shiftDate(-1)}>
+              <ChevronLeft size={16} />
+            </button>
+            <input
+              aria-label="Event date"
+              type="date"
+              value={selectedDate}
+              onChange={(e) => {
+                setDate(e.target.value);
+                setRange("today");
+              }}
+            />
+            <button aria-label="Next day" onClick={() => shiftDate(1)}>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+          <label className="watch-search">
+            <Search size={16} />
+            <input
+              aria-label="Find an event"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Team or competition"
+            />
+          </label>
+          <details className="watch-options">
+            <summary aria-label="Filters">
+              <SlidersHorizontal size={16} />
+              <span>Filters</span>
+            </summary>
+            <div className="watch-options-panel">
+              <label>
+                Sport
+                <select
+                  aria-label="Event sport"
+                  value={sport}
+                  onChange={(e) => {
+                    setSport(e.target.value);
+                    setLimit(30);
+                  }}
+                >
+                  {["All sports", ...sports].map((s) => (
+                    <option key={s}>{s}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Timezone
+                <select
+                  aria-label="Viewing timezone"
+                  value={zone}
+                  onChange={(e) => choose(e.target.value)}
+                >
+                  {[
+                    ...new Set([
+                      zone,
+                      "Africa/Kampala",
+                      "UTC",
+                      "Europe/London",
+                      "America/New_York",
+                      "Asia/Tokyo",
+                    ]),
+                  ].map((z) => (
+                    <option key={z}>{z}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </details>
+        </div>
+        <div className="schedule-meta">
+          <span>
+            {sport === "All sports" ? "All sports" : sport} · {filtered.length}{" "}
+            events
+          </span>
+          <span>{zone}</span>
+        </div>
+        {loading && <EventSkeleton />}
+        {error && (
+          <p role="alert">
+            {error} <button onClick={() => retry((a) => a + 1)}>Retry</button>
           </p>
-          <div className="schedule-links">
-            {sports.map((s) => (
+        )}
+        <div className="live-event-list">
+          {[...groups].map(([name, items]) => (
+            <section className="watch-competition" key={name} aria-label={name}>
+              <h2>
+                <SportMark name={items[0]!.event.sport} />
+                {name}
+              </h2>
+              {items.map((entry) => {
+                const e = entry.event;
+                const featured =
+                  e.id === "efl-20261028-liverpool-chelsea" &&
+                  localDay(e.start, zone) === today;
+                return (
+                  <Link
+                    className={`live-event-row${featured ? " live-spotlight" : ""}`}
+                    href={`/watch/${e.id}`}
+                    key={e.id}
+                  >
+                    <div
+                      className={`event-start${e.status === "live" ? " event-is-live" : ""}`}
+                    >
+                      <time dateTime={e.start}>
+                        {e.status === "live"
+                          ? e.kind === "score"
+                            ? e.clock || "Live"
+                            : "Live"
+                          : e.timeConfirmed === false
+                            ? "Date only"
+                            : localStart(e.start, zone, false)}
+                      </time>
+                      <small>
+                        {e.status === "live"
+                          ? "LIVE"
+                          : e.timeConfirmed === false && e.end
+                            ? "Tournament"
+                            : new Intl.DateTimeFormat("en-GB", {
+                                timeZone: zone,
+                                day: "numeric",
+                                month: "short",
+                              }).format(new Date(e.start))}
+                      </small>
+                    </div>
+                    <div className="event-main">
+                      {featured && (
+                        <span className="featured-label">Tonight’s pick</span>
+                      )}
+                      {e.kind === "score" ? (
+                        <div className="watch-teams">
+                          <span>
+                            <Crest
+                              name={e.home}
+                              imageUrl={
+                                e.kind === "score"
+                                  ? e.homeParticipant?.imageUrl
+                                  : undefined
+                              }
+                            />
+                            <strong>{e.home}</strong>
+                            <b>{e.homeScore ?? ""}</b>
+                          </span>
+                          <span>
+                            <Crest
+                              name={e.away}
+                              imageUrl={
+                                e.kind === "score"
+                                  ? e.awayParticipant?.imageUrl
+                                  : undefined
+                              }
+                            />
+                            <strong>{e.away}</strong>
+                            <b>{e.awayScore ?? ""}</b>
+                          </span>
+                        </div>
+                      ) : (
+                        <strong>{eventTitle(e)}</strong>
+                      )}
+                    </div>
+                    <div className="event-access">
+                      <span
+                        className={
+                          entry.availability === "in-page"
+                            ? "pill source-available"
+                            : hasMatchTracker(e)
+                              ? "pill tracker-available"
+                              : "stream-status"
+                        }
+                      >
+                        {sourceLabel(entry)}
+                      </span>
+                      <ChevronRight size={16} />
+                    </div>
+                  </Link>
+                );
+              })}
+            </section>
+          ))}
+        </div>
+        {!loading && !filtered.length && (
+          <div className="live-empty">
+            <h2>No streams available</h2>
+            <p>
+              Try another date or sport, or browse all fixtures.{" "}
+              <Link href="/fixtures">
+                Fixtures <ChevronRight size={14} />
+              </Link>
+            </p>
+            {range === "today" && (
+              <button
+                className="empty-upcoming"
+                onClick={() => {
+                  setRange("upcoming");
+                  setDate("");
+                }}
+              >
+                Upcoming events
+              </button>
+            )}
+            {sport !== "All sports" && (
               <a
-                key={s}
-                href={officialSchedules[s]}
+                href={officialSchedules[sport]}
                 target="_blank"
                 rel="noreferrer"
               >
-                <SportMark name={s} />
-                {s} ↗
+                {sport} schedule ↗
               </a>
-            ))}
+            )}
           </div>
-        </details>
-        <button
-          aria-label="Refresh event discovery"
-          onClick={() => retry((a) => a + 1)}
-        >
-          <RefreshCw size={14} />
-          Refresh
-        </button>
-      </div>
-    </section>
+        )}
+        {preview ? (
+          <Link className="more-events" href="/watch?range=upcoming">
+            All upcoming events <ChevronRight size={15} />
+          </Link>
+        ) : (
+          filtered.length > limit && (
+            <button onClick={() => setLimit((n) => n + 30)}>Show more</button>
+          )
+        )}
+        <div className="live-coverage">
+          <details>
+            <summary>Coverage & viewing information</summary>
+            <p>
+              Broadcast availability can change and may depend on your location
+              or publisher access. Track opens match data, not a video
+              broadcast. All other events are listed in Fixtures.
+            </p>
+            <div className="schedule-links">
+              {sports.map((s) => (
+                <a
+                  key={s}
+                  href={officialSchedules[s]}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <SportMark name={s} />
+                  {s} ↗
+                </a>
+              ))}
+            </div>
+          </details>
+          <button
+            aria-label="Refresh event discovery"
+            onClick={() => retry((a) => a + 1)}
+          >
+            <RefreshCw size={14} />
+            Refresh
+          </button>
+        </div>
+      </section>
+    </>
   );
 }

@@ -26,19 +26,25 @@ test("weekend fixtures remain discoverable without claiming a video or animated 
     status: "upcoming",
     provenance: "provider",
   };
-  await page.route("**/api/events", (route) =>
-    route.fulfill({
+  let catalogueRequests = 0;
+  await page.route("**/api/events", (route) => {
+    catalogueRequests++;
+    return route.fulfill({
       json: {
         data: [event],
         edition: "real",
         source: "Browser contract",
         coverage: [],
       },
-    }),
-  );
+    });
+  });
   await page.route("**/api/watch*", (route) =>
     route.fulfill({
-      json: { data: [], coverage: [], generatedAt: "2026-10-30T22:00:00Z" },
+      json: {
+        data: [{ event, sources: [], availability: "unavailable" }],
+        coverage: [],
+        generatedAt: "2026-10-30T22:00:00Z",
+      },
     }),
   );
   const loaded = page.waitForResponse((response) =>
@@ -67,4 +73,5 @@ test("weekend fixtures remain discoverable without claiming a video or animated 
     ),
   ).toBe(true);
   await expect(section.getByRole("link", { name: /Chelsea/ })).toBeVisible();
+  expect(catalogueRequests).toBe(0);
 });

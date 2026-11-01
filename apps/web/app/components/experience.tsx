@@ -752,10 +752,7 @@ export function Experience({
                 </div>
               )}
               {route === "watch" ? (
-                <>
-                  {real && <WeekendMatches initialEvents={events} poll />}
-                  <LiveWatch />
-                </>
+                <LiveWatch weekend={real} />
               ) : route === "videos" ? (
                 <WatchHub />
               ) : route === "playback" ? (

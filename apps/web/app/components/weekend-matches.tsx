@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { feedSchema, type SportEvent } from "@backinit/domain";
+import { type SportEvent } from "@backinit/domain";
 import { useSearchParams } from "next/navigation";
 import { Crest } from "./marks";
 import { localDay, localStart, useViewingZone } from "../lib/viewing-time";
@@ -44,49 +44,22 @@ export function weekendMatches(
 
 export function WeekendMatches({
   initialEvents,
-  poll = false,
 }: {
   initialEvents: SportEvent[];
-  poll?: boolean;
 }) {
-  const [events, setEvents] = useState(initialEvents);
+  const events = initialEvents;
   const [now, setNow] = useState(() => Date.now());
   const { zone } = useViewingZone();
   const params = useSearchParams();
-  useEffect(() => setEvents(initialEvents), [initialEvents]);
   useEffect(() => {
-    const controller = new AbortController();
-    let running = false;
-    const refresh = async () => {
-      setNow(Date.now());
-      if (!poll || running || document.hidden) return;
-      running = true;
-      try {
-        const response = await fetch("/api/events", {
-          signal: AbortSignal.any([
-            controller.signal,
-            AbortSignal.timeout(25000),
-          ]),
-        });
-        if (!response.ok) return;
-        const feed = feedSchema.parse(await response.json());
-        if (!controller.signal.aborted && feed.edition === "real")
-          setEvents(feed.data);
-      } catch {
-        /* Preserve the last confirmed fixture snapshot during a short outage. */
-      } finally {
-        running = false;
-      }
-    };
-    const timer = setInterval(() => void refresh(), 30000);
-    if (poll && !initialEvents.length) void refresh();
+    const refresh = () => setNow(Date.now());
+    const timer = setInterval(refresh, 30000);
     document.addEventListener("visibilitychange", refresh);
     return () => {
-      controller.abort();
       clearInterval(timer);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [poll, initialEvents.length]);
+  }, []);
   const sport = params.get("sport");
   if (
     (sport && sport !== "Football" && sport !== "All sports") ||
