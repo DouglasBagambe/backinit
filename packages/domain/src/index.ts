@@ -6,6 +6,7 @@ export const sourceSchema = z.object({
   license: z.string(),
   fetchedAt: z.string().datetime(),
   stale: z.boolean(),
+  liveValidUntil: z.string().datetime().optional(),
 });
 export const goalSchema = z.object({
   id: z.string(),
@@ -387,11 +388,16 @@ export type EventFeed = z.infer<typeof feedSchema>;
 export function freshEventFeed(feed: EventFeed, now = Date.now()): EventFeed {
   const delayed = new Set<string>();
   const data = feed.data.map((event) => {
+    const checked = Date.parse(event.source?.fetchedAt || "");
+    // Explicit broadcast verification may last up to two minutes; score feeds retain one minute.
+    const expires = event.source?.liveValidUntil
+      ? Math.min(Date.parse(event.source.liveValidUntil), checked + 120000)
+      : checked + 60000;
     if (
       event.provenance !== "provider" ||
       event.status !== "live" ||
       !event.source ||
-      now - Date.parse(event.source.fetchedAt) <= 60000
+      (Number.isFinite(expires) && now <= expires)
     )
       return event;
     delayed.add(event.source.provider);
