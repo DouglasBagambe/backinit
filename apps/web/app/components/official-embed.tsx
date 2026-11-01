@@ -19,8 +19,22 @@ export function OfficialEmbed({
     let player: YouTubePlayer | undefined;
     let previous: number | undefined;
     let advanced = 0;
+    let lastProgress = Date.now();
     const timer = setInterval(() => {
-      if (!player || !ready || disposed || player.getPlayerState() !== 1) {
+      if (disposed) return;
+      const state = ready && player ? player.getPlayerState() : -1;
+      // A loaded frame is not successful playback. Recover a silent startup or
+      // stalled network, while allowing user pauses and hidden tabs indefinitely.
+      if (document.hidden || state === 2 || state === 0)
+        lastProgress = Date.now();
+      if (Date.now() - lastProgress >= 20000) {
+        clearInterval(timer);
+        onState(
+          "Playback unavailable: the video stopped responding. Retry or open the official source.",
+        );
+        return;
+      }
+      if (!player || !ready || state !== 1) {
         previous = undefined;
         advanced = 0;
         return;
@@ -30,8 +44,10 @@ export function OfficialEmbed({
         previous !== undefined &&
         seconds > previous &&
         seconds - previous < 5
-      )
+      ) {
         advanced += seconds - previous;
+        lastProgress = Date.now();
+      }
       previous = seconds;
       if (advanced >= 2) onProgress(seconds);
     }, 1000);
@@ -48,6 +64,7 @@ export function OfficialEmbed({
           events: {
             onReady: () => {
               ready = true;
+              lastProgress = Date.now();
               if (!disposed) {
                 const frame = container.querySelector("iframe");
                 if (frame) {

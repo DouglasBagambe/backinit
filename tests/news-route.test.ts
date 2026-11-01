@@ -1,5 +1,8 @@
 import { it, expect, vi, afterEach } from "vitest";
-const { feed } = vi.hoisted(() => ({ feed: vi.fn() }));
+const { feed, after } = vi.hoisted(() => ({ feed: vi.fn(), after: vi.fn() }));
+vi.mock("../apps/web/app/lib/background", () => ({
+  completeAfterResponse: after,
+}));
 vi.mock("@backinit/news", () => ({
   NewsService: class {
     feed = feed;
@@ -47,4 +50,16 @@ it("uses the backend snapshot if the web host cannot reach the index", async () 
   const response = await GET();
   expect((await response.json()).data[0].title).toBe(snapshot.data[0].title);
   expect(fetcher).toHaveBeenCalledOnce();
+});
+
+it("keeps stale refresh work alive after the response without caching the stale result", async () => {
+  feed
+    .mockResolvedValueOnce({ ...snapshot, status: "stale" })
+    .mockResolvedValueOnce(snapshot);
+  const response = await GET();
+  expect(response.headers.get("Cache-Control")).toBe("no-store");
+  expect((await response.json()).status).toBe("stale");
+  expect(after).toHaveBeenCalledOnce();
+  await after.mock.calls[0]![0]();
+  expect(feed).toHaveBeenLastCalledWith({ waitForRefresh: true });
 });
