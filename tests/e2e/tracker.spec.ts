@@ -434,7 +434,14 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
   );
   let refreshes = 0,
     frames = 0;
-  await page.route("**/api/trackers/*", (route) => {
+  let releaseDiscovery!: () => void;
+  const discovery = new Promise<void>((resolve) => {
+    releaseDiscovery = resolve;
+  });
+  await page.route("**/api/trackers/*", async (route) => {
+    // Hold the first metadata response until the loading fallback is observed.
+    // An immediate mock can already replace that transient state before assertion.
+    await discovery;
     refreshes++;
     return route.fulfill({
       json: {
@@ -465,6 +472,7 @@ test("publisher tracker uses only a matched frame, preserves it across lease ref
   await expect(
     page.locator(".player-tracker-fallback .event-tracker"),
   ).toBeVisible();
+  releaseDiscovery();
   await page.clock.fastForward(31000);
   await expect(
     page.getByRole("region", { name: "Live match tracker", exact: true }),
