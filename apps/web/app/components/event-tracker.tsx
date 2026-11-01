@@ -5,6 +5,8 @@ import { Crest, SportMark } from "./marks";
 /** Keep reported match data available independently of a third-party animation. */
 export function TrackerScore({ event }: { event: SportEvent }) {
   if (event.kind !== "score") return null;
+  const currentSet =
+    event.sport === "Tennis" ? event.detail?.periods?.at(-1) : undefined;
   const status = event.source?.stale
     ? "Last reported score"
     : event.status === "live"
@@ -18,14 +20,15 @@ export function TrackerScore({ event }: { event: SportEvent }) {
     <section className="tracker-score-strip" aria-label="Reported match score">
       <div className="tracker-score-strip-status">
         {status}
-        {event.sport === "Tennis" && " · Sets"}
+        {event.sport === "Tennis" &&
+          (currentSet ? ` · ${currentSet.label} games` : " · Sets")}
       </div>
       <div className="tracker-score-strip-teams">
         <span>{event.home}</span>
         <strong>
-          {event.homeScore ?? "–"}
+          {currentSet ? currentSet.home : (event.homeScore ?? "–")}
           <span> : </span>
-          {event.awayScore ?? "–"}
+          {currentSet ? currentSet.away : (event.awayScore ?? "–")}
         </strong>
         <span>{event.away}</span>
       </div>
