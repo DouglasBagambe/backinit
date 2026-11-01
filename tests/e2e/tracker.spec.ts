@@ -984,29 +984,23 @@ test("a blank publisher animation cannot hide reported scores or stale-update st
   await openFixture(page, fixture.id);
   const strip = page.getByRole("region", { name: "Reported match score" });
   await expect(strip).toBeVisible();
-  await expect(strip.getByRole("strong")).toHaveAttribute(
-    "aria-label",
-    "1 to 0",
-  );
+  await expect(strip.getByRole("strong")).toHaveText("1 : 0");
   score = 2;
   await page.clock.fastForward(31000);
-  await expect(strip.getByRole("strong")).toHaveAttribute(
-    "aria-label",
-    "2 to 0",
-  );
+  await expect(strip.getByRole("strong")).toHaveText("2 : 0");
   unavailable = true;
   await page.clock.fastForward(31000);
   await expect(strip).toContainText("Last reported score");
-  await expect(strip.getByRole("strong")).toHaveAttribute(
-    "aria-label",
-    "2 to 0",
-  );
+  await expect(strip.getByRole("strong")).toHaveText("2 : 0");
   expect(documents).toBe(1);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+  await strip.evaluate((element) =>
+    element.scrollIntoView({ block: "center" }),
+  );
   await strip.screenshot({
     path: "artifacts/tracker-reported-score-mobile.png",
   });
