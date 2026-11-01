@@ -5,6 +5,7 @@ import {
   normalizeBroadcast,
   OfficialBroadcastProvider,
 } from "../apps/api/src/providers/official-broadcasts";
+import { freshEventFeed } from "../packages/domain/src/index";
 import { ProviderCache } from "../apps/api/src/providers/cache";
 import {
   broadcastMetadata,
@@ -278,4 +279,45 @@ it("includes only verified FIFA match broadcasts, excluding studio and news stre
       false,
     ),
   ).toBeNull();
+});
+
+it("keeps verified broadcasts visible across the score-cache boundary and expires them with playback permission", async () => {
+  const { provider, advance } = setup();
+  const event = (await provider.events()).value[0]!;
+  const feed = {
+    data: [event],
+    source: "Official",
+    coverage: [],
+    edition: "real" as const,
+  };
+  advance(90);
+  const recent = freshEventFeed(feed, at + 90000).data[0]!;
+  expect(recent.status).toBe("live");
+  expect(provider.sourcesFor(recent)).toHaveLength(1);
+  advance(31);
+  const expired = freshEventFeed(feed, at + 121000).data[0]!;
+  expect(expired.status).toBe("unknown");
+  expect(expired.source?.stale).toBe(true);
+  expect(provider.sourcesFor(expired)).toEqual([]);
+  expect(event.status).toBe("live");
+});
+it("bounds explicit verification and never extends it after its declared deadline", () => {
+  const event = normalizeBroadcast(
+    metadata(),
+    videoId,
+    publisher,
+    new Date(at).toISOString(),
+    false,
+  )!;
+  const feed = {
+    data: [event],
+    source: "Official",
+    coverage: [],
+    edition: "real" as const,
+  };
+  expect(freshEventFeed(feed, at + 120000).data[0]?.status).toBe("live");
+  event.source!.liveValidUntil = new Date(at + 86400000).toISOString();
+  expect(freshEventFeed(feed, at + 120001).data[0]?.status).toBe("unknown");
+  event.source!.liveValidUntil = new Date(at + 45000).toISOString();
+  expect(freshEventFeed(feed, at + 45001).data[0]?.status).toBe("unknown");
 });

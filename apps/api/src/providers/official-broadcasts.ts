@@ -97,7 +97,18 @@ export function normalizeBroadcast(
   ];
   if (publisher.key === "bwf") {
     const event = normalizeBwf(raw, id, fetchedAt, stale);
-    return event ? { ...event, viewingLinks } : null;
+    return event
+      ? {
+          ...event,
+          viewingLinks,
+          source: {
+            ...event.source!,
+            liveValidUntil: new Date(
+              Date.parse(fetchedAt) + freshFor,
+            ).toISOString(),
+          },
+        }
+      : null;
   }
   const root = record(raw),
     video = record(root.videoDetails);
@@ -155,6 +166,7 @@ export function normalizeBroadcast(
         "Official publisher broadcast metadata. Publisher-controlled embeds only; regional restrictions apply.",
       fetchedAt,
       stale,
+      liveValidUntil: new Date(Date.parse(fetchedAt) + freshFor).toISOString(),
     },
   });
 }
