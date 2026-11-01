@@ -938,78 +938,98 @@ test("tracker metadata renews before expiry without remounting a healthy animati
   expect(documents).toBe(1);
 });
 
-test("a blank publisher animation cannot hide reported scores or stale-update status", async ({
-  page,
-  baseURL,
-}) => {
-  await page
-    .context()
-    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
-  await page.clock.install({ time: new Date(source.fetchedAt) });
-  let score = 1;
-  let unavailable = false;
-  await page.route(`**/api/events/${fixture.id}`, (route) =>
-    unavailable
-      ? route.fulfill({ status: 503, json: { error: "Temporary failure" } })
-      : route.fulfill({ json: { data: { ...event, homeScore: score } } }),
-  );
-  const url =
-    "https://sportscore.com/embed/tracker/football/liverpool-vs-chelsea/";
-  await page.route(`**/api/trackers/${fixture.id}`, (route) =>
-    route.fulfill({
-      json: {
-        data: {
-          provider: "SportScore",
-          kind: "publisher-tracker",
-          transport: "publisher",
-          eventId: fixture.id,
-          url,
-          sourceUrl: "https://sportscore.com/",
-          checkedAt: source.fetchedAt,
-          validUntil: "2026-10-28T20:10:00Z",
+for (const tennis of [false, true])
+  test(`a blank publisher animation cannot hide ${tennis ? "tennis set games" : "reported scores"} or stale-update status`, async ({
+    page,
+    baseURL,
+  }) => {
+    await page
+      .context()
+      .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+    await page.clock.install({ time: new Date(source.fetchedAt) });
+    let score = 1;
+    let unavailable = false;
+    await page.route(`**/api/events/${fixture.id}`, (route) =>
+      unavailable
+        ? route.fulfill({ status: 503, json: { error: "Temporary failure" } })
+        : route.fulfill({
+            json: {
+              data: tennis
+                ? {
+                    ...event,
+                    sport: "Tennis",
+                    home: "Tatjana Maria",
+                    away: "Bianca Andreescu",
+                    homeScore: null,
+                    awayScore: null,
+                    detail: {
+                      periods: [
+                        { label: "Set 2", home: String(score), away: "0" },
+                      ],
+                    },
+                  }
+                : { ...event, homeScore: score },
+            },
+          }),
+    );
+    const url =
+      "https://sportscore.com/embed/tracker/football/liverpool-vs-chelsea/";
+    await page.route(`**/api/trackers/${fixture.id}`, (route) =>
+      route.fulfill({
+        json: {
+          data: {
+            provider: "SportScore",
+            kind: "publisher-tracker",
+            transport: "publisher",
+            eventId: fixture.id,
+            url,
+            sourceUrl: "https://sportscore.com/",
+            checkedAt: source.fetchedAt,
+            validUntil: "2026-10-28T20:10:00Z",
+          },
         },
-      },
-    }),
-  );
-  let documents = 0;
-  await page.route(`${url}?**`, (route) => {
-    documents++;
-    // A successful outer document can contain no usable animation at all.
-    return route.fulfill({
-      contentType: "text/html",
-      body: "<html><body></body></html>",
+      }),
+    );
+    let documents = 0;
+    await page.route(`${url}?**`, (route) => {
+      documents++;
+      // A successful outer document can contain no usable animation at all.
+      return route.fulfill({
+        contentType: "text/html",
+        body: "<html><body></body></html>",
+      });
+    });
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openFixture(page, fixture.id);
+    const strip = page.getByRole("region", { name: "Reported match score" });
+    await expect(strip).toBeVisible();
+    if (tennis) await expect(strip).toContainText("Set 2 games");
+    await expect(strip.getByRole("strong")).toHaveText("1 : 0");
+    score = 2;
+    await page.clock.fastForward(31000);
+    await expect(strip.getByRole("strong")).toHaveText("2 : 0");
+    unavailable = true;
+    await page.clock.fastForward(31000);
+    await expect(strip).toContainText("Last reported score");
+    await expect(strip.getByRole("strong")).toHaveText("2 : 0");
+    expect(documents).toBe(1);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await strip.evaluate((element) =>
+      element.scrollIntoView({ block: "center" }),
+    );
+    await strip.screenshot({
+      path: `artifacts/tracker-reported-${tennis ? "tennis" : "score"}-mobile.png`,
+    });
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await expect(strip).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Reload animation", exact: true }),
+    ).toBeVisible();
+    await strip.screenshot({
+      path: `artifacts/tracker-reported-${tennis ? "tennis" : "score"}-desktop.png`,
     });
   });
-  await page.setViewportSize({ width: 390, height: 844 });
-  await openFixture(page, fixture.id);
-  const strip = page.getByRole("region", { name: "Reported match score" });
-  await expect(strip).toBeVisible();
-  await expect(strip.getByRole("strong")).toHaveText("1 : 0");
-  score = 2;
-  await page.clock.fastForward(31000);
-  await expect(strip.getByRole("strong")).toHaveText("2 : 0");
-  unavailable = true;
-  await page.clock.fastForward(31000);
-  await expect(strip).toContainText("Last reported score");
-  await expect(strip.getByRole("strong")).toHaveText("2 : 0");
-  expect(documents).toBe(1);
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
-  await strip.evaluate((element) =>
-    element.scrollIntoView({ block: "center" }),
-  );
-  await strip.screenshot({
-    path: "artifacts/tracker-reported-score-mobile.png",
-  });
-  await page.setViewportSize({ width: 1280, height: 900 });
-  await expect(strip).toBeVisible();
-  await expect(
-    page.getByRole("button", { name: "Reload animation", exact: true }),
-  ).toBeVisible();
-  await strip.screenshot({
-    path: "artifacts/tracker-reported-score-desktop.png",
-  });
-});

@@ -43,7 +43,7 @@ it("returns healthy football when channel discovery never settles, with explicit
     }),
   );
   const request = new SportsService().feed("real", "2026-10-31");
-  await vi.advanceTimersByTimeAsync(10001);
+  await vi.advanceTimersByTimeAsync(2001);
   const result = await request;
   expect(result.data.map((e) => e.id)).toContain(match.id);
   expect(
@@ -229,4 +229,57 @@ it("refreshes a young catalogue when the live source inside it has already expir
   expect(first.data[0]?.source?.fetchedAt).not.toBe(
     next.data[0]?.source?.fetchedAt,
   );
+});
+
+it("retains late channel discovery for the next refresh and coalesces work without presenting stale playback", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-11-02T12:00:00Z"));
+  const { broadcastPublishers } =
+    await import("../apps/api/src/providers/official-broadcasts");
+  const provider = new OfficialBroadcastProvider(broadcastPublishers[0]);
+  const result = {
+    value: [
+      {
+        ...verifiedCupFixtures[0]!,
+        source: {
+          ...verifiedCupFixtures[0]!.source!,
+          fetchedAt: new Date().toISOString(),
+          stale: false,
+        },
+      },
+    ],
+    fetchedAt: new Date().toISOString(),
+    stale: false,
+  };
+  let finish!: (value: typeof result) => void;
+  const discovery = vi.spyOn(provider, "events").mockImplementation(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      }),
+  );
+  const first = provider.catalogue().catch(() => null);
+  const second = provider.catalogue().catch(() => null);
+  await vi.advanceTimersByTimeAsync(2001);
+  expect(await first).toBeNull();
+  expect(await second).toBeNull();
+  expect(discovery).toHaveBeenCalledTimes(1);
+  finish(result);
+  await vi.advanceTimersByTimeAsync(1);
+  const recovered = await provider.catalogue();
+  expect(recovered).toEqual(result);
+  recovered.value.splice(0);
+  expect((await provider.catalogue()).value).toHaveLength(1);
+  expect(discovery).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(30001);
+  const delayed = provider.catalogue();
+  await vi.advanceTimersByTimeAsync(2001);
+  const fallback = await delayed;
+  expect(fallback.stale).toBe(true);
+  expect(fallback.value[0]?.source?.stale).toBe(true);
+  expect(fallback.fetchedAt).toBe(result.fetchedAt);
+  expect(discovery).toHaveBeenCalledTimes(2);
+  finish(result);
+  await vi.advanceTimersByTimeAsync(1);
+  expect(vi.getTimerCount()).toBe(0);
 });
