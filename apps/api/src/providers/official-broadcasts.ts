@@ -174,11 +174,66 @@ export function normalizeBroadcast(
 /** Stateless, allowlisted discovery. No account database, media extraction or playback proxy. */
 export class OfficialBroadcastProvider {
   private current = new Map<string, { event: SportEvent; allowed: boolean }>();
+  private catalogueSnapshot?: {
+    result: Awaited<ReturnType<OfficialBroadcastProvider["events"]>>;
+    at: number;
+  };
+  private catalogueRequest?: Promise<
+    Awaited<ReturnType<OfficialBroadcastProvider["events"]>>
+  >;
   constructor(
     readonly publisher: Publisher,
     private cache = new ProviderCache(),
     private now = Date.now,
   ) {}
+  async catalogue() {
+    const cached = this.catalogueSnapshot;
+    if (cached && this.now() - cached.at < 30000)
+      return structuredClone(cached.result);
+    if (!this.catalogueRequest) {
+      const task = this.events().then((result) => {
+        this.catalogueSnapshot = {
+          result: structuredClone(result),
+          at: this.now(),
+        };
+        return result;
+      });
+      this.catalogueRequest = task;
+      void task
+        .finally(() => {
+          if (this.catalogueRequest === task) this.catalogueRequest = undefined;
+        })
+        .catch(() => {});
+    }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      // Channel discovery can require several network stages. Keep warming it
+      // after this short catalogue budget, then include its result next refresh.
+      return structuredClone(
+        await Promise.race([
+          this.catalogueRequest,
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(
+              () => reject(new Error("Channel discovery pending")),
+              2000,
+            );
+          }),
+        ]),
+      );
+    } catch (error) {
+      if (!cached || this.now() - cached.at > 86400000) throw error;
+      return {
+        ...structuredClone(cached.result),
+        stale: true,
+        value: cached.result.value.map((event) => ({
+          ...structuredClone(event),
+          source: { ...event.source!, stale: true },
+        })),
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
   async events() {
     const headers = { "User-Agent": "Mozilla/5.0", "Accept-Language": "en" };
     const pageTask = this.cache.json(

@@ -158,7 +158,7 @@ export class SportsService {
       ...this.broadcasts.map((p) => ({
         provider: p.publisher.name,
         sport: p.publisher.sport,
-        load: () => p.events(),
+        load: () => p.catalogue(),
         message:
           "Official broadcast sessions and publisher-reported status. Embed availability is checked separately; regional restrictions apply. No scores inferred from video.",
       })),
