@@ -12,6 +12,8 @@ export function validOrigin(request: Request) {
       if (actual.origin === canonical.origin) return true;
       // Both public production hosts serve the application. Keep the alias
       // narrowly scoped; previews, arbitrary subdomains and ports are not trusted.
+      // The public reverse proxy can replace Host with its upstream hostname.
+      // Trust the browser's exact Origin allowlist rather than that rewritten Host.
       const productionHosts = new Set(["backinit.live", "www.backinit.live"]);
       return (
         canonical.protocol === "https:" &&
@@ -19,8 +21,7 @@ export function validOrigin(request: Request) {
         productionHosts.has(canonical.hostname) &&
         actual.protocol === "https:" &&
         !actual.port &&
-        productionHosts.has(actual.hostname) &&
-        actual.host === request.headers.get("host")
+        productionHosts.has(actual.hostname)
       );
     }
     return (

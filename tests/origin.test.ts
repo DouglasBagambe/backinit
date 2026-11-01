@@ -11,7 +11,7 @@ it("uses the browser Host when Next normalizes its request URL; denies missing a
   expect(validOrigin(request("http://127.0.0.1:4000"))).toBe(false);
   expect(validOrigin(request())).toBe(false);
 });
-it("accepts same-host writes on both production domains while keeping previews and lookalikes out", () => {
+it("accepts both production browser origins behind a proxy while keeping previews and lookalikes out", () => {
   const request = (origin: string, host = new URL(origin).host) =>
     new Request("https://www.backinit.live/api/account/login", {
       headers: { origin, host },
@@ -34,7 +34,10 @@ it("accepts same-host writes on both production domains while keeping previews a
     const alternate = configured.includes("www.")
       ? "https://backinit.live"
       : "https://www.backinit.live";
-    expect(validOrigin(request(alternate, "preview.example"))).toBe(false);
+    expect(validOrigin(request(alternate, "upstream.example"))).toBe(true);
+    expect(validOrigin(request("https://evil.test", "www.backinit.live"))).toBe(
+      false,
+    );
   }
   vi.stubEnv("APP_ORIGIN", "https://preview.example");
   expect(validOrigin(request("https://backinit.live"))).toBe(false);
