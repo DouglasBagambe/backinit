@@ -83,7 +83,10 @@ it("keeps a readable snapshot while a refresh fails and avoids repeated failing 
   expect((await service.feed()).status).toBe("stale");
   await vi.advanceTimersByTimeAsync(1);
   expect((await service.feed()).data).toEqual(first.data);
-  expect(fetcher).toHaveBeenCalledTimes(2);
+  const calls = fetcher.mock.calls.length;
+  await service.feed();
+  expect(fetcher).toHaveBeenCalledTimes(calls);
+  expect(calls).toBeLessThanOrEqual(11);
 });
 
 it("uses the query index when the bulk feed is unavailable", async () => {
@@ -148,4 +151,69 @@ it("fills an empty rolling feed from bounded archives while retaining publisher 
   expect(
     fetcher.mock.calls.some(([url]) => url.includes("api.gdeltproject.org")),
   ).toBe(false);
+});
+
+it("can await an in-flight snapshot refresh until new headlines are committed", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-11-01T02:00:00Z"));
+  let release!: (value: Response) => void;
+  const fetcher = vi
+    .fn()
+    .mockResolvedValueOnce(new Response(rss))
+    .mockImplementation(
+      () =>
+        new Promise<Response>((resolve) => {
+          release = resolve;
+        }),
+    );
+  const { ProviderCache } = await import("../apps/api/src/providers/cache");
+  const service = new NewsService(new ProviderCache(fetcher, () => Date.now()));
+  await service.feed();
+  vi.setSystemTime(new Date("2026-11-01T02:16:00Z"));
+  expect((await service.feed()).status).toBe("stale");
+  let completed = false;
+  const refreshed = service.feed({ waitForRefresh: true }).then((value) => {
+    completed = true;
+    return value;
+  });
+  await Promise.resolve();
+  expect(completed).toBe(false);
+  release(
+    new Response(
+      rss.replace(
+        "A real football headline",
+        "Newly indexed football headline",
+      ),
+    ),
+  );
+  expect((await refreshed).data[0]?.title).toBe(
+    "Newly indexed football headline",
+  );
+  expect((await service.feed()).status).toBe("available");
+  expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+it("tries fresh archives rather than stopping at an old cached RSS snapshot", async () => {
+  vi.setSystemTime(new Date("2026-11-01T02:00:00Z"));
+  let offline = false;
+  const archive = gzipSync(
+    JSON.stringify(article(undefined, "Current archive headline")),
+  );
+  const fetcher = vi.fn(async (url: string) => {
+    if (url.endsWith("feed.rss")) {
+      if (offline) throw new Error("RSS temporarily unavailable");
+      return new Response(rss);
+    }
+    if (url.endsWith(".gz")) return new Response(archive);
+    throw new Error("Unexpected fallback");
+  });
+  const { ProviderCache } = await import("../apps/api/src/providers/cache");
+  const service = new NewsService(new ProviderCache(fetcher, () => Date.now()));
+  await service.feed();
+  offline = true;
+  vi.setSystemTime(new Date("2026-11-01T02:16:00Z"));
+  const result = await service.feed({ waitForRefresh: true });
+  expect(result.status).toBe("available");
+  expect(result.data[0]?.title).toBe("Current archive headline");
+  expect(fetcher.mock.calls.some(([url]) => url.endsWith(".gz"))).toBe(true);
 });

@@ -255,3 +255,35 @@ test("recovery codes reset access, privacy export excludes secrets, and account 
   ).toBeVisible();
   expect((await page.request.get("/api/account/me")).status()).toBe(401);
 });
+
+test("a silent publisher startup recovers with Retry instead of remaining ready on a black screen", async ({
+  page,
+  baseURL,
+}) => {
+  await catalog(page, baseURL!);
+  await page.route("https://www.youtube.com/iframe_api", (route) =>
+    route.fulfill({
+      contentType: "application/javascript",
+      body: `window.YT = { Player: function(target, options) {
+      this.destroy = function() {};
+      this.getPlayerState = function() { return -1; };
+      this.getCurrentTime = function() { return 0; };
+      setTimeout(function() { options.events.onReady(); }, 0);
+    }}; window.onYouTubeIframeAPIReady();`,
+    }),
+  );
+  await page.goto("/videos");
+  await page.clock.install();
+  await page.getByRole("button", { name: "Play video", exact: true }).click();
+  await expect(page.locator(".playback-state")).toHaveText("Ready to play");
+  await page.clock.fastForward(21000);
+  await expect(page.locator(".playback-state")).toContainText(
+    "Playback unavailable",
+  );
+  await expect(
+    page.getByRole("button", { name: "Retry", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Open official source ↗", exact: true }),
+  ).toBeVisible();
+});

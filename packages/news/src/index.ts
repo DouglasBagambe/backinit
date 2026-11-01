@@ -411,7 +411,7 @@ export class NewsService {
     if (!value.length) throw new Error("No current sports news in archive");
     return { value, stale: false, fetchedAt: new Date().toISOString() };
   }
-  async feed(): Promise<NewsFeed> {
+  async feed(options: { waitForRefresh?: boolean } = {}): Promise<NewsFeed> {
     if (process.env.SPORTS_PROVIDERS_DISABLED === "true")
       return {
         data: [],
@@ -428,6 +428,7 @@ export class NewsService {
         this.pending = undefined;
       });
     }
+    if (options.waitForRefresh && this.pending) return this.pending;
     if (this.snapshot && age <= 86400000)
       return {
         ...this.snapshot,
@@ -464,8 +465,8 @@ export class NewsService {
               boundedFeed,
             )
             .then((result) => {
-              if (!result.value.length)
-                throw new Error("No indexed sport headlines");
+              if (!result.value.length || result.stale)
+                throw new Error("No current indexed sport headlines");
               return result;
             })
             .catch(() => this.archiveNews())
