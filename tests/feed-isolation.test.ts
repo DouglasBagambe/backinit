@@ -155,14 +155,12 @@ it("keeps a known broadcast URL readable through an omitted or failed refresh wi
   const service = new SportsService();
   await service.feed("real");
   await vi.advanceTimersByTimeAsync(61000);
-  const feed = vi
-    .spyOn(service, "feed")
-    .mockResolvedValue({
-      data: [],
-      edition: "real",
-      source: "Delayed",
-      coverage: [],
-    });
+  const feed = vi.spyOn(service, "feed").mockResolvedValue({
+    data: [],
+    edition: "real",
+    source: "Delayed",
+    coverage: [],
+  });
   const delayed = await service.fixture(match.id, "real");
   expect(delayed).toMatchObject({
     id: match.id,
@@ -175,4 +173,60 @@ it("keeps a known broadcast URL readable through an omitted or failed refresh wi
   expect(await service.fixture("unseen-match", "real")).toBeUndefined();
   await vi.advanceTimersByTimeAsync(86400000);
   expect(await service.fixture(match.id, "real")).toBeUndefined();
+});
+
+it("refreshes a young catalogue when the live source inside it has already expired", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-11-01T12:00:00Z"));
+  vi.stubEnv("SPORTS_PROVIDERS_DISABLED", "false");
+  const empty = {
+    value: [],
+    fetchedAt: new Date().toISOString(),
+    stale: false,
+  };
+  for (const Provider of [
+    OpenLigaProvider,
+    JolpicaProvider,
+    EflProvider,
+    WweProvider,
+    OfficialBroadcastProvider,
+  ])
+    vi.spyOn(Provider.prototype, "events").mockResolvedValue(empty);
+  let refreshed = false;
+  const espn = vi
+    .spyOn(EspnProvider.prototype, "events")
+    .mockImplementation(async (league) => ({
+      ...empty,
+      value:
+        league.path === "soccer/eng.1"
+          ? [
+              {
+                ...verifiedCupFixtures[0]!,
+                status: "live" as const,
+                scheduleOnly: false,
+                source: {
+                  ...verifiedCupFixtures[0]!.source!,
+                  provider: "ESPN:soccer/eng.1",
+                  fetchedAt: new Date(
+                    Date.now() - (refreshed ? 0 : 45000),
+                  ).toISOString(),
+                  stale: false,
+                },
+              },
+            ]
+          : [],
+    }));
+  const service = new SportsService();
+  const first = await service.feed("real");
+  expect(first.data[0]?.status).toBe("live");
+  const calls = espn.mock.calls.length;
+  refreshed = true;
+  await vi.advanceTimersByTimeAsync(16000);
+  const next = await service.feed("real");
+  expect(next.data[0]?.status).toBe("live");
+  expect(next.data[0]?.source?.fetchedAt).toBe(new Date().toISOString());
+  expect(espn.mock.calls.length).toBe(calls * 2);
+  expect(first.data[0]?.source?.fetchedAt).not.toBe(
+    next.data[0]?.source?.fetchedAt,
+  );
 });
