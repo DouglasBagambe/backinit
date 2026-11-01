@@ -9,7 +9,9 @@ export async function GET() {
     const direct = await news.feed();
     if (direct.data.length)
       return Response.json(newsFeedSchema.parse(direct), {
-        headers: { "Cache-Control": "no-store" },
+        headers: {
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60",
+        },
       });
     const response = await fetch(apiUrl("/news"), {
       cache: "no-store",
@@ -17,7 +19,13 @@ export async function GET() {
     });
     if (!response.ok) throw new Error();
     const feed = newsFeedSchema.parse(await response.json());
-    return Response.json(feed, { headers: { "Cache-Control": "no-store" } });
+    return Response.json(feed, {
+      headers: {
+        "Cache-Control": feed.data.length
+          ? "public, s-maxage=300, stale-while-revalidate=60"
+          : "no-store",
+      },
+    });
   } catch {
     return Response.json(
       {

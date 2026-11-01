@@ -1,4 +1,5 @@
 import { it, expect, afterEach, vi } from "vitest";
+import { gzipSync } from "node:zlib";
 import {
   parseNews,
   parseGdeltNews,
@@ -41,6 +42,9 @@ it("ingests a free attributed index without enabling the gated publisher feed", 
   expect(feed.data[0]?.dateKind).toBe("indexed");
   expect(feed.attribution?.name).toBe("GDELT Project");
   expect(fetcher.mock.calls[0]?.[0]).toContain("gdeltv3/gal/feed.rss");
+  expect(fetcher.mock.calls[0]?.[0]).toContain(
+    "https://storage.googleapis.com/data.gdeltproject.org/",
+  );
 });
 it("rejects untrusted publishers, non-sport paths, stale/future dates and duplicate titles", () => {
   const now = Date.parse("2026-11-01T02:00:00Z");
@@ -93,13 +97,16 @@ it("uses the query index when the bulk feed is unavailable", async () => {
         headers: { "Retry-After": "60" },
       }),
     )
-    .mockResolvedValueOnce(Response.json({ articles: [article()] }));
+    .mockImplementation(async (url: string) => {
+      if (url.endsWith(".gz")) throw new Error("Archive not available");
+      return Response.json({ articles: [article()] });
+    });
   const { ProviderCache } = await import("../apps/api/src/providers/cache");
   const feed = await new NewsService(new ProviderCache(fetcher)).feed();
   expect(feed.status).toBe("available");
   expect(feed.data[0]?.source).toBe("BBC Sport");
   expect(parseGdeltRss(xml)[0]?.title).toBe("Athlete & team news");
-  expect(fetcher.mock.calls[1]?.[0]).toContain("api.gdeltproject.org");
+  expect(fetcher.mock.calls.at(-1)?.[0]).toContain("api.gdeltproject.org");
   expect(() =>
     parseGdeltRss('<!DOCTYPE rss [<!ENTITY attack "oops">]><rss/>'),
   ).toThrow();
@@ -113,4 +120,32 @@ it("does not contact external news in an isolated provider-disabled environment"
     (await new NewsService(new ProviderCache(fetcher)).feed()).status,
   ).toBe("unavailable");
   expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("fills an empty rolling feed from bounded archives while retaining publisher validation", async () => {
+  vi.setSystemTime(new Date("2026-11-01T02:00:00Z"));
+  const archive = gzipSync(
+    [
+      JSON.stringify(article()),
+      JSON.stringify(article("https://evil.test/sport/fake")),
+      "invalid json",
+      JSON.stringify(article()),
+    ].join("\n"),
+  );
+  const fetcher = vi.fn(async (url: string) => {
+    if (url.endsWith("feed.rss")) return new Response("<rss><channel/></rss>");
+    if (url.endsWith(".gz")) return new Response(archive);
+    throw new Error("Query API should not be needed");
+  });
+  const { ProviderCache } = await import("../apps/api/src/providers/cache");
+  const feed = await new NewsService(new ProviderCache(fetcher)).feed();
+  expect(feed.status).toBe("available");
+  expect(feed.data).toHaveLength(1);
+  expect(feed.data[0].url).toBe(article().url);
+  expect(feed.data[0].publishedAt).toBe("2026-11-01T01:46:00.000Z");
+  expect(feed.data[0].dateKind).toBe("indexed");
+  expect(fetcher).toHaveBeenCalledTimes(9);
+  expect(
+    fetcher.mock.calls.some(([url]) => url.includes("api.gdeltproject.org")),
+  ).toBe(false);
 });

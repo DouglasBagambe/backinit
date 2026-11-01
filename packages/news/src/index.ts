@@ -218,6 +218,30 @@ export function parseGdeltRss(raw: unknown) {
     .slice(0, 250);
   return parseGdeltNews({ articles });
 }
+export function parseGdeltArchive(raw: unknown, indexedAt: number) {
+  if (typeof raw !== "string" || raw.length > 4 * 1024 * 1024)
+    throw new Error("Invalid news archive");
+  const lines = raw.trim().split("\n");
+  if (lines.length > 10000) throw new Error("Invalid news archive");
+  const seendate = new Date(indexedAt)
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z$/, "Z");
+  const articles = lines
+    .flatMap((line) => {
+      try {
+        const item = gdeltItem.safeParse({ ...JSON.parse(line), seendate });
+        if (!item.success) return [];
+        const url = new URL(item.data.url),
+          publisher = publishers[url.hostname.replace(/^www\./, "")];
+        return publisher?.path.test(url.pathname) ? [item.data] : [];
+      } catch {
+        return [];
+      }
+    })
+    .slice(0, 250);
+  return parseGdeltNews({ articles });
+}
 async function boundedFeed(response: Response) {
   if (!response.body) throw new Error("Empty news index");
   const reader = response.body.getReader(),
@@ -342,6 +366,51 @@ export class NewsService {
       12000,
     ),
   ) {}
+  private async archiveNews() {
+    // GAL publishes minute files, usually in clusters just after each quarter
+    // hour. A bounded two-hour sample avoids empty rolling RSS windows.
+    const quarter = 15 * 60000;
+    const latest = Math.floor((Date.now() - 5 * 60000) / quarter) * quarter;
+    const batches = await Promise.allSettled(
+      Array.from({ length: 8 }, async (_, i) => {
+        const at = latest - i * quarter + 60000;
+        const stamp = new Date(at)
+          .toISOString()
+          .replace(/[-:]/g, "")
+          .replace("T", "")
+          .slice(0, 14);
+        return this.cache.json(
+          `https://storage.googleapis.com/data.gdeltproject.org/gdeltv3/gal/${stamp}.gal.json.gz`,
+          3600000,
+          (raw) => parseGdeltArchive(raw, at),
+          {},
+          (response) => {
+            if (!response.body) throw new Error("Empty news archive");
+            return boundedFeed(
+              new Response(
+                response.body.pipeThrough(new DecompressionStream("gzip")),
+              ),
+            );
+          },
+        );
+      }),
+    );
+    const articles = batches.flatMap((result) =>
+      result.status === "fulfilled" ? result.value.value : [],
+    );
+    const seen = new Set<string>();
+    const value = articles
+      .filter((item) => {
+        if (seen.has(item.url) || seen.has(item.title)) return false;
+        seen.add(item.url);
+        seen.add(item.title);
+        return true;
+      })
+      .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt))
+      .slice(0, 24);
+    if (!value.length) throw new Error("No current sports news in archive");
+    return { value, stale: false, fetchedAt: new Date().toISOString() };
+  }
   async feed(): Promise<NewsFeed> {
     if (process.env.SPORTS_PROVIDERS_DISABLED === "true")
       return {
@@ -388,7 +457,7 @@ export class NewsService {
           )
         : await this.cache
             .json(
-              "https://data.gdeltproject.org/gdeltv3/gal/feed.rss",
+              "https://storage.googleapis.com/data.gdeltproject.org/gdeltv3/gal/feed.rss",
               300000,
               parseGdeltRss,
               {},
@@ -399,6 +468,7 @@ export class NewsService {
                 throw new Error("No indexed sport headlines");
               return result;
             })
+            .catch(() => this.archiveNews())
             .catch(() =>
               this.cache.json(sportsNewsUrl, 900000, parseGdeltNews),
             );
