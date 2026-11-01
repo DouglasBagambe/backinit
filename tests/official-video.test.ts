@@ -79,6 +79,38 @@ it("does not admit a video from an unexpected publisher", async () => {
     (await new OfficialVideoCatalog(undefined, cache).feed()).data,
   ).toEqual([]);
 });
+it("keeps independently verified official archives when channel feeds are unavailable", async () => {
+  let impostor = false;
+  const fetcher = vi.fn(async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    if (url.pathname === "/feeds/videos.xml")
+      return new Response("Unavailable", { status: 404 });
+    const id = new URL(url.searchParams.get("url")!).searchParams.get("v")!;
+    const channel = officialChannels.find((c) => c.archive?.includes(id));
+    return channel
+      ? Response.json({
+          title: "Full match",
+          author_name: impostor ? "Another publisher" : channel.name,
+          thumbnail_url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+        })
+      : new Response("Missing", { status: 404 });
+  });
+  const load = () =>
+    new OfficialVideoCatalog(
+      undefined,
+      new ProviderCache(fetcher as typeof fetch),
+    ).feed();
+  const result = await load();
+  expect(result.data).toHaveLength(
+    officialChannels.flatMap((c) => c.archive || []).length,
+  );
+  expect(result.data.every((v) => v.content === "official")).toBe(true);
+  expect(result.coverage.find((c) => c.publisher === "WWE Vault")?.status).toBe(
+    "partial",
+  );
+  impostor = true;
+  expect((await load()).data).toEqual([]);
+});
 it("does not expose stale embeds when provider refresh fails", async () => {
   vi.useFakeTimers();
   try {
