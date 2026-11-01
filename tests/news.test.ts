@@ -104,3 +104,13 @@ it("uses the query index when the bulk feed is unavailable", async () => {
     parseGdeltRss('<!DOCTYPE rss [<!ENTITY attack "oops">]><rss/>'),
   ).toThrow();
 });
+
+it("does not contact external news in an isolated provider-disabled environment", async () => {
+  vi.stubEnv("SPORTS_PROVIDERS_DISABLED", "true");
+  const fetcher = vi.fn();
+  const { ProviderCache } = await import("../apps/api/src/providers/cache");
+  expect(
+    (await new NewsService(new ProviderCache(fetcher)).feed()).status,
+  ).toBe("unavailable");
+  expect(fetcher).not.toHaveBeenCalled();
+});

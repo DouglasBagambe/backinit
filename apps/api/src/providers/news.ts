@@ -252,6 +252,13 @@ export class NewsService {
   private retryAt = 0;
   constructor(private cache = new ProviderCache(fetch, Date.now, 4000)) {}
   async feed(): Promise<NewsFeed> {
+    if (process.env.SPORTS_PROVIDERS_DISABLED === "true")
+      return {
+        data: [],
+        status: "unavailable",
+        message: "News providers are disabled in this environment.",
+        fetchedAt: null,
+      };
     const age = this.snapshot?.fetchedAt
       ? Date.now() - Date.parse(this.snapshot.fetchedAt)
       : Infinity;
