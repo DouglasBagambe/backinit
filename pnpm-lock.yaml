@@ -87,6 +87,9 @@ importers:
       '@backinit/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@backinit/news':
+        specifier: workspace:*
+        version: link:../../packages/news
       '@fontsource-variable/dm-sans':
         specifier: ^5.3.0
         version: 5.3.0
@@ -124,6 +127,18 @@ importers:
 
   packages/domain:
     dependencies:
+      zod:
+        specifier: latest
+        version: 4.6.7
+
+  packages/news:
+    dependencies:
+      '@backinit/domain':
+        specifier: workspace:*
+        version: link:../domain
+      fast-xml-parser:
+        specifier: ^5.11.2
+        version: 5.11.2
       zod:
         specifier: latest
         version: 4.6.7

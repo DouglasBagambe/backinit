@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 const config: NextConfig = {
-  transpilePackages: ["@backinit/domain"],
+  transpilePackages: ["@backinit/domain", "@backinit/news"],
   async headers() {
     return [
       {

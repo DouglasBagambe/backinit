@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@backinit/domain": "workspace:*",
+    "@backinit/news": "workspace:*",
     "@fontsource-variable/dm-sans": "^5.3.0",
     "@fontsource-variable/manrope": "^5.3.0",
     "dashjs": "^5.2.1",
