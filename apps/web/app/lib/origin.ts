@@ -7,7 +7,22 @@ export function validOrigin(request: Request) {
   try {
     const actual = new URL(origin);
     const configured = process.env.APP_ORIGIN;
-    if (configured) return actual.origin === configured;
+    if (configured) {
+      const canonical = new URL(configured);
+      if (actual.origin === canonical.origin) return true;
+      // Both public production hosts serve the application. Keep the alias
+      // narrowly scoped; previews, arbitrary subdomains and ports are not trusted.
+      const productionHosts = new Set(["backinit.live", "www.backinit.live"]);
+      return (
+        canonical.protocol === "https:" &&
+        !canonical.port &&
+        productionHosts.has(canonical.hostname) &&
+        actual.protocol === "https:" &&
+        !actual.port &&
+        productionHosts.has(actual.hostname) &&
+        actual.host === request.headers.get("host")
+      );
+    }
     return (
       actual.host === request.headers.get("host") &&
       actual.protocol === new URL(request.url).protocol

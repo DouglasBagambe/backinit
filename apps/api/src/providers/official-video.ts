@@ -141,14 +141,18 @@ export class OfficialVideoCatalog {
     const coverage = await Promise.all(
       officialChannels.map(async (channel) => {
         try {
-          const feed = await this.cache.json(
-            `https://www.youtube.com/feeds/videos.xml?channel_id=${channel.id}`,
-            900000,
-            (raw) => parseChannel(raw, channel.id),
-            {},
-            (r) => r.text(),
-          );
-          const selected = feed.value
+          const feed = await this.cache
+            .json(
+              `https://www.youtube.com/feeds/videos.xml?channel_id=${channel.id}`,
+              900000,
+              (raw) => parseChannel(raw, channel.id),
+              {},
+              (r) => r.text(),
+            )
+            .catch(() => null);
+          // Curated official archives are verified independently with fresh
+          // oEmbed metadata. A channel-feed outage must not discard them.
+          const selected = (feed?.value || [])
             .filter(
               (v) =>
                 /full match|full fight|free fight|full basketball game|full game|highlights|recap/i.test(
@@ -157,10 +161,15 @@ export class OfficialVideoCatalog {
             )
             .slice(0, 2);
           const choices = [
-            ...selected,
+            ...selected.map((video) => ({ ...video, archive: false })),
             ...(channel.archive || [])
               .filter((id) => !selected.some((v) => v.id === id))
-              .map((id) => ({ id, title: "", publishedAt: null })),
+              .map((id) => ({
+                id,
+                title: "",
+                publishedAt: null,
+                archive: true,
+              })),
           ];
           const results = await Promise.allSettled(
             choices.map(async (video) => {
@@ -172,7 +181,7 @@ export class OfficialVideoCatalog {
               );
               if (
                 meta.stale ||
-                feed.stale ||
+                (!video.archive && (!feed || feed.stale)) ||
                 meta.value.author_name.toLowerCase() !==
                   channel.name.toLowerCase()
               )
@@ -226,13 +235,16 @@ export class OfficialVideoCatalog {
           return {
             publisher: channel.name,
             sport: channel.sport,
-            status: feed.stale
+            status: feed?.stale
               ? "stale"
               : results.some((r) => r.status === "fulfilled" && r.value)
-                ? "checked"
+                ? feed
+                  ? "checked"
+                  : "partial"
                 : "unavailable",
-            message:
-              "Official feed and embed metadata checked; playback remains subject to provider restrictions.",
+            message: feed
+              ? "Official feed and embed metadata checked; playback remains subject to provider restrictions."
+              : "Channel feed unavailable; listed official archives have independently verified embed metadata.",
           };
         } catch {
           return {
