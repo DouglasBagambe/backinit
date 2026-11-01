@@ -2,6 +2,37 @@
 import { eventTitle, type SportEvent } from "@backinit/domain";
 import { Crest, SportMark } from "./marks";
 
+/** Keep reported match data available independently of a third-party animation. */
+export function TrackerScore({ event }: { event: SportEvent }) {
+  if (event.kind !== "score") return null;
+  const status = event.source?.stale
+    ? "Last reported score"
+    : event.status === "live"
+      ? event.clock || "Live"
+      : event.status === "finished"
+        ? "Full time"
+        : event.status === "upcoming"
+          ? "Upcoming"
+          : "Awaiting updates";
+  return (
+    <section className="tracker-score-strip" aria-label="Reported match score">
+      <div className="tracker-score-strip-status">
+        {status}
+        {event.sport === "Tennis" && " · Sets"}
+      </div>
+      <div className="tracker-score-strip-teams">
+        <span>{event.home}</span>
+        <strong>
+          {event.homeScore ?? "–"}
+          <span> : </span>
+          {event.awayScore ?? "–"}
+        </strong>
+        <span>{event.away}</span>
+      </div>
+    </section>
+  );
+}
+
 /** A diagram and reported events, never simulated possession or ball coordinates. */
 export function EventTracker({
   event,

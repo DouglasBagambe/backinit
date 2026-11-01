@@ -4629,6 +4629,37 @@ footer {
   border-top: 1px solid var(--line);
   background: var(--surface);
 }
+.tracker-score-strip {
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+}
+.tracker-score-strip-status {
+  margin-bottom: 6px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+}
+.tracker-score-strip-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.tracker-score-strip-teams > span {
+  overflow-wrap: anywhere;
+}
+.tracker-score-strip-teams > span:last-child {
+  text-align: right;
+}
+.tracker-score-strip-teams > strong {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .tracker-startup-status {
   margin: 0;
   padding: 8px 12px;

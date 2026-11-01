@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useId, useRef, useState } from "react";
 import { type SportEvent, type TrackerSource } from "@backinit/domain";
-import { EventTracker } from "./event-tracker";
+import { EventTracker, TrackerScore } from "./event-tracker";
 
 type Sir = ((...args: unknown[]) => void) & {
   q?: unknown[][];
@@ -147,6 +147,7 @@ export function SportradarTracker({
           </div>
         )}
       </div>
+      {!showSummary && <TrackerScore event={event} />}
       <div className="tracker-controls">
         <button aria-pressed={summary} onClick={toggleSummary}>
           {summary ? "Live animation" : "Match summary"}
