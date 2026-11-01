@@ -1,17 +1,19 @@
-# Production status — 1 November 2026
+# Production verification baseline — 2 November 2026
 
-Public website: https://www.backinit.live. Backend: https://backinit-api.onrender.com. Application release: `26190717eaa6194f52348c9af424ae8d6e06ef96` (PR38), Render deploy `dep-dbj9vpvb9u1s73deip10`, verified live. This is a time-specific verification record, not a promise of universal upstream coverage.
+Public website: https://www.backinit.live. Backend: https://backinit-api.onrender.com. Verified application baseline: `f425f27aa64091637ea3ff4a09bc760a4c373534` (PR45), Render deploy `dep-dbjqe7jbc2fs73dj8jlg`, live with both Vercel production statuses successful. This is a time-specific verification record, not a promise of universal upstream coverage.
 
 ## Delivered and checked
 
 - Green 2 dark theme, football/broadcast branding, skeleton loading and subtle logo animation; distinct account states without initials.
 - Eight-character minimum passwords, durable accounts/favorites, recovery codes, account export/deletion and administrator sessions. The owner's existing account reaches the production broadcast editor through Account → Manage broadcasts. No password is stored in this document.
 - Durable PostgreSQL source registry, version checks, playback evidence and audit records. Runtime has restricted table permissions; migrations ran before release. No test sources were published.
-- Exact-match publisher animation discovery with score fallback, recovery controls and responsive primary/side layouts. A real tennis animation was checked on desktop and 390px mobile; a longer check retained the frame while set/game values changed. No substitute fixture or invented positional data was used.
-- News is publicly populated: 15 real sports headlines rendered on a 390px mobile screen without overflow or recorded page errors. GDELT attribution, original links and indexed dates are visible. Successful API responses are cached at the edge; a second public request returned `x-vercel-cache: HIT`.
+- Exact-match publisher animation discovery with score fallback, recovery controls and responsive primary/side layouts. A real tennis animation was checked on desktop and 390px mobile; a longer check retained the frame while set/game values changed. No substitute fixture or invented positional data was used. A later Mandlik–Janicijevic animation remained blank both in BackInIt and on its original publisher embed page; its upstream JavaScript bootstrap did not finish. This remains unresolved.
+- News refreshes complete through the serverless request lifecycle. Stale responses are not shared-cache successes, and stale RSS triggers archive discovery. Public mobile News returned fresh headlines without overflow, stale labels or page errors; counts vary with current index contents. Original links, attribution and indexed dates remain visible.
+- Silent embedded video recovers after 20 seconds without progress, preserving pauses and background tabs. A real FIBA broadcast decoded 720p video in a separate public check.
+- Known match URLs survive transient omissions. Catalogue cache reuse respects the individual live-source deadline, preventing an otherwise fresh snapshot from demoting an already-refreshed score to unknown. Weekend cards share Watch discovery rather than downloading the full catalogue twice. Tennis omissions can use exact player/complete-partnership search; opponent/time/ambiguity checks remain strict.
 - Direct Native Banner and voluntary labelled Sponsored offers. Account/admin pages exclude passive ads. Tests intercept vendor calls rather than producing real ad clicks.
 - Public Watch, Fixtures, Live, Scores and News page responses were HTTP 200 in 1.9–3.6 seconds from the audit connection. A free backend cold start can still be slower.
-- Final application CI: typecheck and production build passed, 131 automated tests and 57 browser tests passed; one optional external-media test skipped. Separate real PostgreSQL integration checks passed. Earlier production account checks verified persistence through a backend restart and cleaned their synthetic accounts.
+- PR45 application CI: typecheck and production build passed, 141 automated tests and 58 browser tests passed; one optional external-media test skipped. Separate real PostgreSQL integration checks passed. Earlier production account checks verified persistence through a backend restart and cleaned their synthetic accounts.
 
 ## External access or owner decisions still required
 
