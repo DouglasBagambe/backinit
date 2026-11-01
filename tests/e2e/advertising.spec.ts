@@ -23,12 +23,19 @@ test("native advertising uses the original direct tag once, only after consent, 
     page.getByRole("region", { name: "Advertising preferences" }),
   ).toBeVisible();
   expect(requests).toHaveLength(0);
+  const sponsor = page.getByRole("link", { name: "Sponsored offers" });
+  await expect(sponsor).toHaveAttribute(
+    "href",
+    "https://asiafilm.org/4/03e480f030ce8a18c8c3de500ca10b7d",
+  );
+  await expect(sponsor).toHaveAttribute("rel", /sponsored/);
   await page.getByRole("button", { name: "Decline ads", exact: true }).click();
   await page.reload();
   await expect(
     page.getByRole("button", { name: "Ad preferences", exact: true }),
   ).toBeVisible();
   expect(requests).toHaveLength(0);
+  await expect(sponsor).toBeVisible();
   await page
     .getByRole("button", { name: "Ad preferences", exact: true })
     .click();
@@ -44,7 +51,6 @@ test("native advertising uses the original direct tag once, only after consent, 
   await expect(
     page.locator(`script[src='https://czernik.org/21/${key}']`),
   ).toHaveAttribute("data-cfasync", "false");
-  const sponsor = page.getByRole("link", { name: "Sponsored offers" });
   await expect(sponsor).toHaveAttribute("rel", /sponsored/);
   await expect(sponsor).toHaveAttribute("target", "_blank");
   await page.setViewportSize({ width: 303, height: 844 });

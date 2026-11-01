@@ -108,26 +108,24 @@ export function AdSlot({
       {native && enabled && nativeEnabled && preference === "accepted" && (
         <NativeAdvertising />
       )}
-      {(format === "banner" || sponsored) &&
-        enabled &&
-        (!nativeEnabled || preference === "accepted") && (
-          <a
-            className={`sponsored-offers${format === "rectangle" ? " sponsored-card" : ""}`}
-            href="https://asiafilm.org/4/03e480f030ce8a18c8c3de500ca10b7d"
-            target="_blank"
-            rel="sponsored noopener noreferrer"
-          >
-            {format === "rectangle" ? (
-              <>
-                <small>Sponsored</small>
-                <strong>Explore offers ↗</strong>
-                <span>Support BackInIt</span>
-              </>
-            ) : (
-              "Sponsored offers ↗"
-            )}
-          </a>
-        )}
+      {(format === "banner" || sponsored) && enabled && (
+        <a
+          className={`sponsored-offers${format === "rectangle" ? " sponsored-card" : ""}`}
+          href="https://asiafilm.org/4/03e480f030ce8a18c8c3de500ca10b7d"
+          target="_blank"
+          rel="sponsored noopener noreferrer"
+        >
+          {format === "rectangle" ? (
+            <>
+              <small>Sponsored</small>
+              <strong>Explore offers ↗</strong>
+              <span>Support BackInIt</span>
+            </>
+          ) : (
+            "Sponsored offers ↗"
+          )}
+        </a>
+      )}
     </div>
   );
 }
