@@ -51,7 +51,11 @@ export async function loadEvents(
         };
   }
 }
-export async function loadEvent(id: string, edition: "real" | "demo") {
+export async function loadEvent(
+  id: string,
+  edition: "real" | "demo",
+  failOnUnavailable = false,
+) {
   edition = resolveEdition(edition);
   try {
     const response = await fetch(
@@ -63,7 +67,8 @@ export async function loadEvent(id: string, edition: "real" | "demo") {
         cache: "no-store",
       },
     );
-    if (!response.ok) return null;
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error("Match provider unavailable");
     const event = eventSchema.parse(await response.json());
     return event.provenance === (edition === "real" ? "provider" : "demo")
       ? freshEventFeed({
@@ -74,6 +79,10 @@ export async function loadEvent(id: string, edition: "real" | "demo") {
         }).data[0]!
       : null;
   } catch {
+    if (failOnUnavailable)
+      throw new Error(
+        "Match updates are temporarily unavailable. Please retry.",
+      );
     return null;
   }
 }

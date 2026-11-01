@@ -119,3 +119,60 @@ it("preserves scores but expires stale live status when a cached source is over 
   });
   expect(source.data[0]?.status).toBe("live");
 });
+
+it("keeps a known broadcast URL readable through an omitted or failed refresh without inventing live availability", async () => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-11-01T02:00:00Z"));
+  vi.stubEnv("SPORTS_PROVIDERS_DISABLED", "false");
+  const match = {
+    ...verifiedCupFixtures[0]!,
+    id: "fiba-verified",
+    status: "live" as const,
+    source: {
+      ...verifiedCupFixtures[0]!.source!,
+      fetchedAt: new Date().toISOString(),
+      stale: false,
+    },
+  };
+  const empty = {
+    value: [],
+    fetchedAt: new Date().toISOString(),
+    stale: false,
+  };
+  for (const Provider of [
+    OpenLigaProvider,
+    JolpicaProvider,
+    EflProvider,
+    WweProvider,
+  ])
+    vi.spyOn(Provider.prototype, "events").mockResolvedValue(empty);
+  vi.spyOn(EspnProvider.prototype, "events").mockResolvedValue(empty);
+  vi.spyOn(EspnProvider.prototype, "lookup").mockResolvedValue(undefined);
+  vi.spyOn(OfficialBroadcastProvider.prototype, "events").mockResolvedValue({
+    ...empty,
+    value: [match],
+  });
+  const service = new SportsService();
+  await service.feed("real");
+  await vi.advanceTimersByTimeAsync(61000);
+  const feed = vi
+    .spyOn(service, "feed")
+    .mockResolvedValue({
+      data: [],
+      edition: "real",
+      source: "Delayed",
+      coverage: [],
+    });
+  const delayed = await service.fixture(match.id, "real");
+  expect(delayed).toMatchObject({
+    id: match.id,
+    status: "unknown",
+    source: { stale: true },
+  });
+  expect(service.broadcastSources(delayed!)).toEqual([]);
+  feed.mockRejectedValue(new Error("Provider offline"));
+  expect(await service.fixture(match.id, "real")).toEqual(delayed);
+  expect(await service.fixture("unseen-match", "real")).toBeUndefined();
+  await vi.advanceTimersByTimeAsync(86400000);
+  expect(await service.fixture(match.id, "real")).toBeUndefined();
+});

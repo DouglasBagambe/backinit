@@ -71,6 +71,31 @@ it("lets Watch own its lightweight discovery feed without loading the entire cat
   expect(fetcher).not.toHaveBeenCalled();
 });
 
+it("keeps transient match outages retryable instead of treating them as missing pages", async () => {
+  vi.stubEnv("ALLOW_DEMO_MODE", "false");
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: string | URL | Request) =>
+      new URL(String(input)).pathname === "/events"
+        ? Response.json({
+            data: [],
+            edition: "real",
+            source: "Delayed",
+            coverage: [],
+          })
+        : new Response("Unavailable", { status: 503 }),
+    ),
+  );
+  await expect(loadPageData("watch/known-match", "real")).rejects.toThrow(
+    "temporarily unavailable",
+  );
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockResolvedValue(new Response("Missing", { status: 404 })),
+  );
+  expect(await loadEvent("missing", "real", true)).toBeNull();
+});
+
 it("does not fetch the sports catalogue before rendering News or account/utility pages", async () => {
   vi.stubEnv("ALLOW_DEMO_MODE", "false");
   const fetcher = vi.fn(async (input: string | URL | Request) => {
