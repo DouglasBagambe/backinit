@@ -1,0 +1,16 @@
+{
+  "name": "@backinit/news",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@backinit/domain": "workspace:*",
+    "fast-xml-parser": "^5.11.2",
+    "zod": "latest"
+  }
+}
