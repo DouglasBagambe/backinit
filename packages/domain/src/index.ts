@@ -514,12 +514,14 @@ export const newsItemSchema = z.object({
   publishedAt: z.string().datetime(),
   source: z.string(),
   category: z.string(),
+  dateKind: z.enum(["published", "indexed"]).optional(),
 });
 export const newsFeedSchema = z.object({
   data: z.array(newsItemSchema),
   status: z.enum(["available", "stale", "unavailable", "not-configured"]),
   message: z.string(),
   fetchedAt: z.string().datetime().nullable(),
+  attribution: z.object({ name: z.string(), url: z.string().url() }).optional(),
 });
 export type NewsFeed = z.infer<typeof newsFeedSchema>;
 

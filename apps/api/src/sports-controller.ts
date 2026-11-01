@@ -29,6 +29,9 @@ const editionSchema = z
   );
 @Controller()
 export class SportsController {
+  onModuleInit() {
+    if (process.env.SPORTS_PROVIDERS_DISABLED !== "true") void news.feed();
+  }
   constructor(
     @Optional()
     @Inject("SPORTS_NOTIFICATIONS")

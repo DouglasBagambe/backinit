@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
   ConflictException,
   HttpException,
+  ForbiddenException,
 } from "@nestjs/common";
 import {
   credentialsSchema,
@@ -134,6 +135,12 @@ export class PostgresAccounts {
         digest(token),
       ]);
     return { ok: true };
+  }
+  async admin(authorization?: string) {
+    const user = await this.user(authorization);
+    if (user.role !== "admin")
+      throw new ForbiddenException("Administrator access required.");
+    return user;
   }
   async logoutAll(user: User) {
     await transaction(this.pool, async (db) => {
