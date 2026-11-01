@@ -4627,12 +4627,14 @@ footer {
   gap: 12px;
   padding: 8px 12px;
   border-top: 1px solid var(--line);
+  background: var(--surface);
 }
 .tracker-startup-status {
   margin: 0;
   padding: 8px 12px;
   font-size: 12px;
   color: var(--muted);
+  background: var(--surface);
 }
 .tracker-controls button {
   font-size: 12px;
