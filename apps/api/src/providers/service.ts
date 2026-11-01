@@ -2,6 +2,7 @@ import { ForbiddenException } from "@nestjs/common";
 import {
   DemoProvider,
   freshEventFeed,
+  liveSnapshotExpired,
   type EventFeed,
   type SportEvent,
   type Coverage,
@@ -61,7 +62,11 @@ export class SportsService {
       }
       return task;
     };
-    if (cached && Date.now() - cached.at < 60000) {
+    if (
+      cached &&
+      Date.now() - cached.at < 60000 &&
+      !cached.value.data.some((event) => liveSnapshotExpired(event))
+    ) {
       if (Date.now() - cached.at >= 10000) void refresh().catch(() => {});
       return freshEventFeed(structuredClone(cached.value));
     }

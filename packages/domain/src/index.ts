@@ -384,22 +384,30 @@ export const feedSchema = z.object({
 });
 export type EventFeed = z.infer<typeof feedSchema>;
 
+/** The catalogue cache cannot extend the verification window of its live sources. */
+export function liveSnapshotExpired(
+  event: SportEvent,
+  now = Date.now(),
+): boolean {
+  if (
+    event.provenance !== "provider" ||
+    event.status !== "live" ||
+    !event.source
+  )
+    return false;
+  const checked = Date.parse(event.source.fetchedAt);
+  // Explicit broadcast verification may last up to two minutes; scores retain one minute.
+  const expires = event.source.liveValidUntil
+    ? Math.min(Date.parse(event.source.liveValidUntil), checked + 120000)
+    : checked + 60000;
+  return !Number.isFinite(expires) || now > expires;
+}
+
 /** Cached live snapshots must never masquerade as current after their source expires. */
 export function freshEventFeed(feed: EventFeed, now = Date.now()): EventFeed {
   const delayed = new Set<string>();
   const data = feed.data.map((event) => {
-    const checked = Date.parse(event.source?.fetchedAt || "");
-    // Explicit broadcast verification may last up to two minutes; score feeds retain one minute.
-    const expires = event.source?.liveValidUntil
-      ? Math.min(Date.parse(event.source.liveValidUntil), checked + 120000)
-      : checked + 60000;
-    if (
-      event.provenance !== "provider" ||
-      event.status !== "live" ||
-      !event.source ||
-      (Number.isFinite(expires) && now <= expires)
-    )
-      return event;
+    if (!event.source || !liveSnapshotExpired(event, now)) return event;
     delayed.add(event.source.provider);
     return {
       ...event,
