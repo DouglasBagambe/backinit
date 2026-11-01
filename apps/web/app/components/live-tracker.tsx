@@ -5,7 +5,7 @@ import {
   type SportEvent,
   type TrackerSource,
 } from "@backinit/domain";
-import { EventTracker } from "./event-tracker";
+import { EventTracker, TrackerScore } from "./event-tracker";
 import { SportradarTracker } from "./sportradar-tracker";
 
 export function LiveTracker({
@@ -310,6 +310,7 @@ function PublisherTracker({
           </div>
         )}
       </div>
+      {!showSummary && <TrackerScore event={event} />}
       {source.transport === "publisher" && !loaded && !showSummary && (
         <p className="tracker-startup-status" role="status">
           {slow
