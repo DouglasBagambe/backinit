@@ -1,5 +1,13 @@
 # Render sports-data API
 
+## Current production state — 1 November 2026
+
+The live service runs `data+accounts` with the restricted Neon connection. PostgreSQL now stores accounts, favorites, broadcast sources, playback checks and source audit entries. The administrator source editor is enabled; the requested owner account can reach it through **Account → Manage broadcasts**. No customer sources or test broadcasts were invented or seeded. See [DATABASE.md](DATABASE.md) for migration and rollback details.
+
+The backend and website both run the validated GDELT News provider. The website has an independent source connection and edge-cached successful responses. Empty rolling windows recover from bounded archives. Public mobile verification rendered 15 current headlines with attribution. See [NEWS.md](NEWS.md).
+
+The following dated sections preserve the original rollout history. Their earlier unavailable-account/source/news statements do not describe the current production configuration. Current verification and external limits are summarized in [STATUS.md](STATUS.md).
+
 ## Deployed service
 
 The founder requested Dyson's Render workspace. A new **free** Node web service was created there, without modifying the workspace's existing services:

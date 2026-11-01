@@ -41,11 +41,11 @@ Defaults work without an env file. Next reads `apps/web/.env.local`; Nest reads 
 - OpenLigaDB Bundesliga fixtures, results, reported goals and standings; Jolpica F1 schedule and latest classification. Provider metadata and stale states are exposed. These are snapshots, **not guaranteed real-time feeds**.
 - Real Match Centre goal replay and timeline, standings and race classification. No inferred coordinates, live clock, momentum, lineups or missing statistics.
 - Search by events, competitions, teams and reported athletes. Directories derive from available events; they are not comprehensive global databases.
-- Registration/login/logout, seven-day opaque sessions, SQLite account favorites, guest local favorites, follows and personalized home. Recovery codes, password changes, session revocation, privacy export and account deletion are implemented. Opt-in in-app match updates are persisted; no email verification, email reset or background push is configured. Calendar export is available for individual events.
+- Registration/login/logout, seven-day opaque sessions, durable PostgreSQL account favorites in production (SQLite in local full mode), guest local favorites, follows and personalized home. Recovery codes, password changes, session revocation, privacy export and account deletion are implemented. Opt-in in-app match updates are persisted; no email verification, email reset or background push is configured. Calendar export is available for individual events.
 - Server-authorized administrator source registry with version checks and audit entries. All new users are ordinary members. Sources have rights evidence, time windows, revocation and approved hosts. Operator review of rights remains essential.
 - HLS/DASH player, source selection, availability probes, retry/buffering states and native video controls. Permitted YouTube privacy-enhanced embeds require consent. Official sports YouTube videos are discovered from nine publishers, consent-gated and categorized. See [STREAMS.md](STREAMS.md). Open test films remain separate; **no direct live sports broadcasts are configured**. Availability probes do not prove segment playback or regional entitlement.
-- Footer-only Light/Dark/System preference persists locally; dark uses navy, charcoal and steel-blue.
-- BBC headline adapter is permission-gated. No syndicated news is enabled by default. Unsupported sports show unavailable coverage; fictional demo remains opt-in.
+- Footer-only Light/Dark/System preference persists locally; dark uses the selected Green 2 palette. Temporary palette testing controls are removed.
+- GDELT headlines are enabled by default, with original publisher links and attribution. The separate BBC feed remains permission-gated. Unsupported sports show unavailable coverage; fictional demo remains opt-in. See [NEWS.md](NEWS.md).
 
 ## Accounts and administration
 
