@@ -41,6 +41,9 @@ it("ingests a free attributed index without enabling the gated publisher feed", 
   expect(feed.data[0]?.dateKind).toBe("indexed");
   expect(feed.attribution?.name).toBe("GDELT Project");
   expect(fetcher.mock.calls[0]?.[0]).toContain("gdeltv3/gal/feed.rss");
+  expect(fetcher.mock.calls[0]?.[0]).toContain(
+    "https://storage.googleapis.com/data.gdeltproject.org/",
+  );
 });
 it("rejects untrusted publishers, non-sport paths, stale/future dates and duplicate titles", () => {
   const now = Date.parse("2026-11-01T02:00:00Z");

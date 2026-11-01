@@ -388,7 +388,7 @@ export class NewsService {
           )
         : await this.cache
             .json(
-              "https://data.gdeltproject.org/gdeltv3/gal/feed.rss",
+              "https://storage.googleapis.com/data.gdeltproject.org/gdeltv3/gal/feed.rss",
               300000,
               parseGdeltRss,
               {},
