@@ -49,6 +49,13 @@ export function Account({ onChange }: { onChange: () => void }) {
           <h2>Your account</h2>
           <p>Signed in as {user.email}</p>
           <p>Your saved events and preferences stay with your account.</p>
+          {user.role === "admin" && (
+            <p>
+              <Link className="primary" href="/admin">
+                Manage broadcasts
+              </Link>
+            </p>
+          )}
           <button
             disabled={pending}
             onClick={async () => {

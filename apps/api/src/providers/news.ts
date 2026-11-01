@@ -250,7 +250,7 @@ export class NewsService {
   private snapshot?: NewsFeed;
   private pending?: Promise<NewsFeed>;
   private retryAt = 0;
-  constructor(private cache = new ProviderCache(fetch, Date.now, 4000)) {}
+  constructor(private cache = new ProviderCache(fetch, Date.now, 12000)) {}
   async feed(): Promise<NewsFeed> {
     if (process.env.SPORTS_PROVIDERS_DISABLED === "true")
       return {
@@ -330,7 +330,14 @@ export class NewsService {
           : {}),
       };
       return this.snapshot;
-    } catch {
+    } catch (error) {
+      // Provider failures are observable without logging request URLs or data.
+      console.warn(
+        "Sports news refresh failed:",
+        error instanceof Error
+          ? error.message.slice(0, 160)
+          : "provider unavailable",
+      );
       this.retryAt = Date.now() + 60000;
       return this.snapshot
         ? {

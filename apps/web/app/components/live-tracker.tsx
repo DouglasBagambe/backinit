@@ -164,6 +164,8 @@ function PublisherTracker({
   retry: () => void;
 }) {
   const frame = useRef<HTMLIFrameElement>(null);
+  const navigationFailure = useRef<() => void>(() => {});
+  const failedRef = useRef(false);
   const loadedRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
   const [slow, setSlow] = useState(false);
@@ -172,11 +174,13 @@ function PublisherTracker({
   const [height, setHeight] = useState<number>();
   useEffect(() => {
     loadedRef.current = false;
+    failedRef.current = false;
     setLoaded(false);
     setSlow(false);
     setFailedNavigation(false);
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
     const failed = () => {
+      failedRef.current = true;
       loadedRef.current = false;
       setLoaded(false);
       setSlow(true);
@@ -187,6 +191,7 @@ function PublisherTracker({
           5000 * (navigation + 1),
         );
     };
+    navigationFailure.current = failed;
     let timer = setTimeout(() => {
       if (!loadedRef.current) {
         // The original publisher document can already contain live animation
@@ -230,6 +235,7 @@ function PublisherTracker({
         }, 35000);
       }
       if (message.data.type === "backinit:tracker-ready") {
+        failedRef.current = false;
         loadedRef.current = true;
         setLoaded(true);
         setSlow(false);
@@ -247,6 +253,7 @@ function PublisherTracker({
     };
     window.addEventListener("message", receive);
     return () => {
+      navigationFailure.current = () => {};
       clearTimeout(timer);
       clearTimeout(retryTimer);
       window.removeEventListener("message", receive);
@@ -280,17 +287,13 @@ function PublisherTracker({
             // The publisher does not expose a data-ready callback. This only
             // reveals its document; its own UI reports upstream availability.
             if (source.transport !== "publisher") return;
+            if (failedRef.current) return;
             loadedRef.current = true;
             setLoaded(true);
             setSlow(false);
             setFailedNavigation(false);
           }}
-          onError={() => {
-            loadedRef.current = false;
-            setLoaded(false);
-            setSlow(true);
-            setFailedNavigation(true);
-          }}
+          onError={() => navigationFailure.current()}
           aria-hidden={showSummary || undefined}
           tabIndex={showSummary ? -1 : undefined}
         />
