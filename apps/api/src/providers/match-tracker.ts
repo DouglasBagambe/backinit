@@ -19,16 +19,14 @@ const fixtures = z.object({
   sport: z.string(),
   matches: z.array(row).max(200),
 });
-const teamSearch = z.object({
+const competitor = z.object({
+  name: z.string(),
+  slug: z.string().regex(/^[a-z0-9-]{1,160}$/),
+});
+const competitorSearch = z.object({
   sport: z.string(),
-  teams: z
-    .array(
-      z.object({
-        name: z.string(),
-        slug: z.string().regex(/^[a-z0-9-]{1,160}$/),
-      }),
-    )
-    .max(200),
+  teams: z.array(competitor).max(200).default([]),
+  players: z.array(competitor).max(200).default([]),
 });
 const detail = z.object({
   sport: z.string(),
@@ -151,23 +149,32 @@ export class MatchTrackerProvider {
     let matches = list.value.matches.filter(
       (r) => same(event, r) && r.status === "live",
     );
-    if (matches.length === 0 && event.sport !== "Tennis") {
+    if (matches.length === 0) {
       // Busy live lists can omit a covered game. Resolve the publisher's
-      // exact team identity before requesting its narrower fixture list.
+      // exact competitor identity before requesting its narrower fixture list.
+      // Tennis search groups individuals and complete doubles pairs as players.
+      // A partner-only query finds pairs despite differences in slash spacing;
+      // selection still requires the full partnership, never one partner alone.
+      const query =
+        sport === "tennis"
+          ? event.home.split("/")[0]!.trim()
+          : participantLabel(event, event.home);
       const search = await this.cache.json(
-        `https://sportscore.com/api/v1/search/?${new URLSearchParams({ sport, q: participantLabel(event, event.home), limit: "20" })}`,
+        `https://sportscore.com/api/v1/search/?${new URLSearchParams({ sport, q: query, limit: "20" })}`,
         3600000,
-        (raw) => teamSearch.parse(raw),
+        (raw) => competitorSearch.parse(raw),
       );
       if (search.stale || search.value.sport !== sport) return null;
-      const teams = search.value.teams.filter(
+      const competitors = (
+        sport === "tennis" ? search.value.players : search.value.teams
+      ).filter(
         (team) =>
           participantName(event, team.name) ===
           participantName(event, event.home),
       );
-      if (teams.length !== 1) return null;
+      if (competitors.length !== 1) return null;
       const scoped = await this.cache.json(
-        `https://sportscore.com/api/v1/fixtures/?${new URLSearchParams({ sport, date: day, team: teams[0]!.slug, limit: "200" })}`,
+        `https://sportscore.com/api/v1/fixtures/?${new URLSearchParams({ sport, date: day, team: competitors[0]!.slug, limit: "200" })}`,
         60000,
         (raw) => fixtures.parse(raw),
       );

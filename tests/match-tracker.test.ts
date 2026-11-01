@@ -548,3 +548,95 @@ it("loads a viewed football match from one day rather than waiting for eight sch
   ).toMatchObject({ home: "Home", away: "Away" });
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it("finds omitted tennis through the exact player rather than relying on the capped live list", async () => {
+  let wrongOpponent = false;
+  const fetcher = vi.fn(async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/search/")) {
+      expect(url.searchParams.get("q")).toBe("Adrian Mannarino");
+      return Response.json({
+        sport: "tennis",
+        players: [
+          { name: "Adrian Mannarino", slug: "adrian-mannarino" },
+          { name: "Adrian Mannarino / Other Partner", slug: "different-pair" },
+        ],
+      });
+    }
+    if (url.pathname.endsWith("/fixtures/"))
+      return Response.json({
+        sport: "tennis",
+        matches:
+          url.searchParams.get("team") === "adrian-mannarino"
+            ? [{ ...row, away: wrongOpponent ? "Different Player" : row.away }]
+            : [],
+      });
+    return Response.json({
+      sport: "tennis",
+      updated: new Date(at).toISOString(),
+      match: { ...row, tracker: { id: "verified", sport: "tennis" } },
+    });
+  });
+  const resolve = () =>
+    new MatchTrackerProvider(
+      new ProviderCache(fetcher as typeof fetch, () => at),
+      () => at,
+    ).forEvent(event);
+  expect(await resolve()).toMatchObject({
+    url: "https://sportscore.com/embed/tracker/tennis/adrian-mannarino-vs-daniil-medvedev/",
+  });
+  wrongOpponent = true;
+  expect(await resolve()).toBeNull();
+});
+
+it("resolves a complete doubles partnership through one partner without accepting a different partner", async () => {
+  const doubles = {
+    ...event,
+    home: "Andrea Vavassori / Simone Bolelli",
+    away: "Guido Andreozzi / Manuel Guinard",
+  };
+  const match = {
+    ...row,
+    home: "Simone Bolelli/Andrea Vavassori",
+    away: "Manuel Guinard/Guido Andreozzi",
+    url: "/tennis/match/verified-doubles/",
+  };
+  let differentPartner = false;
+  const fetcher = vi.fn(async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    if (url.pathname.endsWith("/search/")) {
+      expect(url.searchParams.get("q")).toBe("Andrea Vavassori");
+      return Response.json({
+        sport: "tennis",
+        players: [
+          {
+            name: differentPartner
+              ? "Andrea Vavassori / Other Partner"
+              : match.home,
+            slug: "verified-pair",
+          },
+        ],
+      });
+    }
+    if (url.pathname.endsWith("/fixtures/"))
+      return Response.json({
+        sport: "tennis",
+        matches: url.searchParams.has("team") ? [match] : [],
+      });
+    return Response.json({
+      sport: "tennis",
+      updated: new Date(at).toISOString(),
+      match: { ...match, tracker: { id: "verified", sport: "tennis" } },
+    });
+  });
+  const resolve = () =>
+    new MatchTrackerProvider(
+      new ProviderCache(fetcher as typeof fetch, () => at),
+      () => at,
+    ).forEvent(doubles);
+  expect(await resolve()).toMatchObject({
+    url: "https://sportscore.com/embed/tracker/tennis/verified-doubles/",
+  });
+  differentPartner = true;
+  expect(await resolve()).toBeNull();
+});
