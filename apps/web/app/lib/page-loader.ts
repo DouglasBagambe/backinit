@@ -27,7 +27,8 @@ export async function loadPageData(
     ? snapshot.data.find((event) => event.id === parts[1])
     : null;
   const match = detail
-    ? known || (await loadEvent(parts[1]!, resolveEdition(requestedEdition)))
+    ? known ||
+      (await loadEvent(parts[1]!, resolveEdition(requestedEdition), true))
     : null;
   const feed = match
     ? {

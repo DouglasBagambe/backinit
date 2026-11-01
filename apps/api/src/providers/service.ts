@@ -284,6 +284,29 @@ export class SportsService {
     edition: "real" | "demo",
   ): Promise<SportEvent | undefined> {
     const known = this.known.get(id);
+    const delayed = () => {
+      const at = Date.parse(known?.source?.fetchedAt || "");
+      if (
+        edition !== "real" ||
+        !known ||
+        !Number.isFinite(at) ||
+        Date.now() - at > 86400000 ||
+        at > Date.now() + 60000
+      )
+        return undefined;
+      // A transient omission must not turn a previously ingested match URL
+      // into a 404. Retain identity without claiming fresh scores or playback.
+      return {
+        ...structuredClone(known),
+        ...(known.status === "live"
+          ? {
+              status: "unknown" as const,
+              ...(known.kind === "score" ? { clock: "Last update" } : {}),
+            }
+          : {}),
+        source: { ...known.source!, stale: true },
+      };
+    };
     if (
       edition === "real" &&
       known?.source &&
@@ -301,17 +324,19 @@ export class SportsService {
       const event =
         direct ?? (await this.espn.lookup(id).catch(() => undefined));
       if (event) this.known.set(id, event);
-      return event;
+      return event || delayed();
     }
     const date = known?.start.slice(0, 10);
-    let event = (await this.feed(edition, date)).data.find((e) => e.id === id);
+    let event = (
+      await this.feed(edition, date).catch(() => undefined)
+    )?.data.find((e) => e.id === id);
     if (
       !event &&
       edition === "real" &&
       process.env.SPORTS_PROVIDERS_DISABLED !== "true"
     )
       event = await this.espn.lookup(id).catch(() => undefined);
-    return event;
+    return event || delayed();
   }
   async event(
     id: string,
