@@ -172,7 +172,7 @@ export function BroadcastDirectory({
     if (range === "Tomorrow") return day === tomorrow;
     if (range === "Live now") return b.start <= time && b.end >= time;
     if (range === "This week") return b.start <= time + 7 * 86400000;
-    if (range === "All upcoming") return true;
+    if (range === "All upcoming") return b.start > time;
     return b.start <= time + 2 * 86400000;
   };
   const entries = feed.data
@@ -335,26 +335,29 @@ export function BroadcastDirectory({
               </select>
             </label>
             {!channels && (
-              <>
-                <label>
-                  Choose date
-                  <input
-                    type="date"
-                    value={chosenDate}
-                    onChange={(e) => setChosenDate(e.target.value)}
-                  />
-                </label>
-                <label>
-                  Order
-                  <select
-                    value={sort}
-                    onChange={(e) => setSort(e.target.value)}
-                  >
-                    <option>Recommended</option>
-                    <option>Kickoff time</option>
-                  </select>
-                </label>
-              </>
+              <details className="broadcast-more-filters">
+                <summary>More filters</summary>
+                <div className="broadcast-filter-popover">
+                  <label>
+                    Choose date
+                    <input
+                      type="date"
+                      value={chosenDate}
+                      onChange={(e) => setChosenDate(e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Order
+                    <select
+                      value={sort}
+                      onChange={(e) => setSort(e.target.value)}
+                    >
+                      <option>Recommended</option>
+                      <option>Kickoff time</option>
+                    </select>
+                  </label>
+                </div>
+              </details>
             )}
           </div>
           <div className="broadcast-results-meta">

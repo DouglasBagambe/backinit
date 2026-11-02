@@ -276,6 +276,11 @@ test("Watch separates sports channels, recognizes marquee games and keeps discov
   await pages.getByRole("button", { name: "Next", exact: true }).click();
   await expect(pages).toContainText("Page 2 of 2");
   await expect(page.locator(".broadcast-card")).toHaveCount(5);
+  await page.locator(".broadcast-more-filters > summary").click();
+  await page
+    .getByRole("combobox", { name: "Order", exact: true })
+    .selectOption("Kickoff time");
+  await page.locator(".broadcast-more-filters > summary").click();
   await page.getByRole("button", { name: "Tomorrow", exact: true }).click();
   await expect(page.locator(".broadcast-card")).toHaveCount(1);
   await expect(page.locator(".broadcast-card h3")).toHaveText(

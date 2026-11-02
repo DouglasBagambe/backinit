@@ -268,13 +268,17 @@ test("a silent publisher startup recovers with Retry instead of remaining ready 
       this.destroy = function() {};
       this.getPlayerState = function() { return -1; };
       this.getCurrentTime = function() { return 0; };
-      setTimeout(function() { options.events.onReady(); }, 0);
+      setTimeout(function() { options.events.onReady(); document.documentElement.dataset.testPublisherReady = "true"; }, 0);
     }}; window.onYouTubeIframeAPIReady();`,
     }),
   );
   await page.goto("/videos");
   await page.clock.install();
   await page.getByRole("button", { name: "Play video", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-test-publisher-ready",
+    "true",
+  );
   await expect(page.locator(".playback-state")).toHaveText("Ready to play");
   await page.clock.fastForward(21000);
   await expect(page.locator(".playback-state")).toContainText(
