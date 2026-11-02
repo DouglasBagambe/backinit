@@ -1,4 +1,5 @@
 "use client";
+import { PlayerBrand } from "./player-brand";
 import { eventTitle, type SportEvent } from "@backinit/domain";
 import { Crest, SportMark } from "./marks";
 
@@ -81,6 +82,7 @@ export function EventTracker({
         <span className="tracker-clock">{status}</span>
       </header>
       <div className="tracker-arena">
+        <PlayerBrand overlay />
         <Arena sport={event.sport} />
         <div className="tracker-scoreboard" key={revision}>
           {event.kind === "score" ? (

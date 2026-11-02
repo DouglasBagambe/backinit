@@ -1,3 +1,4 @@
+import { BroadcastController } from "./broadcast-controller.js";
 import "reflect-metadata";
 import { TrackerController } from "./tracker-controller.js";
 import {
@@ -55,6 +56,7 @@ class SportsUpdates implements OnModuleInit, OnModuleDestroy {
     ]),
   ],
   controllers: [
+    BroadcastController,
     TrackerController,
     SportsController,
     AccountController,

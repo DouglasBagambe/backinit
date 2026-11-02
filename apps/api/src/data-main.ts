@@ -1,3 +1,4 @@
+import { BroadcastController } from "./broadcast-controller.js";
 import "reflect-metadata";
 import { TrackerController } from "./tracker-controller.js";
 import {
@@ -191,6 +192,7 @@ class DataController {
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }])],
   controllers: [
+    BroadcastController,
     TrackerController,
     SportsController,
     DataController,

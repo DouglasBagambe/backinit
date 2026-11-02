@@ -15,6 +15,8 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
   const [sport, setSport] = useState(selectedSport);
   useEffect(() => setSport(selectedSport), [selectedSport]);
   const [query, setQuery] = useState("");
+  const [kind, setKind] = useState("All videos");
+  const [limit, setLimit] = useState(24);
   const [message, setMessage] = useState("Loading official sports videos…");
   const [attempt, setAttempt] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -60,6 +62,10 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
   const available = videos.filter(
     (v) =>
       (sport === "All sports" || v.catalog?.sport === sport) &&
+      (kind === "All videos" ||
+        (kind === "Highlights"
+          ? v.catalog?.category === "Highlights"
+          : v.catalog?.category?.startsWith("Full"))) &&
       `${v.name} ${v.catalog?.publisher}`
         .toLowerCase()
         .includes(query.toLowerCase()),
@@ -90,6 +96,21 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
       )}
       {!preview && (
         <div className="watch-filters">
+          <label>
+            Type
+            <select
+              aria-label="Filter videos by type"
+              value={kind}
+              onChange={(e) => {
+                setKind(e.target.value);
+                setLimit(24);
+              }}
+            >
+              {["All videos", "Highlights", "Full replays"].map((k) => (
+                <option key={k}>{k}</option>
+              ))}
+            </select>
+          </label>
           <label>
             Search videos
             <input
@@ -143,7 +164,7 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
                     ) === i,
                 )
                 .slice(0, 3)
-            : available
+            : available.slice(0, limit)
           ).map((video) => (
             <article className="watch-card" key={video.id}>
               <Link
@@ -193,6 +214,11 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
             </article>
           ))}
         </div>
+      )}
+      {!preview && available.length > limit && (
+        <button onClick={() => setLimit((n) => n + 24)}>
+          Show more videos ({available.length - limit})
+        </button>
       )}
       {!loading && !available.length && !message && (
         <p>No videos match that search. Try another sport or title.</p>

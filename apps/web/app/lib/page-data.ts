@@ -8,6 +8,8 @@ export function usesCatalogue(route: string) {
     "admin",
     "videos",
     "playback",
+    "broadcasts",
+    "multiview",
   ].includes(route);
 }
 export function catalogueRenderBudget(route: string) {

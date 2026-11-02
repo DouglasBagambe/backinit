@@ -116,3 +116,12 @@ it("does not fetch the sports catalogue before rendering News or account/utility
   }
   expect(fetcher).toHaveBeenCalledTimes(1);
 });
+
+it("broadcast rooms render without waiting for the all-sport fixture service", async () => {
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  for (const route of ["broadcasts", "multiview", "watch/ppv-123"]) {
+    expect((await loadPageData(route, "real")).feed.data).toEqual([]);
+  }
+  expect(fetcher).not.toHaveBeenCalled();
+});

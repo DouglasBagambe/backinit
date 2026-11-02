@@ -47,7 +47,7 @@ test("Watch times out a stalled request and recovers on Retry without overlappin
     0,
   );
   expect(requests).toBe(1);
-  await page.getByRole("button", { name: "Retry", exact: true }).click();
+  await alert.getByRole("button", { name: "Retry", exact: true }).click();
   await expect(page.locator(".live-event-row")).toHaveCount(1);
   await expect(alert).toHaveCount(0);
   expect(requests).toBe(2);
