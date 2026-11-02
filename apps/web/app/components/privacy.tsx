@@ -64,13 +64,12 @@ export function Privacy({
               device and browser information, and use cookies or similar
               technologies to personalize and measure advertising. Formats
               include display and native banners, skippable video sliders,
-              Social Bar overlays and Popunder sponsored tabs triggered by
-              visitor interaction. We limit loading of the Popunder tag to once
-              per 24 hours and Social Bar to once per six hours in this browser.
-              The Home video-slider tag is limited to once per 24 hours.
-              Creative frequency within the page is controlled by the ad
-              networks. We do not send them your BackInIt email, password or
-              favourites.
+              Social Bar overlays on discovery pages. BackInIt does not load
+              Popunder advertising on player pages. Social Bar is limited to
+              once per six hours in this browser. The Home video-slider tag is
+              limited to once per 24 hours. Creative frequency within the page
+              is controlled by the ad networks. We do not send them your
+              BackInIt email, password or favourites.
             </p>
             <p>
               The first-visit cookie dialog and Cookie settings let you accept

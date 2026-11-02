@@ -1,7 +1,7 @@
 import { verifiedCupFixtures } from "../../apps/api/src/providers/efl";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-const now = Date.now();
+const now = Date.parse("2026-11-02T12:00:00Z");
 const items = Array.from({ length: 6 }, (_, i) => ({
   id: `ppv-${i + 1}`,
   title: `Match ${i + 1}`,
@@ -28,6 +28,7 @@ const items = Array.from({ length: 6 }, (_, i) => ({
   replay: false,
 }));
 test.beforeEach(async ({ page, baseURL }) => {
+  await page.clock.setFixedTime(new Date(now));
   await page
     .context()
     .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
@@ -46,7 +47,7 @@ test.beforeEach(async ({ page, baseURL }) => {
 test("all upcoming broadcasts are searchable, open source choices and preserve provider iframe behavior", async ({
   page,
 }) => {
-  await page.clock.install();
+  await page.clock.install({ time: new Date(now) });
   await page.goto("/broadcasts");
   await expect(
     page.getByRole("heading", { name: "Broadcasts", exact: true }),
@@ -75,8 +76,6 @@ test("all upcoming broadcasts are searchable, open source choices and preserve p
   await page
     .getByLabel("Stream for Match 2", { exact: true })
     .selectOption("sd-1");
-  await expect(page.locator(".broadcast-screen iframe")).toHaveCount(0);
-  await page.getByRole("button", { name: "Play Match 2", exact: true }).click();
   await expect(page.locator(".broadcast-screen iframe")).toHaveAttribute(
     "src",
     items[1]!.sources[1]!.url,

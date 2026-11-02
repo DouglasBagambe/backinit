@@ -283,3 +283,46 @@ it("retains late channel discovery for the next refresh and coalesces work witho
   await vi.advanceTimersByTimeAsync(1);
   expect(vi.getTimerCount()).toBe(0);
 });
+
+it("a scoped tennis feed never invokes football, racing or publisher discovery and keeps separate snapshots", async () => {
+  vi.stubEnv("SPORTS_PROVIDERS_DISABLED", "false");
+  const empty = {
+    value: [],
+    fetchedAt: new Date().toISOString(),
+    stale: false,
+  };
+  const football = vi
+    .spyOn(OpenLigaProvider.prototype, "events")
+    .mockResolvedValue(empty);
+  const racing = vi
+    .spyOn(JolpicaProvider.prototype, "events")
+    .mockResolvedValue(empty);
+  const cup = vi
+    .spyOn(EflProvider.prototype, "events")
+    .mockResolvedValue(empty);
+  const wwe = vi
+    .spyOn(WweProvider.prototype, "events")
+    .mockResolvedValue(empty);
+  const video = vi
+    .spyOn(OfficialBroadcastProvider.prototype, "catalogue")
+    .mockResolvedValue(empty);
+  const espn = vi
+    .spyOn(EspnProvider.prototype, "events")
+    .mockResolvedValue(empty);
+  const service = new SportsService();
+  await service.feed("real", "2026-11-02", "Tennis");
+  expect(football).not.toHaveBeenCalled();
+  expect(racing).not.toHaveBeenCalled();
+  expect(cup).not.toHaveBeenCalled();
+  expect(wwe).not.toHaveBeenCalled();
+  expect(video).not.toHaveBeenCalled();
+  expect(espn.mock.calls.length).toBeGreaterThan(0);
+  expect(espn.mock.calls.every(([league]) => league.sport === "Tennis")).toBe(
+    true,
+  );
+  const count = espn.mock.calls.length;
+  await service.feed("real", "2026-11-02", "Tennis");
+  expect(espn).toHaveBeenCalledTimes(count);
+  await service.feed("real", "2026-11-02", "Football");
+  expect(football).toHaveBeenCalledTimes(1);
+});

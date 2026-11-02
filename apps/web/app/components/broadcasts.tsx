@@ -1,4 +1,6 @@
 "use client";
+import { prioritizePlayback } from "../lib/playback-priority";
+import { publicData } from "../lib/public-data-client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -30,7 +32,7 @@ import {
   broadcastImportance,
 } from "../lib/broadcast-ranking";
 import { useViewingZone, localDay } from "../lib/viewing-time";
-import { AdSlot, PlaybackAdNotice } from "./advertising";
+import { AdSlot } from "./advertising";
 import { DisplayAdvertising } from "./display-advertising";
 function useBroadcasts() {
   const [feed, setFeed] = useState<BroadcastFeed>({
@@ -47,10 +49,9 @@ function useBroadcasts() {
       if (busy || document.hidden) return;
       busy = true;
       try {
-        const r = await fetch("/api/broadcasts", {
-          signal: AbortSignal.any([c.signal, AbortSignal.timeout(9000)]),
-        });
-        const next = broadcastFeedSchema.parse(await r.json());
+        const next = broadcastFeedSchema.parse(
+          await publicData.read("/api/broadcasts", c.signal),
+        );
         if (!c.signal.aborted)
           setFeed((old) =>
             next.updatedAt
@@ -588,7 +589,12 @@ export function BroadcastPlayer({
   const root = useRef<HTMLDivElement>(null);
   const choice = item.sources.find((s) => s.id === source) || item.sources[0];
   useEffect(() => {
-    setSource(item.sources[0]?.id || "");
+    let next = item.sources[0]?.id || "";
+    try {
+      const saved = sessionStorage.getItem(`backinit-source:${item.id}`);
+      if (item.sources.some((s) => s.id === saved)) next = saved!;
+    } catch {}
+    setSource(next);
     setPlaying(false);
   }, [item.id]);
   useEffect(() => {
@@ -617,7 +623,10 @@ export function BroadcastPlayer({
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
-            onLoad={() => setLoaded(true)}
+            onLoad={() => {
+              setLoaded(true);
+              performance.mark("backinit:embed-frame-loaded");
+            }}
             onError={() => setFailed(true)}
           />
         ) : (
@@ -626,7 +635,10 @@ export function BroadcastPlayer({
             {choice && !failed ? (
               <button
                 aria-label={`Play ${item.title}`}
-                onClick={() => setPlaying(true)}
+                onClick={() => {
+                  prioritizePlayback();
+                  setPlaying(true);
+                }}
               >
                 <Play size={46} fill="currentColor" strokeWidth={0} />
               </button>
@@ -649,7 +661,14 @@ export function BroadcastPlayer({
               value={choice?.id}
               onChange={(e) => {
                 setSource(e.target.value);
-                setPlaying(false);
+                try {
+                  sessionStorage.setItem(
+                    `backinit-source:${item.id}`,
+                    e.target.value,
+                  );
+                } catch {}
+                prioritizePlayback();
+                setPlaying(true);
               }}
             >
               {item.sources.map((s) => (
@@ -664,6 +683,7 @@ export function BroadcastPlayer({
           title="Reload stream"
           aria-label={`Reload ${item.title}`}
           onClick={() => {
+            prioritizePlayback();
             retry((n) => n + 1);
             setPlaying(true);
           }}
@@ -689,7 +709,6 @@ export function BroadcastPlayer({
           <Maximize2 size={16} />
         </button>
       </div>
-      {!playing && <PlaybackAdNotice />}
       {slow && !loaded && playing && (
         <p role="status" className="broadcast-status">
           Still connecting. Try another stream or reload.

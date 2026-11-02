@@ -1,4 +1,5 @@
 "use client";
+import { adStartDelay } from "../lib/playback-priority";
 import { useEffect, useRef, useState } from "react";
 import { useAdvertising } from "./advertising";
 
@@ -76,21 +77,30 @@ function Banner({ unit }: { unit: Unit }) {
           .then(
             () =>
               new Promise<void>((resolve) => {
-                if (cancelled) return resolve();
-                started = true;
-                (window as Window & { atOptions?: unknown }).atOptions = {
-                  key: unit.key,
-                  format: "iframe",
-                  height: unit.height,
-                  width: unit.width,
-                  params: {},
+                const begin = () => {
+                  if (cancelled) return resolve();
+                  started = true;
+                  (window as Window & { atOptions?: unknown }).atOptions = {
+                    key: unit.key,
+                    format: "iframe",
+                    height: unit.height,
+                    width: unit.width,
+                    params: {},
+                  };
+                  script.onload = script.onerror = () => {
+                    if (cancelled) node.replaceChildren();
+                    resolve();
+                  };
+                  // Original direct tag; the ad network creates its own creative iframe.
+                  node.append(script);
                 };
-                script.onload = script.onerror = () => {
-                  if (cancelled) node.replaceChildren();
-                  resolve();
+                const wait = () => {
+                  if (cancelled) return resolve();
+                  const delay = adStartDelay();
+                  if (delay) setTimeout(wait, delay);
+                  else begin();
                 };
-                // Original direct tag; the ad network creates its own creative iframe.
-                node.append(script);
+                wait();
               }),
           );
       },

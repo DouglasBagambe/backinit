@@ -5913,3 +5913,15 @@ dialog.ad-consent {
     transform: none;
   }
 }
+.route-loading {
+  padding-top: 32px;
+  min-height: 70vh;
+}
+.route-loading-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 24px;
+  margin-bottom: 30px;
+}

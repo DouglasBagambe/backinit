@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { RouteLoading } from "../components/route-loading";
 import { demoEnabled } from "../lib/edition";
 import { notFound } from "next/navigation";
 import { sports } from "@backinit/domain";
@@ -44,6 +46,21 @@ export default async function Page({
     )
   )
     notFound();
+  return (
+    <Suspense fallback={<RouteLoading />}>
+      <PageContent route={route} slug={slug} pages={pages} />
+    </Suspense>
+  );
+}
+async function PageContent({
+  route,
+  slug,
+  pages,
+}: {
+  route: string;
+  slug: string[];
+  pages: string[];
+}) {
   const selected = (await cookies()).get("backinit-edition")?.value;
   const requestedEdition =
     ["watch", "broadcasts", "multiview"].includes(route) ||

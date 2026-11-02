@@ -1,5 +1,6 @@
 import { loadEvents, loadEvent } from "./feed";
 import { loadNews } from "./news";
+import { sports } from "@backinit/domain";
 import { resolveEdition } from "./edition";
 import { usesCatalogue, catalogueRenderBudget } from "./page-data";
 
@@ -12,8 +13,19 @@ export async function loadPageData(
   const detail =
     !ppv && ["match", "watch"].includes(parts[0] || "") && parts.length === 2;
   const [snapshot, news] = await Promise.all([
-    usesCatalogue(route) && route !== "watch" && !ppv
-      ? loadEvents(requestedEdition, catalogueRenderBudget(route))
+    usesCatalogue(route) &&
+    resolveEdition(requestedEdition) === "demo" &&
+    route !== "watch" &&
+    !ppv &&
+    !detail
+      ? loadEvents(requestedEdition, catalogueRenderBudget(route), {
+          sport:
+            parts[0] === "sport"
+              ? sports.find(
+                  (s) => s.toLowerCase().replaceAll(" ", "-") === parts[1],
+                )
+              : undefined,
+        })
       : Promise.resolve({
           data: [],
           source: "",
@@ -22,14 +34,9 @@ export async function loadPageData(
         }),
     route === "" || route === "news" ? loadNews() : Promise.resolve(null),
   ]);
-  // A known fixture can paint immediately; the viewing page refreshes its
-  // detailed stats separately instead of holding the whole navigation.
-  const known = detail
-    ? snapshot.data.find((event) => event.id === parts[1])
-    : null;
+  // Detail routes request only their fixture, never the all-sport feed first.
   const match = detail
-    ? known ||
-      (await loadEvent(parts[1]!, resolveEdition(requestedEdition), true))
+    ? await loadEvent(parts[1]!, resolveEdition(requestedEdition), true)
     : null;
   const feed = match
     ? {

@@ -1,4 +1,5 @@
 "use client";
+import { publicData, eventsUrl } from "../lib/public-data-client";
 import { SportsSponsoredBadge } from "./sports-sponsored-badge";
 import {
   HomeBroadcasts,
@@ -133,21 +134,15 @@ export function Experience({
       if (running || document.hidden || controller.signal.aborted) return;
       running = true;
       try {
-        const response = await fetch(
+        const body = await publicData.read(
           matchId
             ? `/api/events/${encodeURIComponent(matchId)}`
-            : "/api/events",
-          {
-            signal: AbortSignal.any([
-              controller.signal,
-              AbortSignal.timeout(20000),
-            ]),
-          },
+            : eventsUrl(route),
+          controller.signal,
+          matchId ? 3000 : 10000,
         );
-        if (!response.ok) return;
-        const body = await response.json();
         if (matchId) {
-          const event = eventSchema.parse(body.data);
+          const event = eventSchema.parse((body as { data: unknown }).data);
           if (event.id !== matchId || event.provenance !== "provider")
             throw new Error("Wrong match");
           if (!controller.signal.aborted)
@@ -529,7 +524,13 @@ export function Experience({
     (real ? "Watch" : "Sport today");
   return (
     <AdvertisingProvider enabled={real} nativeEnabled={nativeAdsEnabled}>
-      <GlobalAdvertising page={route} />
+      <GlobalAdvertising
+        page={
+          route === "watch" && searchParams.get("view") === "replays"
+            ? "videos"
+            : route
+        }
+      />
       <SportsSponsoredBadge page={route} />
       <a className="skip" href="#main">
         Skip to content

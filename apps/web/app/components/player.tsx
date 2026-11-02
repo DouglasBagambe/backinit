@@ -1,6 +1,6 @@
 "use client";
+import { prioritizePlayback } from "../lib/playback-priority";
 import { PlayerBrand } from "./player-brand";
-import { PlaybackAdNotice } from "./advertising";
 import { BrandLoading } from "./brand";
 import { Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -294,12 +294,14 @@ export function Player({
   const failed =
     /unavailable|could not|disabled|restrict|withdrawn|expired/i.test(state);
   const retryPlayback = () => {
+    prioritizePlayback();
     if (source) failedSources.current.delete(source.id);
     start(true);
     setState("Ready to play");
     retry((n) => n + 1);
   };
   const selectSource = (id: string) => {
+    prioritizePlayback();
     failedSources.current.delete(id);
     start(true);
     setState("Ready to play");
@@ -393,7 +395,6 @@ export function Player({
       <div className="player-brand-rim">
         <PlayerBrand />
       </div>
-      <PlaybackAdNotice />
       <div className="player-screen" ref={screen}>
         {started && source ? (
           source.type === "embed" ? (
@@ -454,13 +455,17 @@ export function Player({
               playsInline
               preload="metadata"
               aria-label={source.name}
-              onPlaying={() =>
+              onPlaying={() => {
+                if (ownsPlayback()) performance.mark("backinit:video-playing");
                 nativeState(
                   source.content === "test" ? "Playing test signal" : "Playing",
-                )
-              }
+                );
+              }}
               onPause={() => nativeState("Paused")}
-              onWaiting={() => nativeState("Buffering…")}
+              onWaiting={() => {
+                if (ownsPlayback()) performance.mark("backinit:video-waiting");
+                nativeState("Buffering…");
+              }}
               onCanPlay={() => nativeState("Ready · press play")}
               onDurationChange={(e) => {
                 if (e.currentTarget.duration === Infinity) {
@@ -527,7 +532,13 @@ export function Player({
                   : "Public test signals verify playback only. They are not sports broadcasts."}
             </p>
             {source && (
-              <button className="primary" onClick={() => start(true)}>
+              <button
+                className="primary"
+                onClick={() => {
+                  prioritizePlayback();
+                  start(true);
+                }}
+              >
                 <span aria-hidden="true">▶</span>{" "}
                 {eventId ? "Load player" : "Load test player"}
               </button>
