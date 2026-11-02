@@ -181,8 +181,12 @@ test("Home and popular pages have fitting display ads, with no duplicate tag or 
       ),
     ).toBe(true);
   }
-  await page.goto("/");
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page
+    .locator(".display-ad-leaderboard")
+    .first()
+    .scrollIntoViewIfNeeded();
   await expect(
     page
       .locator(".display-ad-leaderboard")
