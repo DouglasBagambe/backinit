@@ -51,6 +51,8 @@ export function AdvertisingProvider({
     } catch {
       /* The choice still applies for this page when storage is unavailable. */
     }
+    // A fresh document cancels pending vendor scripts as well as their handlers.
+    if (preference === "accepted" && value !== "accepted") location.reload();
   }
   return (
     <Advertising.Provider

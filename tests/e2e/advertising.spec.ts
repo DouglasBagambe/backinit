@@ -17,7 +17,7 @@ test("native advertising uses the original direct tag once, only after consent, 
     requests.push(route.request().url());
     return route.fulfill({
       contentType: "text/javascript",
-      body: `const host = document.getElementById("container-${key}"); const ad = document.createElement("a"); ad.href = "https://advertiser.example"; ad.textContent = "Native advertising fixture"; host?.append(ad);`,
+      body: `document.documentElement.dataset.nativeAdFixture="loaded";const host = document.getElementById("container-${key}"); const ad = document.createElement("a"); ad.href = "https://advertiser.example"; ad.textContent = "Native advertising fixture"; host?.append(ad);`,
     });
   });
   await page.goto("/news");
@@ -69,6 +69,10 @@ test("native advertising uses the original direct tag once, only after consent, 
     .getByRole("button", { name: "Cookie settings", exact: true })
     .click();
   await expect(page.locator(`#container-${key}`)).toHaveCount(0);
+  await expect(page.locator("html")).not.toHaveAttribute(
+    "data-native-ad-fixture",
+    "loaded",
+  );
   await page
     .getByRole("button", { name: "Essential only", exact: true })
     .click();
