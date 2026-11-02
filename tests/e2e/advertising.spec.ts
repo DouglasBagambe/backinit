@@ -22,7 +22,7 @@ test("native advertising uses the original direct tag once, only after consent, 
   });
   await page.goto("/news");
   await expect(
-    page.getByRole("region", { name: "Advertising preferences" }),
+    page.getByRole("region", { name: "Cookie preferences" }),
   ).toBeVisible();
   expect(requests).toHaveLength(0);
   const sponsor = page.getByRole("link", { name: "Sponsored offers" });
@@ -31,17 +31,21 @@ test("native advertising uses the original direct tag once, only after consent, 
     "https://asiafilm.org/4/03e480f030ce8a18c8c3de500ca10b7d",
   );
   await expect(sponsor).toHaveAttribute("rel", /sponsored/);
-  await page.getByRole("button", { name: "Decline ads", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Essential only", exact: true })
+    .click();
   await page.reload();
   await expect(
-    page.getByRole("button", { name: "Ad preferences", exact: true }),
+    page.getByRole("button", { name: "Cookie settings", exact: true }),
   ).toBeVisible();
   expect(requests).toHaveLength(0);
   await expect(sponsor).toBeVisible();
   await page
-    .getByRole("button", { name: "Ad preferences", exact: true })
+    .getByRole("button", { name: "Cookie settings", exact: true })
     .click();
-  await page.getByRole("button", { name: "Allow ads", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Accept cookies", exact: true })
+    .click();
   const slot = page.locator(".ad-slot-banner");
   await slot.scrollIntoViewIfNeeded();
   await expect(
@@ -62,10 +66,12 @@ test("native advertising uses the original direct tag once, only after consent, 
     ),
   ).toBe(true);
   await page
-    .getByRole("button", { name: "Ad preferences", exact: true })
+    .getByRole("button", { name: "Cookie settings", exact: true })
     .click();
   await expect(page.locator(`#container-${key}`)).toHaveCount(0);
-  await page.getByRole("button", { name: "Decline ads", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Essential only", exact: true })
+    .click();
   await page.reload();
   await expect(page.locator(`#container-${key}`)).toHaveCount(0);
   expect(requests).toHaveLength(1);
@@ -88,7 +94,9 @@ test("empty native responses leave no blank ad space or account-page ad", async 
     route.fulfill({ contentType: "text/javascript", body: "" }),
   );
   await page.goto("/news");
-  await page.getByRole("button", { name: "Allow ads", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Accept cookies", exact: true })
+    .click();
   await page.locator(".ad-slot-banner").scrollIntoViewIfNeeded();
   await expect(page.locator(`#container-${key}`)).toHaveCount(1);
   await expect(page.locator(`#container-${key}`)).toHaveCount(0, {
@@ -126,7 +134,9 @@ test("Home and popular pages have fitting display ads, with no duplicate tag or 
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.goto("/");
   expect(requests).toHaveLength(0);
-  await page.getByRole("button", { name: "Allow ads", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Accept cookies", exact: true })
+    .click();
   const top = page.locator(".display-ad-leaderboard").first();
   await top.scrollIntoViewIfNeeded();
   await expect(top.getByTitle("Display ad fixture")).toBeVisible();
@@ -213,7 +223,9 @@ test("interactive ad tags are delayed, consent-gated, capped across reloads and 
   await page.goto("/watch");
   await page.clock.fastForward(31000);
   expect(tags).toEqual([]);
-  await page.getByRole("button", { name: "Allow ads", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Accept cookies", exact: true })
+    .click();
   await page.clock.fastForward(16000);
   expect(tags).toEqual([]);
   await page.clock.fastForward(15000);
@@ -223,7 +235,7 @@ test("interactive ad tags are delayed, consent-gated, capped across reloads and 
   expect(tags).toEqual(["popunder"]);
   await page.goto("/news");
   await expect(
-    page.getByRole("button", { name: "Ad preferences", exact: true }),
+    page.getByRole("button", { name: "Cookie settings", exact: true }),
   ).toBeVisible();
   await page.clock.fastForward(16000);
   await expect.poll(() => tags).toEqual(["popunder", "social"]);
@@ -239,7 +251,7 @@ test("interactive ad tags are delayed, consent-gated, capped across reloads and 
   );
   await page.goto("/news");
   await expect(
-    page.getByRole("button", { name: "Ad preferences", exact: true }),
+    page.getByRole("button", { name: "Cookie settings", exact: true }),
   ).toBeVisible();
   await page.clock.fastForward(16000);
   expect(tags).toEqual(["popunder", "social"]);
@@ -247,4 +259,54 @@ test("interactive ad tags are delayed, consent-gated, capped across reloads and 
   await page.clock.fastForward(31000);
   expect(tags).toEqual(["popunder", "social"]);
   await expect(page.locator("script[data-backinit-ad-format]")).toHaveCount(0);
+});
+
+test("resizing during an in-flight banner keeps the original configuration until the script settles", async ({
+  page,
+  baseURL,
+}) => {
+  await page
+    .context()
+    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  let release!: () => void;
+  const pending = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const requests: string[] = [];
+  await page.route("https://czernik.org/**", async (route) => {
+    const url = route.request().url();
+    if (!url.includes("/22/"))
+      return route.fulfill({ contentType: "text/javascript", body: "" });
+    const requested = url.split("/").at(-1)!;
+    requests.push(requested);
+    if (requested === "208c83c78501d240404891d74ed085e2") await pending;
+    await route.fulfill({
+      contentType: "text/javascript",
+      body: `(()=>{const o=window.atOptions;if(o.key!==${JSON.stringify(requested)})throw Error('Late banner configuration collision');const frame=document.createElement('iframe');frame.title='Delayed banner fixture';frame.width=o.width;frame.height=o.height;document.currentScript.parentElement.append(frame)})()`,
+    });
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Accept cookies", exact: true })
+    .click();
+  await page
+    .locator(".display-ad-leaderboard")
+    .first()
+    .scrollIntoViewIfNeeded();
+  await expect.poll(() => requests.length).toBe(1);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    page.locator(".display-ad-leaderboard .ad-display > div").first(),
+  ).toHaveCSS("width", "320px");
+  expect(requests).toHaveLength(1);
+  release();
+  await expect(
+    page
+      .locator(".display-ad-leaderboard")
+      .getByTitle("Delayed banner fixture"),
+  ).toHaveAttribute("width", "320");
+  expect(errors).toEqual([]);
 });

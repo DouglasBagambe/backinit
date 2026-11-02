@@ -54,7 +54,7 @@ export function Privacy({
         {nativeAdsEnabled ? (
           <>
             <p>
-              With your permission, we load ads from Adsterra and its
+              With your cookie permission, we load ads from Adsterra and its
               advertising partners. They may receive your IP address, device and
               browser information, and use cookies or similar technologies to
               personalize and measure advertising. Formats include display and
@@ -66,12 +66,11 @@ export function Privacy({
               favourites.
             </p>
             <p>
-              You can decline ads or change your choice using Ad preferences at
-              the bottom of any page. Pages that loaded interactive ad scripts
-              reload when permission is withdrawn so their document-level
-              handlers are removed. Withdrawing permission stops new ads from
-              loading here; it does not erase information already received by
-              advertising partners.
+              Cookie settings at the bottom of the page let you accept
+              advertising cookies or use essential cookies only. Changing this
+              choice after interactive advertising has loaded reloads the page
+              to clear its handlers. It does not erase data already received by
+              partners.
             </p>
           </>
         ) : (

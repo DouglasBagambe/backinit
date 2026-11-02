@@ -702,18 +702,6 @@ export function Experience({
       <div className="app-layout">
         <main id="main" className="main">
           {real &&
-            ([
-              "",
-              "watch",
-              "live",
-              "scores",
-              "fixtures",
-              "news",
-              "videos",
-            ].includes(route) ||
-              route.startsWith("watch/") ||
-              route.startsWith("match/")) && <AdPreferences promptOnly />}
-          {real &&
             [
               "",
               "watch",
@@ -1185,7 +1173,7 @@ export function Experience({
               "videos",
             ].includes(route) &&
             !isHome && <AdSlot native />}
-          <AdPreferences controlsOnly />
+          <AdPreferences />
           <footer>
             <Link className="footer-brand" href="/">
               <BrandMark />

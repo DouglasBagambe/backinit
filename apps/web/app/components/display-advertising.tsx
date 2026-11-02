@@ -60,8 +60,7 @@ function Banner({ unit }: { unit: Unit }) {
     const node = host.current;
     if (!node) return;
     let cancelled = false;
-    let release: (() => void) | undefined;
-    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let started = false;
     const script = document.createElement("script");
     script.src = `https://czernik.org/22/${unit.key}`;
     const mutations = new MutationObserver(() => {
@@ -78,7 +77,7 @@ function Banner({ unit }: { unit: Unit }) {
             () =>
               new Promise<void>((resolve) => {
                 if (cancelled) return resolve();
-                release = resolve;
+                started = true;
                 (window as Window & { atOptions?: unknown }).atOptions = {
                   key: unit.key,
                   format: "iframe",
@@ -87,13 +86,9 @@ function Banner({ unit }: { unit: Unit }) {
                   params: {},
                 };
                 script.onload = script.onerror = () => {
-                  clearTimeout(timeout);
+                  if (cancelled) node.replaceChildren();
                   resolve();
                 };
-                timeout = setTimeout(() => {
-                  script.remove();
-                  resolve();
-                }, 10000);
                 // Original direct tag; the ad network creates its own creative iframe.
                 node.append(script);
               }),
@@ -106,10 +101,10 @@ function Banner({ unit }: { unit: Unit }) {
       cancelled = true;
       visible.disconnect();
       mutations.disconnect();
-      clearTimeout(timeout);
-      script.onload = script.onerror = null;
-      node.replaceChildren();
-      release?.();
+      // Removing a downloading script does not reliably cancel its execution.
+      // Keep its options until load/error, even after this host is detached.
+      // A stalled ad can delay other display tags, never application navigation.
+      if (!started) node.replaceChildren();
     };
   }, [unit]);
   return (

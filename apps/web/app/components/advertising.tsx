@@ -85,12 +85,12 @@ export function AdPreferences({
     <div className="ad-preferences">
       {preference ? (
         <button className="text-button" onClick={() => choose(null)}>
-          Ad preferences
+          Cookie settings
         </button>
       ) : (
-        <section className="ad-consent" aria-label="Advertising preferences">
+        <section className="ad-consent" aria-label="Cookie preferences">
           <div>
-            <strong>Support BackInIt with ads</strong>
+            <strong>Advertising cookies</strong>
             <p>
               Allow Adsterra and its advertising partners to use cookies and
               device information to show and measure ads. Your choice won’t
@@ -100,8 +100,8 @@ export function AdPreferences({
             </p>
           </div>
           <div className="ad-consent-actions">
-            <button onClick={() => choose("declined")}>Decline ads</button>
-            <button onClick={() => choose("accepted")}>Allow ads</button>
+            <button onClick={() => choose("declined")}>Essential only</button>
+            <button onClick={() => choose("accepted")}>Accept cookies</button>
           </div>
         </section>
       )}
