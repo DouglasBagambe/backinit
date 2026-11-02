@@ -10,7 +10,8 @@ export default async function Page({
   params: Promise<{ slug?: string[] }>;
 }) {
   const { slug = [] } = await params;
-  const route = slug.join("/");
+  const requestedRoute = slug.join("/");
+  const route = requestedRoute === "home" ? "" : requestedRoute;
   if (route === "playback" && !demoEnabled()) notFound();
   const pages = [
     "",

@@ -1,6 +1,7 @@
 "use client";
 import { SportsSponsoredBadge } from "./sports-sponsored-badge";
 import {
+  HomeBroadcasts,
   BroadcastDirectory,
   BroadcastViewing,
   BroadcastArchive,
@@ -549,13 +550,11 @@ export function Experience({
             <Link
               key={path}
               href={"/" + path}
-              className={
-                route === path ||
-                (path === "watch" && route.startsWith("watch/"))
-                  ? "active"
-                  : ""
-              }
+              className={`${path === "watch" ? "nav-watch " : ""}${route === path || (path === "watch" && route.startsWith("watch/")) ? "active" : ""}`}
             >
+              {path === "watch" && (
+                <Play size={14} fill="currentColor" aria-hidden="true" />
+              )}
               {label === "Live" && <i className="live-dot" />}
               {label}
             </Link>
@@ -729,12 +728,14 @@ export function Experience({
               "news",
               "videos",
             ].includes(route) && <DisplayAdvertising />}
-          {syncError &&
-            ["favorites", "settings", "profile"].includes(route) && (
-              <p className="account-notice" role="alert">
-                {syncError}
-              </p>
-            )}
+          {syncError && ["favorites", "profile"].includes(route) && (
+            <p className="account-notice" role="alert">
+              {syncError}{" "}
+              <button onClick={() => setAccountVersion((v) => v + 1)}>
+                Retry sync
+              </button>
+            </p>
+          )}
           {route.startsWith("watch/ppv-") ? (
             <BroadcastViewing id={route.split("/")[1]!} />
           ) : route === "multiview" ? (
@@ -780,12 +781,40 @@ export function Experience({
               route={route}
               clear={clearEvents}
               busy={!ready || syncing}
+              theme={theme}
+              setTheme={setTheme}
+              savedCount={favorites.length}
+              signedIn={Boolean(user)}
+              syncError={syncError}
+              retrySync={() => setAccountVersion((v) => v + 1)}
             />
           ) : (
             <>
               {!(route === "watch" || (real && isHome)) && (
                 <div className="page-heading">
-                  <h1>{title}</h1>
+                  <div>
+                    <span className="eyebrow">
+                      {route === "news"
+                        ? "THE LATEST IN SPORT"
+                        : route === "fixtures"
+                          ? "PLAN YOUR MATCHDAY"
+                          : route === "live"
+                            ? "HAPPENING NOW"
+                            : "YOUR SPORT, AT A GLANCE"}
+                    </span>
+                    <h1>{title}</h1>
+                    <p>
+                      {route === "news"
+                        ? "Stories, results and the moments everyone’s talking about."
+                        : route === "fixtures"
+                          ? "The full schedule, in your time."
+                          : route === "live"
+                            ? "Follow the action as scores come in."
+                            : route === "scores"
+                              ? "Results and match details across your sports."
+                              : "Keep your favourite sport close."}
+                    </p>
+                  </div>
                 </div>
               )}
               {route === "watch" ? (
@@ -835,6 +864,7 @@ export function Experience({
                 <>
                   {isHome && real && (
                     <>
+                      <HomeBroadcasts />
                       <WeekendMatches initialEvents={events} />
                       <LiveWatch preview />
                       <AdSlot native />
@@ -1222,7 +1252,10 @@ export function Experience({
               "videos",
             ].includes(route) &&
             !isHome && <AdSlot native />}
-          <AdPreferences />
+          <AdPreferences
+            promptOnly={route === "settings"}
+            controlsOnly={route === "privacy"}
+          />
           <footer>
             <Link className="footer-brand" href="/">
               <BrandMark />

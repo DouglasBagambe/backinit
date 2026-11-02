@@ -51,8 +51,9 @@ export function Privacy({
           your BackInIt account credentials. PPV broadcast players load only
           when you select Play. PPV and its embed providers receive your IP
           address, browser information and may show their own advertising. Their
-          controls and privacy practices apply. Viewer counts labelled PPV are
-          supplied by that provider, not measured BackInIt viewers.
+          controls and privacy practices apply. Viewer counts shown with
+          broadcasts are supplied by that provider, not measured BackInIt
+          viewers.
         </p>
         <h2>Advertising</h2>
         {nativeAdsEnabled ? (
@@ -72,7 +73,7 @@ export function Privacy({
               favourites.
             </p>
             <p>
-              Cookie settings at the bottom of the page let you accept
+              The first-visit cookie dialog and Cookie settings let you accept
               advertising cookies or use essential cookies only. Changing this
               choice after interactive advertising has loaded reloads the page
               to clear its handlers. It does not erase data already received by

@@ -118,6 +118,91 @@ function State({ item }: { item: Broadcast }) {
     </span>
   );
 }
+/** Small editorial entry point; the full catalogue remains in Watch. */
+export function HomeBroadcasts() {
+  const { feed } = useBroadcasts();
+  const now = useNow();
+  const time = now || Date.now();
+  const matches = feed.data
+    .filter(
+      (b) => !b.channel && b.end >= time && b.start <= time + 48 * 3600000,
+    )
+    .sort((a, b) => compareBroadcasts(a, b, time))
+    .slice(0, 3);
+  return (
+    <section className="home-spotlight" aria-label="Your matchday">
+      <div className="home-intro">
+        <div>
+          <span className="eyebrow">EVERY MOMENT MATTERS</span>
+          <h1>
+            Make time for
+            <br />
+            the big moments.
+          </h1>
+          <p>Find your next game. Follow the action. Get back in it.</p>
+        </div>
+        <Link className="home-watch-cta" href="/watch">
+          <Play size={18} fill="currentColor" />
+          Explore Watch
+        </Link>
+      </div>
+      <nav className="home-shortcuts" aria-label="Explore BackInIt">
+        <Link href="/watch?range=live">
+          <Radio size={16} />
+          Live now
+        </Link>
+        <Link href="/watch?view=channels">
+          <Tv size={16} />
+          Sports channels
+        </Link>
+        <Link href="/watch?view=replays">
+          <Clapperboard size={16} />
+          Replays & highlights
+        </Link>
+      </nav>
+      {matches.length > 0 && (
+        <>
+          <div className="section-heading">
+            <h2>In the spotlight</h2>
+            <Link href="/watch">All matches →</Link>
+          </div>
+          <div className="broadcast-grid home-broadcast-grid">
+            {matches.map((item) => (
+              <Link
+                href={`/watch/${item.id}`}
+                className="broadcast-card"
+                key={item.id}
+              >
+                <div className="broadcast-poster">
+                  {item.poster ? (
+                    <img
+                      src={item.poster}
+                      alt=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span className="broadcast-poster-fallback">
+                      <Play size={28} />
+                    </span>
+                  )}
+                  <State item={item} />
+                </div>
+                <div className="broadcast-card-copy">
+                  <small>
+                    {item.category} · {item.competition}
+                  </small>
+                  <h3>{item.title}</h3>
+                  <StartTime item={item} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
 export function BroadcastDirectory({
   preview = false,
   primary = false,
@@ -482,15 +567,6 @@ export function BroadcastDirectory({
               </button>
             </nav>
           )}
-          {!preview && (
-            <p className="broadcast-credit">
-              Schedule and viewer figures supplied by PPV. Playback availability
-              can change.{" "}
-              <a href="https://ppv.st/api" target="_blank" rel="noreferrer">
-                Integration information ↗
-              </a>
-            </p>
-          )}
         </>
       )}
     </section>
@@ -727,22 +803,11 @@ export function BroadcastViewing({ id }: { id: string }) {
           )}
           {item.viewers !== null && (
             <p className="broadcast-viewers">
-              {new Intl.NumberFormat().format(item.viewers)} watching across PPV
-              · provider figure{feed.stale ? " · last snapshot" : ""}
+              {new Intl.NumberFormat().format(item.viewers)} watching
+              {feed.stale ? " · last update" : ""}
             </p>
           )}
           <DisplayAdvertising />
-          <details className="viewing-notes">
-            <summary>Broadcast information</summary>
-            <p>
-              Embedded player supplied by PPV. Its playback restrictions,
-              controls and advertising remain in place. A loaded frame does not
-              confirm live playback.{" "}
-              <a href={item.pageUrl} target="_blank" rel="noreferrer">
-                Open provider page ↗
-              </a>
-            </p>
-          </details>
         </div>
         <aside>
           {event && !mainTracker && wide && !theatre && (
@@ -1013,10 +1078,10 @@ export function BroadcastArchive() {
       <div className="section-heading">
         <h2>More sports replays</h2>
         <a href="https://ppv.rw/vods" target="_blank" rel="noreferrer">
-          PPV archive ↗
+          Full replay archive ↗
         </a>
       </div>
-      <p>Full-event replays on PPV. These open on the provider’s site.</p>
+      <p>Full-event replays. These open in a separate viewing site.</p>
       <div className="broadcast-grid">
         {archive.map((v) => (
           <a

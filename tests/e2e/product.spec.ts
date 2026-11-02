@@ -66,7 +66,7 @@ test("guest team follows shape the home feed and persist", async ({ page }) => {
   await page
     .getByRole("button", { name: "Follow Arsenal", exact: true })
     .click();
-  await page.goto("/");
+  await page.goto("/home");
   await expect(
     page.getByRole("heading", { name: "Your matchday", exact: true }),
   ).toBeVisible();
@@ -99,7 +99,7 @@ test("DASH source selection initializes an in-page video and source failures are
   await expect(page.locator("video")).toBeVisible();
 });
 const pages = [
-  "/",
+  "/home",
   "/live",
   "/scores",
   "/fixtures",
@@ -149,7 +149,7 @@ for (const theme of ["light", "dark"] as const) {
         ).toHaveCount(0);
         if (
           [360, 1440].includes(width) &&
-          ["/", "/profile", "/match/north-london", "/watch"].includes(path)
+          ["/home", "/profile", "/match/north-london", "/watch"].includes(path)
         )
           await page.screenshot({
             path: `artifacts/review-${theme}-${width}-${path.replaceAll("/", "_") || "home"}.png`,
