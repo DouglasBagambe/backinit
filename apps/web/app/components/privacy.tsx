@@ -54,15 +54,17 @@ export function Privacy({
         {nativeAdsEnabled ? (
           <>
             <p>
-              With your cookie permission, we load ads from Adsterra and its
-              advertising partners. They may receive your IP address, device and
-              browser information, and use cookies or similar technologies to
-              personalize and measure advertising. Formats include display and
-              native banners, Social Bar overlays and Popunder sponsored tabs
-              triggered by visitor interaction. We limit loading of the Popunder
-              tag to once per 24 hours and Social Bar to once per six hours in
-              this browser; creative frequency within the page is controlled by
-              Adsterra. We do not send them your BackInIt email, password or
+              With your cookie permission, we load ads from Adsterra, HilltopAds
+              and their advertising partners. They may receive your IP address,
+              device and browser information, and use cookies or similar
+              technologies to personalize and measure advertising. Formats
+              include display and native banners, skippable video sliders,
+              Social Bar overlays and Popunder sponsored tabs triggered by
+              visitor interaction. We limit loading of the Popunder tag to once
+              per 24 hours and Social Bar to once per six hours in this browser.
+              The Home video-slider tag is limited to once per 24 hours.
+              Creative frequency within the page is controlled by the ad
+              networks. We do not send them your BackInIt email, password or
               favourites.
             </p>
             <p>
@@ -91,7 +93,15 @@ export function Privacy({
           >
             Adsterra’s privacy policy
           </a>{" "}
-          for its data practices and contact details.
+          and{" "}
+          <a
+            href="https://hilltopads.com/legal#privacypolicy"
+            target="_blank"
+            rel="noreferrer"
+          >
+            HilltopAds’ privacy policy
+          </a>{" "}
+          for their data practices and contact details.
         </p>
         <h2>Contact us</h2>
         <p>
