@@ -109,15 +109,14 @@ export function AdPreferences({
               Advertising helps keep BackInIt free. Accept all to allow
               Adsterra, HilltopAds and their partners to use cookies and device
               information to show and measure ads. Essential only keeps
-              advertising tracking off. Both choices let you watch. You can
-              change this in Settings.{" "}
+              advertising tracking off. You can change this later in content Settings.{" "}
               <Link href="/privacy" target="_blank">
                 Privacy policy ↗
               </Link>
             </p>
           </div>
           <div className="ad-consent-actions">
-            <button onClick={() => choose("declined")}>Essential only</button>
+            <button onClick={() => choose("accepted")}>Essential only</button>
             <button onClick={() => choose("accepted")}>Accept all</button>
           </div>
         </dialog>
