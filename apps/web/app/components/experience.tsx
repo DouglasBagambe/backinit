@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
 import { AdvertisingProvider, AdSlot, AdPreferences } from "./advertising";
+import { DisplayAdvertising } from "./display-advertising";
+import { GlobalAdvertising } from "./global-advertising";
 import { BrandMark, EventSkeleton } from "./brand";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -518,6 +520,7 @@ export function Experience({
     (real ? "Watch" : "Sport today");
   return (
     <AdvertisingProvider enabled={real} nativeEnabled={nativeAdsEnabled}>
+      <GlobalAdvertising page={route} />
       <a className="skip" href="#main">
         Skip to content
       </a>
@@ -698,6 +701,28 @@ export function Experience({
       )}
       <div className="app-layout">
         <main id="main" className="main">
+          {real &&
+            ([
+              "",
+              "watch",
+              "live",
+              "scores",
+              "fixtures",
+              "news",
+              "videos",
+            ].includes(route) ||
+              route.startsWith("watch/") ||
+              route.startsWith("match/")) && <AdPreferences promptOnly />}
+          {real &&
+            [
+              "",
+              "watch",
+              "live",
+              "scores",
+              "fixtures",
+              "news",
+              "videos",
+            ].includes(route) && <DisplayAdvertising />}
           {syncError &&
             ["favorites", "settings", "profile"].includes(route) && (
               <p className="account-notice" role="alert">
@@ -775,6 +800,7 @@ export function Experience({
                     <>
                       <WeekendMatches initialEvents={events} />
                       <LiveWatch preview />
+                      <AdSlot native />
                     </>
                   )}
                   {(isHome || route === "live") &&
@@ -1050,7 +1076,16 @@ export function Experience({
                       )}
                     </section>
                     <aside className="right-rail">
-                      {real && <AdSlot format="rectangle" />}
+                      {real && (
+                        <>
+                          <DisplayAdvertising
+                            placement={
+                              route === "live" ? "skyscraper" : "rectangle"
+                            }
+                          />
+                          <AdSlot format="rectangle" />
+                        </>
+                      )}
                       <div className="section-heading">
                         <h2>{real ? "Match information" : "On the horizon"}</h2>
                         <CalendarDays size={17} />
@@ -1140,10 +1175,17 @@ export function Experience({
             </>
           )}
           {real &&
-            ["", "watch", "live", "scores", "fixtures", "news"].includes(
-              route,
-            ) && <AdSlot native />}
-          <AdPreferences />
+            [
+              "",
+              "watch",
+              "live",
+              "scores",
+              "fixtures",
+              "news",
+              "videos",
+            ].includes(route) &&
+            !isHome && <AdSlot native />}
+          <AdPreferences controlsOnly />
           <footer>
             <Link className="footer-brand" href="/">
               <BrandMark />

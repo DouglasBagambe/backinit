@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 type Preference = "accepted" | "declined" | null;
-const storageKey = "backinit-ad-preference-v1";
+const storageKey = "backinit-ad-preference-v2";
 const Advertising = createContext<{
   enabled: boolean;
   nativeEnabled: boolean;
@@ -61,10 +61,26 @@ export function AdvertisingProvider({
   );
 }
 
-export function AdPreferences() {
+export function useAdvertising() {
+  return useContext(Advertising);
+}
+
+export function AdPreferences({
+  promptOnly = false,
+  controlsOnly = false,
+}: {
+  promptOnly?: boolean;
+  controlsOnly?: boolean;
+}) {
   const { enabled, nativeEnabled, preference, choose } =
     useContext(Advertising);
-  if (!enabled || !nativeEnabled) return null;
+  if (
+    !enabled ||
+    !nativeEnabled ||
+    (promptOnly && preference) ||
+    (controlsOnly && !preference)
+  )
+    return null;
   return (
     <div className="ad-preferences">
       {preference ? (
@@ -78,7 +94,9 @@ export function AdPreferences() {
             <p>
               Allow Adsterra and its advertising partners to use cookies and
               device information to show and measure ads. Your choice won’t
-              affect playback. <Link href="/privacy">Privacy</Link>
+              affect playback. Ads may include banners, native offers,
+              dismissible overlays and occasional sponsored tabs after a click.{" "}
+              <Link href="/privacy">Privacy</Link>
             </p>
           </div>
           <div className="ad-consent-actions">

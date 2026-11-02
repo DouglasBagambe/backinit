@@ -1,5 +1,6 @@
 "use client";
 import { AdSlot } from "./advertising";
+import { DisplayAdvertising } from "./display-advertising";
 import { LiveTracker } from "./live-tracker";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -204,6 +205,7 @@ export function EventViewing({
           <div className="event-mobile-tracker">
             {hasBroadcast && !wide && <LiveTracker event={event} compact />}
           </div>
+          <DisplayAdvertising />
           <AdSlot />
           <section className="panel viewing-options" id="official-viewing">
             <h2>Viewing options</h2>
@@ -331,6 +333,7 @@ export function EventViewing({
               <LiveTracker event={event} compact />
             </div>
           )}
+          <DisplayAdvertising placement="rectangle" />
           <AdSlot format="rectangle" sponsored native />
           <section className="event-switcher">
             <h2>More to watch</h2>
