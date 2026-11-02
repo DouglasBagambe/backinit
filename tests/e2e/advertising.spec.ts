@@ -1,6 +1,13 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
+// All video-zone requests are intercepted, including tests that do not use video.
+test.beforeEach(async ({ page }) => {
+  await page.route(/https?:\/\/juvenilechoice\.com\//, (route) =>
+    route.fulfill({ contentType: "text/javascript", body: "" }),
+  );
+});
+
 const key = "b9e9a122a56fe6638c4236bbf4696b47";
 test("native advertising uses the original direct tag once, only after consent, and withdraws", async ({
   page,
@@ -321,4 +328,60 @@ test("resizing during an in-flight banner keeps the original configuration until
       .getByTitle("Delayed banner fixture"),
   ).toHaveAttribute("width", "320");
   expect(errors).toEqual([]);
+});
+
+test("approved video slider loads only on Home after cookie permission, with a daily cap and no other interactive format", async ({
+  page,
+  baseURL,
+}) => {
+  await page
+    .context()
+    .addCookies([{ name: "backinit-edition", value: "real", url: baseURL! }]);
+  await page.clock.install({ time: new Date("2026-11-02T12:00:00Z") });
+  const formats: string[] = [];
+  await page.route("https://czernik.org/**", (route) => {
+    if (route.request().url().includes("/14/")) formats.push("social");
+    return route.fulfill({ contentType: "text/javascript", body: "" });
+  });
+  await page.route("https://capitalhospitals.org/**", (route) => {
+    formats.push("pop");
+    return route.fulfill({ contentType: "text/javascript", body: "" });
+  });
+  await page.route(/https?:\/\/juvenilechoice\.com\//, (route) => {
+    formats.push("video");
+    return route.fulfill({
+      contentType: "text/javascript",
+      body: "document.documentElement.dataset.videoAdFixture='loaded'",
+    });
+  });
+  await page.goto("/");
+  await page.clock.fastForward(25000);
+  expect(formats).toEqual([]);
+  await page
+    .getByRole("button", { name: "Accept cookies", exact: true })
+    .click();
+  await page.clock.fastForward(19000);
+  expect(formats).toEqual([]);
+  await page.clock.fastForward(2000);
+  await expect.poll(() => formats).toEqual(["video"]);
+  const sdk = page.locator('script[src*="juvenilechoice.com"]');
+  await expect(sdk).toHaveAttribute(
+    "referrerpolicy",
+    "no-referrer-when-downgrade",
+  );
+  expect(await sdk.evaluate((node) => (node as HTMLScriptElement).async)).toBe(
+    true,
+  );
+  await page.getByRole("link", { name: "Guest profile", exact: true }).click();
+  await expect(page).toHaveURL(/\/profile$/);
+  await expect(page.locator("html")).not.toHaveAttribute(
+    "data-video-ad-fixture",
+    "loaded",
+  );
+  await page.goto("/");
+  await expect(
+    page.getByRole("button", { name: "Cookie settings", exact: true }),
+  ).toBeVisible();
+  await page.clock.fastForward(25000);
+  expect(formats).toEqual(["video"]);
 });

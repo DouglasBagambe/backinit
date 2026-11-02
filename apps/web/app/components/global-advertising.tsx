@@ -2,6 +2,18 @@
 import { useEffect } from "react";
 import { useAdvertising } from "./advertising";
 
+// Original account-issued loader for approved HilltopAds zone 7587969-7587973.
+const videoLoader = String.raw`(function(awxa){
+var d = document,
+    s = d.createElement('script'),
+    l = d.currentScript || d.scripts[d.scripts.length - 1];
+s.settings = awxa || {};
+s.src = "\/\/juvenilechoice.com\/bTXWV\/s.dtG\/lQ0KYIWQck\/le\/md9_uNZzUulqkfPhT-cl1hOVDkcP5lNQj\/kptANdzWUe4cNmzokE3NM\/wr";
+s.async = true;
+s.referrerPolicy = 'no-referrer-when-downgrade';
+l.parentNode.insertBefore(s, l);
+})({})`;
+
 let externalLoaded = false;
 const protectedPath = /^\/(?:profile|admin|settings|favorites|privacy)(?:\/|$)/;
 const publicPages = new Set([
@@ -57,9 +69,14 @@ export function GlobalAdvertising({ page }: { page: string }) {
   }, []);
   useEffect(() => {
     if (!allowed || !publicPages.has(page) || externalLoaded) return;
+    const video = page === "";
     const pop = page === "watch";
-    const key = pop ? "backinit-pop-tag-v1" : "backinit-social-tag-v1";
-    const interval = pop ? 24 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000;
+    const key = video
+      ? "backinit-video-tag-v1"
+      : pop
+        ? "backinit-pop-tag-v1"
+        : "backinit-social-tag-v1";
+    const interval = video || pop ? 24 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000;
     const now = Date.now();
     try {
       const previous = Number(localStorage.getItem(key));
@@ -81,10 +98,16 @@ export function GlobalAdvertising({ page }: { page: string }) {
         }
         script = document.createElement("script");
         script.setAttribute("data-cfasync", "false");
-        script.dataset.backinitAdFormat = pop ? "popunder" : "social-bar";
-        script.src = pop
-          ? "https://capitalhospitals.org/1/548b0877b7f514cfb8326cf26dbd7fe2"
-          : "https://czernik.org/14/1ed8358b832d318983f90d4b83b1eb73";
+        script.dataset.backinitAdFormat = video
+          ? "video-slider"
+          : pop
+            ? "popunder"
+            : "social-bar";
+        if (video) script.text = videoLoader;
+        else
+          script.src = pop
+            ? "https://capitalhospitals.org/1/548b0877b7f514cfb8326cf26dbd7fe2"
+            : "https://czernik.org/14/1ed8358b832d318983f90d4b83b1eb73";
         script.onerror = () => {
           try {
             if (localStorage.getItem(key) === stamp)
@@ -93,8 +116,14 @@ export function GlobalAdvertising({ page }: { page: string }) {
         };
         externalLoaded = true;
         (pop ? document.head : document.body).append(script);
+        if (
+          video &&
+          script.previousElementSibling instanceof HTMLScriptElement
+        ) {
+          script.previousElementSibling.onerror = script.onerror;
+        }
       },
-      pop ? 30000 : 15000,
+      video ? 20000 : pop ? 30000 : 15000,
     );
     return () => {
       clearTimeout(timer);

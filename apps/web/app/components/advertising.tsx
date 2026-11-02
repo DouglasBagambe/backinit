@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 type Preference = "accepted" | "declined" | null;
-const storageKey = "backinit-ad-preference-v2";
+const storageKey = "backinit-ad-preference-v3";
 const Advertising = createContext<{
   enabled: boolean;
   nativeEnabled: boolean;
@@ -94,11 +94,11 @@ export function AdPreferences({
           <div>
             <strong>Advertising cookies</strong>
             <p>
-              Allow Adsterra and its advertising partners to use cookies and
-              device information to show and measure ads. Your choice won’t
-              affect playback. Ads may include banners, native offers,
-              dismissible overlays and occasional sponsored tabs after a click.{" "}
-              <Link href="/privacy">Privacy</Link>
+              Allow Adsterra, HilltopAds and their advertising partners to use
+              cookies and device information to show and measure ads. Your
+              choice won’t affect playback. Ads may include banners, native
+              offers, skippable video, dismissible overlays and occasional
+              sponsored tabs after a click. <Link href="/privacy">Privacy</Link>
             </p>
           </div>
           <div className="ad-consent-actions">
