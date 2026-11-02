@@ -123,7 +123,8 @@ it("changes passwords after reauthentication and limits failed attempts persiste
   expect(
     a.db.prepare("SELECT count(*) AS count FROM auth_limits").get()?.count,
   ).toBeGreaterThan(0);
-});
+  // This exercises multiple deliberately expensive password hashes sequentially.
+}, 15000);
 it("upgrades legacy hashes without losing accounts or favorites", async () => {
   const { scryptSync } = await import("node:crypto");
   const a = make();
