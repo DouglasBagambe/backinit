@@ -135,3 +135,33 @@ it("disabled ingestion returns no snapshots and makes no network requests", asyn
   });
   expect(fetcher).not.toHaveBeenCalled();
 });
+
+it("keeps more than two matching highlights per channel without including unrelated videos", async () => {
+  const fetcher = vi.fn(async (input: string | URL | Request) => {
+    const url = new URL(String(input));
+    if (url.pathname === "/feeds/videos.xml") {
+      const id = url.searchParams.get("channel_id")!;
+      if (id !== officialChannels[0]!.id)
+        return new Response("Unavailable", { status: 404 });
+      return new Response(
+        `<feed><yt:channelId>${id}</yt:channelId><author><uri>https://www.youtube.com/channel/${id}</uri></author>${Array.from({ length: 10 }, (_, i) => `<entry><yt:videoId>match00000${i}</yt:videoId><title>Highlights ${i}</title><published>2026-11-02T10:00:00Z</published></entry>`).join("")}</feed>`,
+      );
+    }
+    const id = new URL(url.searchParams.get("url")!).searchParams.get("v")!;
+    if (!id.startsWith("match"))
+      return new Response("Missing", { status: 404 });
+    return Response.json({
+      title: "Match Highlights",
+      author_name: officialChannels[0]!.name,
+      thumbnail_url: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
+    });
+  });
+  const result = await new OfficialVideoCatalog(
+    undefined,
+    new ProviderCache(fetcher as typeof fetch),
+  ).feed();
+  expect(result.data).toHaveLength(8);
+  expect(result.data.every((s) => s.catalog?.category === "Highlights")).toBe(
+    true,
+  );
+});

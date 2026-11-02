@@ -1,4 +1,5 @@
 "use client";
+import { PlayerBrand } from "./player-brand";
 import { useEffect, useRef, useState } from "react";
 import {
   trackerSourceSchema,
@@ -267,6 +268,9 @@ function PublisherTracker({
       className={`publisher-tracker${compact ? " publisher-tracker-compact" : ""}`}
       aria-label="Live match tracker"
     >
+      <div className="player-brand-rim">
+        <PlayerBrand />
+      </div>
       <div
         className="publisher-tracker-frame"
         style={height ? { height } : undefined}

@@ -1,4 +1,5 @@
 "use client";
+import { PlayerBrand } from "./player-brand";
 import { useEffect, useId, useRef, useState } from "react";
 import { type SportEvent, type TrackerSource } from "@backinit/domain";
 import { EventTracker, TrackerScore } from "./event-tracker";
@@ -126,6 +127,9 @@ export function SportradarTracker({
       className={`publisher-tracker sportradar-tracker${compact ? " publisher-tracker-compact" : ""}`}
       aria-label="Live match tracker"
     >
+      <div className="player-brand-rim">
+        <PlayerBrand />
+      </div>
       <div className="sportradar-tracker-body">
         <div
           ref={container}

@@ -609,3 +609,39 @@ export const trackerSourceSchema = z.discriminatedUnion("provider", [
   }),
 ]);
 export type TrackerSource = z.infer<typeof trackerSourceSchema>;
+
+export const broadcastSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  category: z.string(),
+  competition: z.string(),
+  poster: z.string().nullable(),
+  start: z.number(),
+  end: z.number(),
+  channel: z.boolean(),
+  viewers: z.number().nullable(),
+  pageUrl: z.string().url(),
+  sources: z.array(
+    z.object({ id: z.string(), label: z.string(), url: z.string().url() }),
+  ),
+  replay: z.boolean(),
+});
+export type Broadcast = z.infer<typeof broadcastSchema>;
+export const broadcastFeedSchema = z.object({
+  data: z.array(broadcastSchema),
+  updatedAt: z.string().nullable(),
+  stale: z.boolean(),
+  message: z.string().optional(),
+});
+export type BroadcastFeed = z.infer<typeof broadcastFeedSchema>;
+export function broadcastState(b: Broadcast, now = Date.now()) {
+  return b.replay
+    ? "Replay"
+    : b.channel
+      ? "24/7"
+      : now < b.start
+        ? "Upcoming"
+        : now <= b.end
+          ? "Live"
+          : "Ended";
+}

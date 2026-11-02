@@ -4789,3 +4789,537 @@ footer {
 .display-ad-leaderboard .ad-ready {
   margin: 12px 0 22px;
 }
+
+/* Viewing room: quiet brand, readable cards, independent player surfaces. */
+.player-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--muted);
+  opacity: 0.38;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+.player-brand .brand-symbol {
+  width: 21px;
+  height: 14px;
+}
+.player-brand-rim {
+  display: flex;
+  justify-content: flex-end;
+  padding: 4px 10px;
+  background: var(--surface);
+}
+.player-brand-overlay {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  color: #fff;
+  z-index: 2;
+}
+.tracker-arena {
+  position: relative;
+}
+.watch-mode-links,
+.broadcast-actions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.watch-mode-links {
+  margin: 0 0 20px;
+}
+.broadcast-directory,
+.broadcast-archive {
+  margin: 26px 0;
+}
+.broadcast-filters {
+  display: flex;
+  gap: 16px;
+  align-items: end;
+  margin: 20px 0;
+}
+.broadcast-filters label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  flex: 1;
+}
+.broadcast-filters input,
+.broadcast-filters select,
+.stream-chooser input,
+.broadcast-player select {
+  width: 100%;
+  min-width: 0;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  padding: 10px;
+  border-radius: 8px;
+  font: inherit;
+}
+.broadcast-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.broadcast-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  display: block;
+  background: var(--surface);
+  color: var(--ink);
+  text-decoration: none;
+}
+.broadcast-card:hover {
+  border-color: var(--accent);
+}
+.broadcast-poster {
+  aspect-ratio: 16/9;
+  position: relative;
+  background: var(--subtle);
+  overflow: hidden;
+}
+.broadcast-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.broadcast-poster-fallback {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--muted);
+}
+.broadcast-badge {
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  border-radius: 5px;
+  padding: 3px 6px;
+  background: var(--subtle);
+  color: var(--ink);
+  white-space: nowrap;
+}
+.broadcast-poster .broadcast-badge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  background: #071714d9;
+  color: white;
+}
+.broadcast-badge.is-live {
+  color: #f78686;
+}
+.broadcast-card-copy {
+  padding: 14px;
+}
+.broadcast-card h3 {
+  font-size: 15px;
+  margin: 7px 0 12px;
+  line-height: 1.4;
+}
+.broadcast-card small,
+.broadcast-card time,
+.broadcast-sources,
+.broadcast-credit,
+.broadcast-viewers {
+  font-size: 11px;
+  color: var(--muted);
+}
+.broadcast-sources {
+  display: block;
+  margin-top: 8px;
+}
+.broadcast-credit {
+  margin-top: 20px;
+}
+.broadcast-more {
+  margin-top: 18px;
+}
+.broadcast-view-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 24px;
+}
+.broadcast-view-layout > * {
+  min-width: 0;
+}
+.broadcast-title {
+  margin: 12px 0 24px;
+}
+.broadcast-title h1 {
+  font-size: clamp(22px, 3vw, 34px);
+  margin: 10px 0;
+}
+.broadcast-title time {
+  color: var(--muted);
+  font-size: 12px;
+}
+.broadcast-title .broadcast-actions {
+  margin-top: 18px;
+}
+.broadcast-actions a,
+.broadcast-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.broadcast-player {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #080f13;
+}
+.broadcast-player-rim {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  background: var(--surface);
+}
+.broadcast-screen {
+  aspect-ratio: 16/9;
+  position: relative;
+  background: #080f13;
+}
+.broadcast-screen iframe {
+  display: block;
+  border: 0;
+  width: 100%;
+  height: 100%;
+}
+.broadcast-start {
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 100%;
+  overflow: hidden;
+  color: #fff;
+}
+.broadcast-start > img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.22;
+}
+.broadcast-start button {
+  position: relative;
+  background: none;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  padding: 20px;
+  line-height: 0;
+}
+.broadcast-start p {
+  position: relative;
+  padding: 20px;
+  font-size: 13px;
+}
+.broadcast-player-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: var(--surface);
+}
+.broadcast-player-controls label {
+  flex: 1;
+  min-width: 0;
+}
+.broadcast-player-controls button {
+  padding: 7px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+.broadcast-status {
+  padding: 8px 12px;
+  font-size: 12px;
+}
+.broadcast-related {
+  display: grid;
+  gap: 8px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.broadcast-related .broadcast-badge {
+  justify-self: start;
+}
+.broadcast-related time {
+  color: var(--muted);
+  font-size: 11px;
+}
+.broadcast-theatre .broadcast-view-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+.broadcast-theatre .broadcast-view-layout > aside {
+  display: none;
+}
+.broadcast-player:fullscreen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.broadcast-player:fullscreen .broadcast-screen {
+  width: 100%;
+  max-height: 90vh;
+}
+.broadcast-player:fullscreen .broadcast-player-rim {
+  background: #080f13;
+}
+.broadcast-archive-card {
+  padding: 20px;
+}
+.broadcast-archive-card > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--accent);
+}
+.multiview-toolbar {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin: 20px 0 8px;
+}
+.multiview-toolbar > div {
+  display: flex;
+  gap: 4px;
+}
+.multiview-toolbar button {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 8px 10px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.multiview-toolbar button[aria-pressed="true"] {
+  background: var(--subtle);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.multiview-hint {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 12px 0 20px;
+}
+.multiview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.multiview-tile {
+  min-width: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.multiview-tile-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+}
+.multiview-tile-title h2 {
+  font-size: 12px;
+  line-height: 1.4;
+  flex: 1;
+  margin: 0;
+}
+.multiview-tile-title button {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 4px;
+}
+.multiview-add {
+  width: 100%;
+  aspect-ratio: 16/10;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font: inherit;
+}
+.multiview-focus {
+  grid-template-columns: 2fr 1fr;
+}
+.multiview-focus .multiview-tile:first-child {
+  grid-row: span 3;
+}
+.multiview-focus .multiview-tile:first-child .broadcast-screen {
+  aspect-ratio: 16/10;
+}
+.multiview-focus .multiview-tile:not(:first-child) .broadcast-screen {
+  aspect-ratio: 16/8;
+}
+.multiview-focus .multiview-tile:not(:first-child) .broadcast-player-controls {
+  padding: 4px;
+}
+.stream-chooser {
+  width: min(600px, calc(100% - 24px));
+  max-height: 80dvh;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 22px;
+}
+.stream-chooser::backdrop {
+  background: #000a;
+  backdrop-filter: blur(6px);
+}
+.stream-chooser-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.stream-chooser-heading h2 {
+  font-size: 22px;
+}
+.stream-chooser-heading button {
+  background: none;
+  border: 0;
+  color: var(--ink);
+  cursor: pointer;
+}
+.stream-chooser label {
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+}
+.stream-chooser-list {
+  margin-top: 16px;
+  max-height: 50dvh;
+  overflow: auto;
+}
+.stream-chooser-list > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+}
+.stream-chooser-list > button > span {
+  display: grid;
+  gap: 5px;
+}
+.stream-chooser-list small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.stream-chooser-list strong {
+  font-size: 13px;
+}
+.broadcast-viewers {
+  margin: 12px 0;
+}
+.broadcast-notice {
+  font-size: 12px;
+  color: var(--muted);
+}
+@media (max-width: 1000px) {
+  .broadcast-view-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .broadcast-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .broadcast-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .broadcast-card h3 {
+    font-size: 12px;
+  }
+  .broadcast-card-copy {
+    padding: 10px;
+  }
+  .broadcast-filters {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .broadcast-filters label:first-child {
+    flex-basis: 100%;
+  }
+  .broadcast-filters label {
+    min-width: 40%;
+  }
+  .multiview-grid,
+  .multiview-focus {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .multiview-focus .multiview-tile:first-child {
+    grid-row: auto;
+  }
+  .multiview-focus .multiview-tile:not(:first-child) .broadcast-screen {
+    aspect-ratio: 16/9;
+  }
+  .broadcast-actions {
+    gap: 10px;
+  }
+  .watch-mode-links {
+    font-size: 12px;
+    gap: 14px;
+  }
+  .player-brand-overlay {
+    top: 7px;
+    right: 8px;
+    font-size: 9px;
+  }
+  .broadcast-archive-card {
+    padding: 12px;
+  }
+}
+
+.player-brand-word {
+  width: 55px;
+  height: 14px;
+  overflow: visible;
+}
+.player-brand-word text {
+  font: 750 12px sans-serif;
+  letter-spacing: -0.4px;
+}

@@ -48,7 +48,11 @@ export function Privacy({
           SportScore and its tracker provider when a matching live tracker is
           available. Those providers receive your IP address and browser
           information; their own privacy policies apply. They do not receive
-          your BackInIt account credentials.
+          your BackInIt account credentials. PPV broadcast players load only
+          when you select Play. PPV and its embed providers receive your IP
+          address, browser information and may show their own advertising. Their
+          controls and privacy practices apply. Viewer counts labelled PPV are
+          supplied by that provider, not measured BackInIt viewers.
         </p>
         <h2>Advertising</h2>
         {nativeAdsEnabled ? (

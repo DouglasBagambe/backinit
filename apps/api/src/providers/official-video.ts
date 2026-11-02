@@ -159,7 +159,7 @@ export class OfficialVideoCatalog {
                   v.title,
                 ) && !/#shorts|2k2\d|video game/i.test(v.title),
             )
-            .slice(0, 2);
+            .slice(0, 8);
           const choices = [
             ...selected.map((video) => ({ ...video, archive: false })),
             ...(channel.archive || [])

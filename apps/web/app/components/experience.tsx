@@ -1,4 +1,10 @@
 "use client";
+import {
+  BroadcastDirectory,
+  BroadcastViewing,
+  BroadcastArchive,
+  Multiview,
+} from "./broadcasts";
 import Link from "next/link";
 import { AdvertisingProvider, AdSlot, AdPreferences } from "./advertising";
 import { DisplayAdvertising } from "./display-advertising";
@@ -532,6 +538,7 @@ export function Experience({
         <nav className="desktop-nav" aria-label="Main navigation">
           {[
             ["watch", "Watch"],
+            ["multiview", "Multiview"],
             ["fixtures", "Fixtures"],
             ["live", "Live"],
             ["scores", "Scores"],
@@ -604,7 +611,16 @@ export function Experience({
       </header>
       {menu && (
         <nav className="mobile-menu" aria-label="More navigation">
-          {["news", "fixtures", "search", "settings", "profile"].map((p) => (
+          {[
+            "broadcasts",
+            "multiview",
+            "videos",
+            "news",
+            "fixtures",
+            "search",
+            "settings",
+            "profile",
+          ].map((p) => (
             <Link onClick={() => setMenu(false)} key={p} href={"/" + p}>
               {p}
             </Link>
@@ -717,7 +733,13 @@ export function Experience({
                 {syncError}
               </p>
             )}
-          {match && route.startsWith("watch/") ? (
+          {route.startsWith("watch/ppv-") ? (
+            <BroadcastViewing id={route.split("/")[1]!} />
+          ) : route === "multiview" ? (
+            <Multiview />
+          ) : route === "broadcasts" ? (
+            <BroadcastDirectory />
+          ) : match && route.startsWith("watch/") ? (
             <EventViewing
               event={match}
               events={events}
@@ -765,9 +787,20 @@ export function Experience({
                 </div>
               )}
               {route === "watch" ? (
-                <LiveWatch weekend={real} />
+                <>
+                  <div className="watch-mode-links">
+                    <Link href="/broadcasts">Broadcasts & channels</Link>
+                    <Link href="/multiview">Multiview</Link>
+                    <Link href="/videos">Replays & highlights</Link>
+                  </div>
+                  <LiveWatch weekend={real} />
+                  <BroadcastDirectory preview />
+                </>
               ) : route === "videos" ? (
-                <WatchHub />
+                <>
+                  <WatchHub />
+                  <BroadcastArchive />
+                </>
               ) : route === "playback" ? (
                 <>
                   <section className="panel">

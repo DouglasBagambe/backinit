@@ -8,10 +8,11 @@ export async function loadPageData(
   requestedEdition?: "real" | "demo",
 ) {
   const parts = route.split("/");
+  const ppv = route.startsWith("watch/ppv-");
   const detail =
-    ["match", "watch"].includes(parts[0] || "") && parts.length === 2;
+    !ppv && ["match", "watch"].includes(parts[0] || "") && parts.length === 2;
   const [snapshot, news] = await Promise.all([
-    usesCatalogue(route) && route !== "watch"
+    usesCatalogue(route) && route !== "watch" && !ppv
       ? loadEvents(requestedEdition, catalogueRenderBudget(route))
       : Promise.resolve({
           data: [],

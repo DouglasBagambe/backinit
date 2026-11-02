@@ -30,6 +30,8 @@ export default async function Page({
     "privacy",
     "videos",
     "playback",
+    "broadcasts",
+    "multiview",
   ];
   if (
     !pages.includes(route) &&
@@ -43,7 +45,8 @@ export default async function Page({
     notFound();
   const selected = (await cookies()).get("backinit-edition")?.value;
   const requestedEdition =
-    route === "watch" || route.startsWith("watch/")
+    ["watch", "broadcasts", "multiview"].includes(route) ||
+    route.startsWith("watch/")
       ? "real"
       : selected === "demo"
         ? "demo"
@@ -56,7 +59,8 @@ export default async function Page({
     !(
       ["match", "watch"].includes(slug[0] || "") &&
       slug.length === 2 &&
-      feed.data.some((e) => e.id === slug[1])
+      (feed.data.some((e) => e.id === slug[1]) ||
+        (slug[0] === "watch" && /^ppv-\d+$/.test(slug[1] || "")))
     ) &&
     !(
       slug[0] === "sport" &&
