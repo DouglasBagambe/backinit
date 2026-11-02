@@ -192,3 +192,25 @@ test("failed catalogue shows recovery, and archives are sports replays rather th
     "_blank",
   );
 });
+
+test("Watch presents imported upcoming games first instead of a contradictory empty stream list", async ({
+  page,
+}) => {
+  await page.route("**/api/watch*", (r) =>
+    r.fulfill({
+      json: { data: [], coverage: [], fetchedAt: new Date().toISOString() },
+    }),
+  );
+  await page.goto("/watch?sport=Football&range=upcoming");
+  await expect(page.locator(".broadcast-card")).toHaveCount(4);
+  await expect(
+    page.getByRole("heading", { name: "No streams available", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("heading", { name: "Watch", exact: true }),
+  ).toBeVisible();
+  await page
+    .getByRole("textbox", { name: "Search broadcasts" })
+    .fill("Match 2");
+  await expect(page.locator(".broadcast-card")).toHaveCount(1);
+});

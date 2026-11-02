@@ -273,6 +273,7 @@ export function Experience({
     };
   }, [accountVersion]);
   const [menu, setMenu] = useState(false);
+  const [hasBroadcasts, setHasBroadcasts] = useState(false);
   const [offline, setOffline] = useState(false);
   useEffect(() => {
     try {
@@ -793,8 +794,11 @@ export function Experience({
                     <Link href="/multiview">Multiview</Link>
                     <Link href="/videos">Replays & highlights</Link>
                   </div>
-                  <LiveWatch weekend={real} />
-                  <BroadcastDirectory preview />
+                  <BroadcastDirectory
+                    primary
+                    onAvailability={setHasBroadcasts}
+                  />
+                  <LiveWatch weekend={real} supplemental={hasBroadcasts} />
                 </>
               ) : route === "videos" ? (
                 <>

@@ -50,9 +50,11 @@ export function sourceLabel(entry: WatchEntry) {
 export function LiveWatch({
   preview = false,
   weekend = false,
+  supplemental = false,
 }: {
   preview?: boolean;
   weekend?: boolean;
+  supplemental?: boolean;
 }) {
   const params = useSearchParams();
   const selectedSport = params.get("sport") || "All sports";
@@ -179,6 +181,7 @@ export function LiveWatch({
     setDate(day.toISOString().slice(0, 10));
     setRange("today");
   }
+  if (supplemental && !filtered.length) return null;
   return (
     <>
       {weekend &&
@@ -190,7 +193,11 @@ export function LiveWatch({
         )}
       <section className="live-discovery" aria-label="Live event discovery">
         <div className="watch-toolbar">
-          <h1>{preview ? "Sport today" : "Watch"}</h1>
+          {supplemental ? (
+            <h2>Official broadcasts & match trackers</h2>
+          ) : (
+            <h1>{preview ? "Sport today" : "Watch"}</h1>
+          )}
           <div className="filter-tabs" role="group" aria-label="Event schedule">
             {[
               ["live", "Live"],

@@ -105,7 +105,15 @@ function State({ item }: { item: Broadcast }) {
     </span>
   );
 }
-export function BroadcastDirectory({ preview = false }: { preview?: boolean }) {
+export function BroadcastDirectory({
+  preview = false,
+  primary = false,
+  onAvailability,
+}: {
+  preview?: boolean;
+  primary?: boolean;
+  onAvailability?: (available: boolean) => void;
+}) {
   const { feed, loading, retry } = useBroadcasts();
   const params = useSearchParams();
   const [query, setQuery] = useState("");
@@ -114,6 +122,19 @@ export function BroadcastDirectory({ preview = false }: { preview?: boolean }) {
   const [limit, setLimit] = useState(24);
   const now = useNow();
   const requested = params.get("sport");
+  const requestedRange = params.get("range");
+  useEffect(() => {
+    setRange(
+      requestedRange === "live"
+        ? "Live"
+        : requestedRange === "upcoming"
+          ? "Upcoming"
+          : "All",
+    );
+  }, [requestedRange]);
+  useEffect(() => {
+    onAvailability?.(feed.data.length > 0);
+  }, [feed.data.length, onAvailability]);
   useEffect(() => {
     if (requested)
       setCategory(
@@ -146,7 +167,11 @@ export function BroadcastDirectory({ preview = false }: { preview?: boolean }) {
       <div className="section-heading">
         <div>
           <span className="eyebrow">Live · Upcoming · Channels</span>
-          <h2>{preview ? "More broadcasts" : "Broadcasts"}</h2>
+          {preview ? (
+            <h2>More broadcasts</h2>
+          ) : (
+            <h1>{primary ? "Watch" : "Broadcasts"}</h1>
+          )}
         </div>
         <div className="broadcast-actions">
           <Link href="/multiview">
