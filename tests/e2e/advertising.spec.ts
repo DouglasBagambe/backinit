@@ -215,7 +215,7 @@ test("Home and popular pages have fitting display ads, with no duplicate tag or 
   expect(errors).toEqual([]);
 });
 
-test("interactive ad tags are delayed, consent-gated, capped across reloads and excluded from player/account pages", async ({
+test("player popunder and sports offer are consent-gated, capped, dismissible and excluded from account pages", async ({
   page,
   baseURL,
 }) => {
@@ -235,16 +235,55 @@ test("interactive ad tags are delayed, consent-gated, capped across reloads and 
     tags.push("popunder");
     return route.fulfill({ contentType: "text/javascript", body: "" });
   });
-  await page.goto("/watch");
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({
+      json: {
+        data: [
+          {
+            id: "ppv-9001",
+            title: "NFL Network",
+            category: "American Football",
+            competition: "Sports channel",
+            start: 0,
+            end: 0,
+            channel: true,
+            poster: null,
+            viewers: null,
+            sources: [
+              {
+                id: "main",
+                label: "Main",
+                url: "https://taifood-blog.asia/embed/nfl-network",
+              },
+            ],
+            pageUrl: "https://ppv.st/live/nfl-network",
+            replay: false,
+          },
+        ],
+        updatedAt: new Date().toISOString(),
+        stale: false,
+      },
+    }),
+  );
+  await page.goto("/watch/ppv-9001");
   await page.clock.fastForward(31000);
   expect(tags).toEqual([]);
   await page
     .getByRole("button", { name: "Accept cookies", exact: true })
     .click();
-  await page.clock.fastForward(16000);
-  expect(tags).toEqual([]);
-  await page.clock.fastForward(15000);
+  await page.clock.fastForward(1);
   await expect.poll(() => tags).toEqual(["popunder"]);
+  await expect(
+    page.getByText("Play may open a sponsored tab.", { exact: true }),
+  ).toBeVisible();
+  await page.clock.fastForward(13000);
+  const badge = page.locator(".sports-sponsored-badge");
+  await expect(badge).toBeVisible();
+  await expect(badge.getByRole("link")).toHaveAttribute("rel", /sponsored/);
+  await badge
+    .getByRole("button", { name: "Dismiss sponsored offers", exact: true })
+    .click();
+  await expect(badge).toHaveCount(0);
   await page.reload();
   await page.clock.fastForward(31000);
   expect(tags).toEqual(["popunder"]);

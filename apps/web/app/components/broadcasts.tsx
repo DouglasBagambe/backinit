@@ -11,6 +11,9 @@ import {
   Share2,
   Columns2,
   ExternalLink,
+  Radio,
+  Tv,
+  Clapperboard,
 } from "lucide-react";
 import {
   broadcastFeedSchema,
@@ -19,12 +22,15 @@ import {
   type BroadcastFeed,
 } from "../lib/broadcast-types";
 import { PlayerBrand } from "./player-brand";
+import { WatchHub } from "./watch-hub";
+import { useBroadcastMatch } from "./broadcast-match";
+import { LiveTracker } from "./live-tracker";
 import {
   compareBroadcasts,
   broadcastImportance,
 } from "../lib/broadcast-ranking";
 import { useViewingZone, localDay } from "../lib/viewing-time";
-import { AdSlot } from "./advertising";
+import { AdSlot, PlaybackAdNotice } from "./advertising";
 import { DisplayAdvertising } from "./display-advertising";
 function useBroadcasts() {
   const [feed, setFeed] = useState<BroadcastFeed>({
@@ -124,9 +130,10 @@ export function BroadcastDirectory({
   const { feed, loading, retry } = useBroadcasts();
   const params = useSearchParams();
   const channels = params.get("view") === "channels";
+  const replays = params.get("view") === "replays";
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All sports");
-  const [range, setRange] = useState("Next 48 hours");
+  const [range, setRange] = useState("Today");
   const [chosenDate, setChosenDate] = useState("");
   const [sort, setSort] = useState("Recommended");
   const [page, setPage] = useState(1);
@@ -135,7 +142,7 @@ export function BroadcastDirectory({
   const requested = params.get("sport");
   const requestedRange = params.get("range");
   useEffect(() => {
-    setRange(requestedRange === "live" ? "Live now" : "Next 48 hours");
+    setRange(requestedRange === "live" ? "Live now" : "Today");
     setChosenDate(params.get("date") || "");
   }, [requestedRange, params]);
   useEffect(() => {
@@ -167,13 +174,16 @@ export function BroadcastDirectory({
     if (b.channel || b.end < time) return false;
     const day = localDay(new Date(b.start).toISOString(), zone);
     if (chosenDate) return day === chosenDate;
-    if (range === "Today")
-      return day === today || (b.start <= time && b.end >= time);
+    if (range === "Today") return day === today;
     if (range === "Tomorrow") return day === tomorrow;
     if (range === "Live now") return b.start <= time && b.end >= time;
-    if (range === "This week") return b.start <= time + 7 * 86400000;
-    if (range === "All upcoming") return b.start > time;
-    return b.start <= time + 2 * 86400000;
+    if (range === "This week") {
+      const end = new Date(`${today}T12:00:00Z`);
+      end.setUTCDate(end.getUTCDate() + ((7 - end.getUTCDay()) % 7));
+      return day >= today && day <= end.toISOString().slice(0, 10);
+    }
+    if (range === "Next 48 hours") return b.start <= time + 2 * 86400000;
+    return true;
   };
   const entries = feed.data
     .filter(
@@ -238,7 +248,7 @@ export function BroadcastDirectory({
       </div>
     </Link>
   );
-  if (primary && !feed.data.length)
+  if (primary && !feed.data.length && !channels && !replays)
     return feed.message ? (
       <p className="broadcast-notice" role="status">
         {feed.message} <button onClick={retry}>Retry</button>
@@ -265,199 +275,223 @@ export function BroadcastDirectory({
       {!preview && (
         <>
           <nav className="watch-section-tabs" aria-label="Watch sections">
-            <Link href={root} aria-current={!channels ? "page" : undefined}>
-              Matches
+            <Link
+              href={root}
+              aria-current={!channels && !replays ? "page" : undefined}
+            >
+              <Radio size={18} /> Matches
             </Link>
             <Link
               href={`${root}?view=channels`}
               aria-current={channels ? "page" : undefined}
             >
-              Sports channels
+              <Tv size={18} /> Sports channels
             </Link>
-            <Link href="/videos">Replays & highlights</Link>
-          </nav>
-          {!channels && (
-            <div
-              className="watch-date-tabs"
-              role="group"
-              aria-label="Match dates"
+            <Link
+              href={`${root}?view=replays`}
+              aria-current={replays ? "page" : undefined}
             >
-              {[
-                "Next 48 hours",
-                "Today",
-                "Tomorrow",
-                "This week",
-                "All upcoming",
-                "Live now",
-              ].map((value) => (
-                <button
-                  key={value}
-                  aria-pressed={!chosenDate && range === value}
-                  onClick={() => {
-                    setChosenDate("");
-                    setRange(value);
-                  }}
+              <Clapperboard size={18} /> Replays & highlights
+            </Link>
+          </nav>
+          {!replays && (
+            <>
+              {!channels && (
+                <div
+                  className="watch-date-tabs"
+                  role="group"
+                  aria-label="Match dates"
                 >
-                  {value}
-                </button>
-              ))}
+                  {[
+                    "All",
+                    "Live now",
+                    "Today",
+                    "Next 48 hours",
+                    "Tomorrow",
+                    "This week",
+                  ].map((value) => (
+                    <button
+                      key={value}
+                      aria-pressed={!chosenDate && range === value}
+                      onClick={() => {
+                        setChosenDate("");
+                        setRange(value);
+                      }}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="broadcast-filters">
+                <label>
+                  Search broadcasts
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={
+                      channels
+                        ? "Find a sports channel…"
+                        : "Team, event or competition…"
+                    }
+                  />
+                </label>
+                <label>
+                  Sport
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                  >
+                    {[
+                      "All sports",
+                      ...new Set(
+                        feed.data
+                          .filter((b) => b.channel === channels)
+                          .map((b) => b.category),
+                      ),
+                    ].map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
+                </label>
+                {!channels && (
+                  <details className="broadcast-more-filters">
+                    <summary>More filters</summary>
+                    <div className="broadcast-filter-popover">
+                      <label>
+                        Choose date
+                        <input
+                          type="date"
+                          value={chosenDate}
+                          onChange={(e) => setChosenDate(e.target.value)}
+                        />
+                      </label>
+                      <label>
+                        Order
+                        <select
+                          value={sort}
+                          onChange={(e) => setSort(e.target.value)}
+                        >
+                          <option>Recommended</option>
+                          <option>Kickoff time</option>
+                        </select>
+                      </label>
+                    </div>
+                  </details>
+                )}
+              </div>
+              <div className="broadcast-results-meta">
+                <span>
+                  {entries.length} {channels ? "sports channels" : "matches"}
+                  {category !== "All sports" ? ` · ${category}` : ""}
+                </span>
+                <span>{channels ? "Live sports networks" : zone}</span>
+              </div>
+            </>
+          )}
+        </>
+      )}
+      {replays ? (
+        <>
+          <WatchHub />
+          <BroadcastArchive />
+        </>
+      ) : (
+        <>
+          {loading && !feed.data.length && (
+            <p role="status">Loading broadcasts…</p>
+          )}
+          {feed.message && (
+            <p className="broadcast-notice" role="status">
+              {feed.message} <button onClick={retry}>Retry</button>
+            </p>
+          )}
+          {featured && visible.length > 0 && (
+            <div className="broadcast-section-heading">
+              <h2>Top games</h2>
             </div>
           )}
-          <div className="broadcast-filters">
-            <label>
-              Search broadcasts
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={
-                  channels
-                    ? "Find a sports channel…"
-                    : "Team, event or competition…"
-                }
-              />
-            </label>
-            <label>
-              Sport
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-              >
-                {[
-                  "All sports",
-                  ...new Set(
-                    feed.data
-                      .filter((b) => b.channel === channels)
-                      .map((b) => b.category),
-                  ),
-                ].map((c) => (
-                  <option key={c}>{c}</option>
-                ))}
-              </select>
-            </label>
-            {!channels && (
-              <details className="broadcast-more-filters">
-                <summary>More filters</summary>
-                <div className="broadcast-filter-popover">
-                  <label>
-                    Choose date
-                    <input
-                      type="date"
-                      value={chosenDate}
-                      onChange={(e) => setChosenDate(e.target.value)}
-                    />
-                  </label>
-                  <label>
-                    Order
-                    <select
-                      value={sort}
-                      onChange={(e) => setSort(e.target.value)}
-                    >
-                      <option>Recommended</option>
-                      <option>Kickoff time</option>
-                    </select>
-                  </label>
-                </div>
-              </details>
-            )}
-          </div>
-          <div className="broadcast-results-meta">
-            <span>
-              {entries.length} {channels ? "sports channels" : "matches"}
-              {category !== "All sports" ? ` · ${category}` : ""}
-            </span>
-            <span>{channels ? "Live sports networks" : zone}</span>
-          </div>
-        </>
-      )}
-      {loading && !feed.data.length && <p role="status">Loading broadcasts…</p>}
-      {feed.message && (
-        <p className="broadcast-notice" role="status">
-          {feed.message} <button onClick={retry}>Retry</button>
-        </p>
-      )}
-      {featured && visible.length > 0 && (
-        <div className="broadcast-section-heading">
-          <h2>Top games</h2>
-          <p>Major matchups first, then live action and kickoff time.</p>
-        </div>
-      )}
-      {!featured && entries.length > 0 && (
-        <div className="broadcast-section-heading">
-          <h2>{channels ? "Sports channels" : "Matches"}</h2>
-        </div>
-      )}
-      <div className="broadcast-grid">
-        {(featured ? visible.slice(0, 3) : visible).map(renderCard)}
-      </div>
-      {featured && visible.length > 3 && (
-        <>
-          <div className="broadcast-section-heading">
-            <h2>More matches</h2>
-          </div>
+          {!featured && entries.length > 0 && (
+            <div className="broadcast-section-heading">
+              <h2>{channels ? "Sports channels" : "Matches"}</h2>
+            </div>
+          )}
           <div className="broadcast-grid">
-            {visible.slice(3).map(renderCard)}
+            {(featured ? visible.slice(0, 3) : visible).map(renderCard)}
           </div>
+          {featured && visible.length > 3 && (
+            <>
+              <div className="broadcast-section-heading">
+                <h2>More matches</h2>
+              </div>
+              <div className="broadcast-grid">
+                {visible.slice(3).map(renderCard)}
+              </div>
+            </>
+          )}
+          {!loading && !entries.length && !feed.message && (
+            <div className="broadcast-empty">
+              <h2>
+                {channels
+                  ? "No sports channels match"
+                  : "No matches in this view"}
+              </h2>
+              <p>
+                {channels
+                  ? "Try another sport or search."
+                  : "Try another day, sport or All."}
+              </p>
+              <button
+                onClick={() => {
+                  setQuery("");
+                  setCategory("All sports");
+                  setChosenDate("");
+                  setRange("All");
+                }}
+              >
+                Reset filters
+              </button>
+            </div>
+          )}
+          {!preview && pageCount > 1 && (
+            <nav className="broadcast-pagination" aria-label="Broadcast pages">
+              <button
+                disabled={current === 1}
+                onClick={() => {
+                  setPage(current - 1);
+                  document
+                    .querySelector(".broadcast-directory")
+                    ?.scrollIntoView({ block: "start" });
+                }}
+              >
+                Previous
+              </button>
+              <span>
+                Page {current} of {pageCount}
+              </span>
+              <button
+                disabled={current === pageCount}
+                onClick={() => {
+                  setPage(current + 1);
+                  document
+                    .querySelector(".broadcast-directory")
+                    ?.scrollIntoView({ block: "start" });
+                }}
+              >
+                Next
+              </button>
+            </nav>
+          )}
+          {!preview && (
+            <p className="broadcast-credit">
+              Schedule and viewer figures supplied by PPV. Playback availability
+              can change.{" "}
+              <a href="https://ppv.st/api" target="_blank" rel="noreferrer">
+                Integration information ↗
+              </a>
+            </p>
+          )}
         </>
-      )}
-      {!loading && !entries.length && !feed.message && (
-        <div className="broadcast-empty">
-          <h2>
-            {channels ? "No sports channels match" : "No matches in this view"}
-          </h2>
-          <p>
-            {channels
-              ? "Try another sport or search."
-              : "Try another day, sport or All upcoming."}
-          </p>
-          <button
-            onClick={() => {
-              setQuery("");
-              setCategory("All sports");
-              setChosenDate("");
-              setRange("All upcoming");
-            }}
-          >
-            Reset filters
-          </button>
-        </div>
-      )}
-      {!preview && pageCount > 1 && (
-        <nav className="broadcast-pagination" aria-label="Broadcast pages">
-          <button
-            disabled={current === 1}
-            onClick={() => {
-              setPage(current - 1);
-              document
-                .querySelector(".broadcast-directory")
-                ?.scrollIntoView({ block: "start" });
-            }}
-          >
-            Previous
-          </button>
-          <span>
-            Page {current} of {pageCount}
-          </span>
-          <button
-            disabled={current === pageCount}
-            onClick={() => {
-              setPage(current + 1);
-              document
-                .querySelector(".broadcast-directory")
-                ?.scrollIntoView({ block: "start" });
-            }}
-          >
-            Next
-          </button>
-        </nav>
-      )}
-      {!preview && (
-        <p className="broadcast-credit">
-          Schedule and viewer figures supplied by PPV. Playback availability can
-          change.{" "}
-          <a href="https://ppv.st/api" target="_blank" rel="noreferrer">
-            Integration information ↗
-          </a>
-        </p>
       )}
     </section>
   );
@@ -579,6 +613,7 @@ export function BroadcastPlayer({
           <Maximize2 size={16} />
         </button>
       </div>
+      {!playing && <PlaybackAdNotice />}
       {slow && !loaded && playing && (
         <p role="status" className="broadcast-status">
           Still connecting. Try another stream or reload.
@@ -592,6 +627,20 @@ export function BroadcastViewing({ id }: { id: string }) {
   const item = feed.data.find((b) => b.id === id);
   const [theatre, setTheatre] = useState(false);
   const [shared, setShared] = useState(false);
+  const { event, checking } = useBroadcastMatch(item);
+  const [mode, setMode] = useState("stream");
+  useEffect(() => setMode("stream"), [id]);
+  const [wide, setWide] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(min-width:1001px)");
+    const read = () => setWide(media.matches);
+    read();
+    media.addEventListener("change", read);
+    return () => media.removeEventListener("change", read);
+  }, []);
+  const mainTracker = Boolean(
+    event && (mode === "tracker" || !item?.sources.length),
+  );
   if (!item)
     return (
       <section className="panel">
@@ -638,7 +687,44 @@ export function BroadcastViewing({ id }: { id: string }) {
       </header>
       <div className="broadcast-view-layout">
         <div>
-          <BroadcastPlayer item={item} />
+          {event && (
+            <div
+              className="view-mode-selector"
+              role="group"
+              aria-label="Viewing mode"
+            >
+              <button
+                aria-pressed={!mainTracker}
+                onClick={() => setMode("stream")}
+                disabled={!item.sources.length}
+              >
+                Stream
+              </button>
+              <button
+                aria-pressed={mainTracker}
+                onClick={() => setMode("tracker")}
+              >
+                Match tracker
+              </button>
+            </div>
+          )}
+          {mainTracker && event ? (
+            <LiveTracker event={event} />
+          ) : (
+            <BroadcastPlayer item={item} />
+          )}
+          {event && !mainTracker && (!wide || theatre) && (
+            <div className="broadcast-match-tracker">
+              <LiveTracker event={event} compact />
+            </div>
+          )}
+          {!item.channel && !event && (
+            <p className="broadcast-tracker-status">
+              {checking
+                ? "Checking match updates…"
+                : "Live match tracking is not available for this broadcast yet."}
+            </p>
+          )}
           {item.viewers !== null && (
             <p className="broadcast-viewers">
               {new Intl.NumberFormat().format(item.viewers)} watching across PPV
@@ -659,6 +745,11 @@ export function BroadcastViewing({ id }: { id: string }) {
           </details>
         </div>
         <aside>
+          {event && !mainTracker && wide && !theatre && (
+            <div className="broadcast-match-tracker">
+              <LiveTracker event={event} compact />
+            </div>
+          )}
           <h2>More to watch</h2>
           {feed.data
             .filter((b) => b.id !== id && b.category === item.category)

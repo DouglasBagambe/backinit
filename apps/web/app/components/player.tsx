@@ -1,5 +1,6 @@
 "use client";
 import { PlayerBrand } from "./player-brand";
+import { PlaybackAdNotice } from "./advertising";
 import { BrandLoading } from "./brand";
 import { Play } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -392,6 +393,7 @@ export function Player({
       <div className="player-brand-rim">
         <PlayerBrand />
       </div>
+      <PlaybackAdNotice />
       <div className="player-screen" ref={screen}>
         {started && source ? (
           source.type === "embed" ? (

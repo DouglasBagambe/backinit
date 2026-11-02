@@ -1,4 +1,5 @@
 "use client";
+import { SportsSponsoredBadge } from "./sports-sponsored-badge";
 import {
   BroadcastDirectory,
   BroadcastViewing,
@@ -528,6 +529,7 @@ export function Experience({
   return (
     <AdvertisingProvider enabled={real} nativeEnabled={nativeAdsEnabled}>
       <GlobalAdvertising page={route} />
+      <SportsSponsoredBadge page={route} />
       <a className="skip" href="#main">
         Skip to content
       </a>
@@ -788,18 +790,25 @@ export function Experience({
               )}
               {route === "watch" ? (
                 <>
-                  {!hasBroadcasts && (
-                    <div className="watch-mode-links">
-                      <Link href="/broadcasts">Broadcasts & channels</Link>
-                      <Link href="/multiview">Multiview</Link>
-                      <Link href="/videos">Replays & highlights</Link>
-                    </div>
-                  )}
+                  {!hasBroadcasts &&
+                    !["channels", "replays"].includes(
+                      searchParams.get("view") || "",
+                    ) && (
+                      <div className="watch-mode-links">
+                        <Link href="/broadcasts">Broadcasts & channels</Link>
+                        <Link href="/multiview">Multiview</Link>
+                        <Link href="/watch?view=replays">
+                          Replays & highlights
+                        </Link>
+                      </div>
+                    )}
                   <BroadcastDirectory
                     primary
                     onAvailability={setHasBroadcasts}
                   />
-                  {searchParams.get("view") !== "channels" && (
+                  {!["channels", "replays"].includes(
+                    searchParams.get("view") || "",
+                  ) && (
                     <LiveWatch weekend={real} supplemental={hasBroadcasts} />
                   )}
                 </>

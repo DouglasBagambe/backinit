@@ -203,3 +203,10 @@ function NativeAdvertising() {
     </aside>
   );
 }
+
+export function PlaybackAdNotice() {
+  const { enabled, nativeEnabled, preference } = useAdvertising();
+  return enabled && nativeEnabled && preference === "accepted" ? (
+    <p className="playback-ad-notice">Play may open a sponsored tab.</p>
+  ) : null;
+}

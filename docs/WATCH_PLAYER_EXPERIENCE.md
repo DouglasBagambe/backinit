@@ -1,0 +1,15 @@
+# Watch tabs, tracking and player advertising
+
+Watch uses a prominent segmented section selector. Matches, Sports channels and Replays & highlights stay on `/watch`, using `view=channels` or `view=replays`; changing sections unmounts the previous player. `/videos` remains compatible with existing links.
+
+Match date shortcuts are ordered All, Live now, Today, Next 48 hours, Tomorrow and This week. Today is the default and includes live and upcoming fixtures whose kickoff falls on today's date in the saved viewing timezone. Live now includes only ongoing scheduled broadcasts, including those that started yesterday. All includes current and upcoming matches. This week ends on the local calendar Sunday; the rolling 48-hour view includes live games and upcoming kickoffs. Recommended ordering still elevates marquee matchups, while More filters exposes custom date and kickoff ordering. The explanatory priority sentence was removed from the page.
+
+The API pairs a PPV broadcast with reported fixture data only when sport, both participants and kickoff match unambiguously. Channels are not single matches. A matched fixture gets the existing real tracker beside the video on desktop and below it on mobile/theatre view. Match tracker can be selected as the main view, and becomes the main view when no stream source exists. The fixture refreshes independently every 30 seconds. Errors retain an explicitly stale score snapshot; they do not invent motion or attach a different event.
+
+Animation coverage remains dependent on the existing tracker providers. When no verified animation is available, the real score/event tracker remains the fallback. An unmatched broadcast states that tracking is unavailable; continuous sports channels do not pretend to have a specific match tracker. Universal ball/player-position data is not available from the catalogue.
+
+Player pages preload the original approved Adsterra popunder tag after advertising-cookie permission, preserving the existing once-per-24-hour tag cap. The network controls popup serving on actual interactions; the app neither fabricates ad clicks nor redirects the main viewing tab. Discovery pages use the existing Social Bar instead of consuming the player popup cap. A short Play notice explains that a sponsored tab may open. Native/display placements continue to be independent.
+
+A small football-shaped publisher creative links voluntarily to the existing approved Smartlink. It is labelled Sponsored, dismissible, desktop-only, hidden during fullscreen, and capped to once per six hours. It does not cover the main player's controls and respects reduced motion. Adsterra's [Direct Link guide](https://adsterra.com/blog/guide-for-working-with-direct-links/) explicitly permits publisher-made banners/popups attached to a Smartlink.
+
+The existing approved HilltopAds video slider remains on Home. This release does not invent a VAST/preroll endpoint or lock video behind a click on an ordinary ad. A real preroll requires an account-issued format/tag supporting that integration.

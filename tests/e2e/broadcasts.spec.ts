@@ -1,3 +1,4 @@
+import { verifiedCupFixtures } from "../../apps/api/src/providers/efl";
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 const now = Date.now();
@@ -259,6 +260,12 @@ test("Watch separates sports channels, recognizes marquee games and keeps discov
     }),
   );
   await page.goto("/watch");
+  await expect(
+    page.getByRole("button", { name: "Today", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await page
+    .getByRole("button", { name: "Next 48 hours", exact: true })
+    .click();
   await expect(page.locator(".broadcast-card")).toHaveCount(12);
   await expect(page.locator(".broadcast-card h3").first()).toHaveText(
     "Chelsea vs Manchester United",
@@ -294,6 +301,156 @@ test("Watch separates sports channels, recognizes marquee games and keeps discov
   await expect(page.locator(".broadcast-card h3")).toHaveText("NFL Network");
   await expect(page.getByRole("group", { name: "Match dates" })).toHaveCount(0);
   await page.setViewportSize({ width: 360, height: 800 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("Watch date order is exact, Today excludes yesterday and replays stay inside Watch", async ({
+  page,
+}) => {
+  await page.addInitScript(() =>
+    localStorage.setItem("backinit-timezone", "UTC"),
+  );
+  await page.clock.setFixedTime(new Date("2026-11-02T12:00:00Z"));
+  const base = items[0]!;
+  const data = [
+    {
+      ...base,
+      id: "ppv-300",
+      title: "Today's live",
+      start: Date.parse("2026-11-02T11:00:00Z"),
+      end: Date.parse("2026-11-02T14:00:00Z"),
+    },
+    {
+      ...base,
+      id: "ppv-301",
+      title: "Today's upcoming",
+      start: Date.parse("2026-11-02T18:00:00Z"),
+      end: Date.parse("2026-11-02T20:00:00Z"),
+    },
+    {
+      ...base,
+      id: "ppv-302",
+      title: "Yesterday's ongoing",
+      start: Date.parse("2026-11-01T23:00:00Z"),
+      end: Date.parse("2026-11-02T14:00:00Z"),
+    },
+  ];
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({
+      json: { data, updatedAt: new Date().toISOString(), stale: false },
+    }),
+  );
+  await page.route("**/api/videos", (r) => r.fulfill({ json: { data: [] } }));
+  await page.goto("/watch");
+  const dates = page.getByRole("group", { name: "Match dates" });
+  await expect(dates.getByRole("button")).toHaveText([
+    "All",
+    "Live now",
+    "Today",
+    "Next 48 hours",
+    "Tomorrow",
+    "This week",
+  ]);
+  await expect(page.locator(".broadcast-card")).toHaveCount(2);
+  await expect(
+    page.getByRole("button", { name: "Today", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await dates.getByRole("button", { name: "Live now", exact: true }).click();
+  await expect(page.locator(".broadcast-card")).toHaveCount(2);
+  await expect(
+    page.locator(".broadcast-card").filter({ hasText: "Today's upcoming" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByText("Major matchups first, then live action and kickoff time."),
+  ).toHaveCount(0);
+  await page
+    .getByRole("navigation", { name: "Watch sections" })
+    .getByRole("link", { name: "Replays & highlights", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/watch\?view=replays$/);
+  await expect(
+    page.getByRole("heading", { name: "Browse videos", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("navigation", { name: "Watch sections" }),
+  ).toBeVisible();
+  await expect(
+    page.locator(".broadcast-card[href^='/watch/ppv-']"),
+  ).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Match dates" })).toHaveCount(0);
+});
+test("a matched real fixture shows one compact tracker beside or below the stream, and can become the main view", async ({
+  page,
+}) => {
+  const event = {
+    ...verifiedCupFixtures[0]!,
+    kind: "score",
+    id: "ci-broadcast-football",
+    home: "Chelsea",
+    away: "Manchester United",
+    status: "live",
+    scheduleOnly: false,
+    start: new Date(now - 3600000).toISOString(),
+    end: new Date(now + 3600000).toISOString(),
+    homeScore: 1,
+    awayScore: 0,
+    provenance: "provider",
+    source: {
+      provider: "CI",
+      url: "https://example.test",
+      license: "CI fixture",
+      fetchedAt: new Date(now).toISOString(),
+      stale: false,
+    },
+  };
+  await page.route("**/api/broadcasts/*/event", (r) =>
+    r.fulfill({ json: { data: event } }),
+  );
+  await page.route("**/api/events/ci-broadcast-football", (r) =>
+    r.fulfill({ json: { data: event } }),
+  );
+  await page.route("**/api/trackers/ci-broadcast-football", (r) =>
+    r.fulfill({ json: { data: null } }),
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/watch/ppv-2");
+  await expect(
+    page.locator(".broadcast-view-layout > aside .broadcast-match-tracker"),
+  ).toBeVisible();
+  await expect(page.locator(".broadcast-match-tracker")).toHaveCount(1);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await expect(
+    page.locator(".broadcast-view-layout > div .broadcast-match-tracker"),
+  ).toBeVisible();
+  await page
+    .getByRole("group", { name: "Viewing mode" })
+    .getByRole("button", { name: "Match tracker", exact: true })
+    .click();
+  await expect(page.locator(".broadcast-player")).toHaveCount(0);
+  await expect(page.getByLabel("Match tracker", { exact: true })).toBeVisible();
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({
+      json: {
+        data: items.map((item) =>
+          item.id === "ppv-2" ? { ...item, sources: [] } : item,
+        ),
+        updatedAt: new Date().toISOString(),
+        stale: false,
+      },
+    }),
+  );
+  await page.reload();
+  await expect(page.getByLabel("Match tracker", { exact: true })).toBeVisible();
+  await expect(page.locator(".broadcast-player")).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("group", { name: "Viewing mode" })
+      .getByRole("button", { name: "Stream", exact: true }),
+  ).toBeDisabled();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
