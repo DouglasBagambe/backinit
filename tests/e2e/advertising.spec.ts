@@ -300,12 +300,16 @@ test("resizing during an in-flight banner keeps the original configuration until
     .locator(".display-ad-leaderboard")
     .first()
     .scrollIntoViewIfNeeded();
-  await expect.poll(() => requests.length).toBe(1);
+  await expect
+    .poll(() => requests.includes("208c83c78501d240404891d74ed085e2"))
+    .toBe(true);
+  // The footer choice can bring the sidebar into view before the header.
+  const requestsBeforeResize = requests.length;
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
     page.locator(".display-ad-leaderboard .ad-display > div").first(),
   ).toHaveCSS("width", "320px");
-  expect(requests).toHaveLength(1);
+  expect(requests).toHaveLength(requestsBeforeResize);
   release();
   await expect(
     page
