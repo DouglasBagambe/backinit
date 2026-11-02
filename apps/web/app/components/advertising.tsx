@@ -117,7 +117,7 @@ export function AdPreferences({
             </p>
           </div>
           <div className="ad-consent-actions">
-            <button onClick={() => choose("accepted")}>Essential only</button>
+            <button onClick={() => choose("declined")}>Essential only</button>
             <button onClick={() => choose("accepted")}>Accept all</button>
           </div>
         </dialog>
