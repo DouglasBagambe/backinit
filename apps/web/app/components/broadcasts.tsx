@@ -401,8 +401,10 @@ export function BroadcastViewing({ id }: { id: string }) {
       <section className="panel">
         <h1>{loading ? "Loading broadcast…" : "Broadcast unavailable"}</h1>
         <p>
-          {feed.message ||
-            "This event is no longer in the provider’s catalogue."}
+          {loading
+            ? "Fetching broadcast details…"
+            : feed.message ||
+              "This event is no longer in the provider’s catalogue."}
         </p>
         <button onClick={retry}>Retry</button>{" "}
         <Link href="/broadcasts">Browse broadcasts</Link>
@@ -497,7 +499,7 @@ export function Multiview() {
   useEffect(() => {
     const values = (params.get("streams") || "")
       .split(",")
-      .filter((id) => /^ppv-\d+$/.test(id))
+      .map((id) => (/^ppv-\d+$/.test(id) ? id : ""))
       .slice(0, 4);
     setIds(values);
     const n = Number(params.get("n"));

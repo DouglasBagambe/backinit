@@ -139,6 +139,27 @@ test("multiview adds, focuses, removes and restores independent streams on mobil
       (v) => v.impact === "serious" || v.impact === "critical",
     ),
   ).toEqual([]);
+  await page.goto("/multiview?n=3&streams=ppv-1,,ppv-3");
+  await expect(
+    page.locator(".multiview-tile").nth(2).getByRole("heading"),
+  ).toHaveText("Match 3");
+  await expect(
+    page
+      .locator(".multiview-tile")
+      .nth(1)
+      .getByRole("button", { name: "Add stream", exact: true }),
+  ).toBeVisible();
+  await page
+    .locator(".multiview-tile")
+    .nth(1)
+    .getByRole("button", { name: "Add stream", exact: true })
+    .click();
+  const chooserAudit = await new AxeBuilder({ page }).analyze();
+  expect(
+    chooserAudit.violations.filter(
+      (v) => v.impact === "serious" || v.impact === "critical",
+    ),
+  ).toEqual([]);
 });
 test("failed catalogue shows recovery, and archives are sports replays rather than invented highlights", async ({
   page,
