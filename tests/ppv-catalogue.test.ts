@@ -111,7 +111,7 @@ it("returns explicit no-data state and backs off after first upstream failure", 
 });
 
 it("retains channels in every sport when provider uses negative placeholder timestamps", () => {
-  const categories = ["Australian Football", "Cricket", "Rugby", "New sport"];
+  const categories = ["Australian Football", "Cricket", "Rugby", "Tennis"];
   const result = parsePpv({
     success: true,
     streams: categories.map((category, i) => ({
@@ -134,4 +134,37 @@ it("retains channels in every sport when provider uses negative placeholder time
         x.channel && x.start === 0 && x.end === 0 && x.sources.length === 2,
     ),
   ).toBe(true);
+});
+
+it("excludes entertainment while retaining sports channels from the mixed directory", () => {
+  const names = [
+    "24/7 COWS",
+    "24/7 SpongeBob Squarepants",
+    "24/7 South Park",
+    "24/7 Family Guy",
+    "24/7 The Simpsons",
+    "Rally TV",
+    "Sky Sports Racing",
+    "Unknown channel",
+  ];
+  const result = parsePpv({
+    success: true,
+    streams: [
+      {
+        category: "24/7 Streams",
+        streams: names.map((name, i) => ({
+          ...raw.streams[0]!.streams[0],
+          id: i + 30,
+          name,
+          always_live: 1,
+        })),
+      },
+      {
+        category: "Movies",
+        streams: [{ ...raw.streams[0]!.streams[0], id: 50 }],
+      },
+    ],
+  });
+  expect(result.map((x) => x.title)).toEqual(["Rally TV", "Sky Sports Racing"]);
+  expect(result.map((x) => x.category)).toEqual(["Motorsport", "Horse Racing"]);
 });

@@ -788,16 +788,20 @@ export function Experience({
               )}
               {route === "watch" ? (
                 <>
-                  <div className="watch-mode-links">
-                    <Link href="/broadcasts">Broadcasts & channels</Link>
-                    <Link href="/multiview">Multiview</Link>
-                    <Link href="/videos">Replays & highlights</Link>
-                  </div>
+                  {!hasBroadcasts && (
+                    <div className="watch-mode-links">
+                      <Link href="/broadcasts">Broadcasts & channels</Link>
+                      <Link href="/multiview">Multiview</Link>
+                      <Link href="/videos">Replays & highlights</Link>
+                    </div>
+                  )}
                   <BroadcastDirectory
                     primary
                     onAvailability={setHasBroadcasts}
                   />
-                  <LiveWatch weekend={real} supplemental={hasBroadcasts} />
+                  {searchParams.get("view") !== "channels" && (
+                    <LiveWatch weekend={real} supplemental={hasBroadcasts} />
+                  )}
                 </>
               ) : route === "videos" ? (
                 <>

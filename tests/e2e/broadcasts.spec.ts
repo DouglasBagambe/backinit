@@ -49,7 +49,7 @@ test("all upcoming broadcasts are searchable, open source choices and preserve p
   await expect(
     page.getByRole("heading", { name: "Broadcasts", exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".broadcast-card")).toHaveCount(6);
+  await expect(page.locator(".broadcast-card")).toHaveCount(5);
   await page
     .getByRole("textbox", { name: "Search broadcasts" })
     .fill("Match 2");
@@ -213,4 +213,85 @@ test("Watch presents imported upcoming games first instead of a contradictory em
     .getByRole("textbox", { name: "Search broadcasts" })
     .fill("Match 2");
   await expect(page.locator(".broadcast-card")).toHaveCount(1);
+});
+
+test("Watch separates sports channels, recognizes marquee games and keeps discovery paginated", async ({
+  page,
+}) => {
+  await page.clock.setFixedTime(new Date(now));
+  const regular = Array.from({ length: 15 }, (_, i) => ({
+    ...items[0]!,
+    id: `ppv-${100 + i}`,
+    title: `Ordinary match ${i + 1}`,
+    channel: false,
+  }));
+  const marquee = {
+    ...items[0]!,
+    id: "ppv-200",
+    title: "Chelsea vs Manchester United",
+    competition: "Premier League",
+    start: now + 24 * 3600000,
+    end: now + 26 * 3600000,
+  };
+  const live = {
+    ...items[0]!,
+    id: "ppv-201",
+    title: "Ordinary live game",
+    start: now - 3600000,
+    end: now + 3600000,
+  };
+  const channel = {
+    ...items[0]!,
+    id: "ppv-202",
+    title: "NFL Network",
+    category: "American Football",
+    channel: true,
+    start: 0,
+    end: 0,
+  };
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({
+      json: {
+        data: [...regular, live, marquee, channel],
+        updatedAt: new Date(now).toISOString(),
+        stale: false,
+      },
+    }),
+  );
+  await page.goto("/watch");
+  await expect(page.locator(".broadcast-card")).toHaveCount(12);
+  await expect(page.locator(".broadcast-card h3").first()).toHaveText(
+    "Chelsea vs Manchester United",
+  );
+  await expect(
+    page
+      .locator(".broadcast-card")
+      .first()
+      .getByText("Big match", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "NFL Network", exact: true }),
+  ).toHaveCount(0);
+  const pages = page.getByRole("navigation", { name: "Broadcast pages" });
+  await pages.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(pages).toContainText("Page 2 of 2");
+  await expect(page.locator(".broadcast-card")).toHaveCount(5);
+  await page.getByRole("button", { name: "Tomorrow", exact: true }).click();
+  await expect(page.locator(".broadcast-card")).toHaveCount(1);
+  await expect(page.locator(".broadcast-card h3")).toHaveText(
+    "Chelsea vs Manchester United",
+  );
+  await page
+    .getByRole("navigation", { name: "Watch sections" })
+    .getByRole("link", { name: "Sports channels", exact: true })
+    .click();
+  await expect(page.locator(".broadcast-card")).toHaveCount(1);
+  await expect(page.locator(".broadcast-card h3")).toHaveText("NFL Network");
+  await expect(page.getByRole("group", { name: "Match dates" })).toHaveCount(0);
+  await page.setViewportSize({ width: 360, height: 800 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });

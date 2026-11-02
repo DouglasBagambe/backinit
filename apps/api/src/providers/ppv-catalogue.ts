@@ -52,6 +52,71 @@ export function ppvEmbed(value: string | undefined): string | null {
     return null;
   }
 }
+// Only sports categories are admitted. Mixed entertainment directories need
+// individually identified sports channels; unknown mixed feeds stay excluded.
+const sports = new Map(
+  [
+    "American Football",
+    "Australian Football",
+    "Basketball",
+    "Baseball",
+    "Football",
+    "Cricket",
+    "Golf",
+    "Ice Hockey",
+    "Rugby",
+    "Wrestling",
+    "Tennis",
+    "Badminton",
+    "Volleyball",
+    "Beach Volleyball",
+    "Handball",
+    "Table Tennis",
+    "MMA",
+    "Boxing",
+    "Motorsport",
+    "Motorsports",
+    "Formula 1",
+    "Cycling",
+    "Athletics",
+    "Swimming",
+    "Snooker",
+    "Darts",
+    "Horse Racing",
+    "Field Hockey",
+    "Netball",
+    "Futsal",
+    "Lacrosse",
+    "Water Polo",
+    "Gymnastics",
+    "Winter Sports",
+    "Esports",
+    "AFL",
+  ].map((name) => [name.toLowerCase(), name]),
+);
+const mixedSportsChannels: Record<string, string> = {
+  "rally tv": "Motorsport",
+  "sky sports racing": "Horse Racing",
+  espn: "Sports",
+  "espn 2": "Sports",
+  "sky sports main event": "Sports",
+  "tnt sports": "Sports",
+  "fox sports": "Sports",
+};
+export function ppvSport(category: string, name: string): string | null {
+  const kind = category.trim().toLowerCase();
+  return (
+    sports.get(kind) ||
+    (["24/7 streams", "channels", "24/7 channels"].includes(kind)
+      ? mixedSportsChannels[
+          name
+            .replace(/^24\/7\s+/i, "")
+            .trim()
+            .toLowerCase()
+        ] || null
+      : null)
+  );
+}
 export function parsePpv(raw: unknown): Broadcast[] {
   const body = response.parse(raw);
   const unique = new Map<string, Broadcast>();
@@ -60,6 +125,8 @@ export function parsePpv(raw: unknown): Broadcast[] {
       const parsed = entry.safeParse(candidate);
       if (!parsed.success) continue;
       const s = parsed.data;
+      const sport = ppvSport(category.category, s.name);
+      if (!sport) continue;
       const sources = [
         {
           id: String(s.id),
@@ -88,8 +155,8 @@ export function parsePpv(raw: unknown): Broadcast[] {
       unique.set(id, {
         id,
         title: s.name,
-        category: category.category,
-        competition: s.tag || category.category,
+        category: sport,
+        competition: s.tag || sport,
         poster,
         start: s.always_live === 1 ? 0 : s.starts_at * 1000,
         end: s.always_live === 1 ? 0 : s.ends_at * 1000,
