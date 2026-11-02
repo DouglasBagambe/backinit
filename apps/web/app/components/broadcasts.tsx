@@ -162,6 +162,13 @@ export function BroadcastDirectory({
             broadcastState(b, now || Date.now()) === "Upcoming")),
     )
     .sort((a, b) => Number(b.channel) - Number(a.channel) || a.start - b.start);
+  if (primary && !feed.data.length) {
+    return feed.message ? (
+      <p className="broadcast-notice" role="status">
+        {feed.message} <button onClick={retry}>Retry</button>
+      </p>
+    ) : null;
+  }
   return (
     <section className="broadcast-directory" aria-label="Broadcast catalogue">
       <div className="section-heading">

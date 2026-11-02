@@ -19,7 +19,7 @@ export class BroadcastController implements OnModuleInit, OnModuleDestroy {
   }
   @Get("broadcasts") feed() {
     if (process.env.SPORTS_PROVIDERS_DISABLED === "true")
-      return { data: [], updatedAt: null, stale: false };
+      return { data: [], updatedAt: new Date().toISOString(), stale: false };
     return ppvCatalogue.feed();
   }
 }
