@@ -216,7 +216,7 @@ export function LiveWatch({
               </button>
             ))}
           </div>
-          <Link className="archive-link" href="/videos">
+          <Link className="archive-link" href="/watch?view=replays">
             Highlights <ChevronRight size={14} />
           </Link>
         </div>

@@ -24,7 +24,12 @@ const publicPages = new Set([
   "scores",
   "news",
   "videos",
+  "broadcasts",
+  "multiview",
 ]);
+
+const publicPage = (page: string) =>
+  publicPages.has(page) || /^watch\/[a-z0-9-]+$/.test(page);
 
 /** Only original account-issued tags. Loading limits are separate from the
  * network's creative/impression caps; never simulate an ad click or open. */
@@ -33,7 +38,7 @@ export function GlobalAdvertising({ page }: { page: string }) {
   const allowed = enabled && nativeEnabled && preference === "accepted";
   useEffect(() => {
     if (!externalLoaded) return;
-    if (!allowed || !publicPages.has(page)) location.reload();
+    if (!allowed || !publicPage(page)) location.reload();
   }, [allowed, page]);
   useEffect(() => {
     const navigation = (event: MouseEvent) => {
@@ -68,9 +73,9 @@ export function GlobalAdvertising({ page }: { page: string }) {
     return () => document.removeEventListener("click", navigation, true);
   }, []);
   useEffect(() => {
-    if (!allowed || !publicPages.has(page) || externalLoaded) return;
+    if (!allowed || !publicPage(page) || externalLoaded) return;
     const video = page === "";
-    const pop = page === "watch";
+    const pop = /^watch\/[a-z0-9-]+$/.test(page) || page === "multiview";
     const key = video
       ? "backinit-video-tag-v1"
       : pop
@@ -123,7 +128,7 @@ export function GlobalAdvertising({ page }: { page: string }) {
           script.previousElementSibling.onerror = script.onerror;
         }
       },
-      video ? 20000 : pop ? 30000 : 15000,
+      video ? 20000 : pop ? 0 : 15000,
     );
     return () => {
       clearTimeout(timer);

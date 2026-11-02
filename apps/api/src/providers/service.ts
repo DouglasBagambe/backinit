@@ -35,6 +35,27 @@ export class SportsService {
   broadcastSources(event: SportEvent) {
     return this.broadcasts.flatMap((p) => p.sourcesFor(event));
   }
+  async broadcastScoreboard(sport: string, date: string) {
+    if (process.env.SPORTS_PROVIDERS_DISABLED === "true") return [];
+    const previous = new Date(`${date}T12:00:00Z`);
+    previous.setUTCDate(previous.getUTCDate() - 1);
+    const dates = [date, previous.toISOString().slice(0, 10)];
+    // US evening games can be the following UTC day. Query the two scoreboard
+    // dates for this sport, rather than waiting for every sport/video provider.
+    const leagues = espnLeagues.filter(
+      (league) => league.sport.toLowerCase() === sport.toLowerCase(),
+    );
+    const results = await Promise.allSettled(
+      dates.flatMap((day) =>
+        leagues.map((league) => this.espn.events(league, day)),
+      ),
+    );
+    const unique = new Map<string, SportEvent>();
+    for (const result of results)
+      if (result.status === "fulfilled")
+        for (const event of result.value.value) unique.set(event.id, event);
+    return [...unique.values()];
+  }
   private known = new Map<string, SportEvent>();
   private snapshots = new Map<string, { value: EventFeed; at: number }>();
   private feedRequests = new Map<string, Promise<EventFeed>>();
