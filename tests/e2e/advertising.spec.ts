@@ -266,6 +266,10 @@ test("player popunder and sports offer are consent-gated, capped, dismissible an
     }),
   );
   await page.goto("/watch/ppv-9001");
+  // Finish the fixture request before advancing its abort deadline.
+  await expect(
+    page.getByRole("button", { name: "Play NFL Network", exact: true }),
+  ).toBeVisible();
   await page.clock.fastForward(31000);
   expect(tags).toEqual([]);
   await page
