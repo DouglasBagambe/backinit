@@ -76,6 +76,12 @@ export function AdPreferences({
 }) {
   const { enabled, nativeEnabled, preference, choose } =
     useContext(Advertising);
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (enabled && nativeEnabled && !preference && !controlsOnly)
+      dialog.current?.showModal();
+    else dialog.current?.close();
+  }, [enabled, nativeEnabled, preference, controlsOnly]);
   if (
     !enabled ||
     !nativeEnabled ||
@@ -90,22 +96,31 @@ export function AdPreferences({
           Cookie settings
         </button>
       ) : (
-        <section className="ad-consent" aria-label="Cookie preferences">
+        <dialog
+          ref={dialog}
+          className="ad-consent"
+          aria-label="Cookie preferences"
+          onCancel={(event) => event.preventDefault()}
+        >
           <div>
-            <strong>Advertising cookies</strong>
+            <span className="eyebrow">YOUR PRIVACY</span>
+            <h2>Your choice, before kickoff.</h2>
             <p>
-              Allow Adsterra, HilltopAds and their advertising partners to use
-              cookies and device information to show and measure ads. Your
-              choice won’t affect playback. Ads may include banners, native
-              offers, skippable video, dismissible overlays and occasional
-              sponsored tabs after a click. <Link href="/privacy">Privacy</Link>
+              Advertising helps keep BackInIt free. Accept all to allow
+              Adsterra, HilltopAds and their partners to use cookies and device
+              information to show and measure ads. Essential only keeps
+              advertising tracking off. Both choices let you watch. You can
+              change this in Settings.{" "}
+              <Link href="/privacy" target="_blank">
+                Privacy policy ↗
+              </Link>
             </p>
           </div>
           <div className="ad-consent-actions">
             <button onClick={() => choose("declined")}>Essential only</button>
-            <button onClick={() => choose("accepted")}>Accept cookies</button>
+            <button onClick={() => choose("accepted")}>Accept all</button>
           </div>
-        </section>
+        </dialog>
       )}
     </div>
   );

@@ -72,7 +72,7 @@ export function Privacy({
               favourites.
             </p>
             <p>
-              Cookie settings at the bottom of the page let you accept
+              The first-visit cookie dialog and Cookie settings let you accept
               advertising cookies or use essential cookies only. Changing this
               choice after interactive advertising has loaded reloads the page
               to clear its handlers. It does not erase data already received by

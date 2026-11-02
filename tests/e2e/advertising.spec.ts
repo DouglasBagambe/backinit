@@ -3,6 +3,10 @@ import AxeBuilder from "@axe-core/playwright";
 
 // All video-zone requests are intercepted, including tests that do not use video.
 test.beforeEach(async ({ page }) => {
+  await page.goto("/privacy");
+  await page.evaluate(() =>
+    localStorage.removeItem("backinit-ad-preference-v3"),
+  );
   await page.route(/https?:\/\/juvenilechoice\.com\//, (route) =>
     route.fulfill({ contentType: "text/javascript", body: "" }),
   );
@@ -29,7 +33,7 @@ test("native advertising uses the original direct tag once, only after consent, 
   });
   await page.goto("/news");
   await expect(
-    page.getByRole("region", { name: "Cookie preferences" }),
+    page.getByRole("dialog", { name: "Cookie preferences" }),
   ).toBeVisible();
   expect(requests).toHaveLength(0);
   const sponsor = page.getByRole("link", { name: "Sponsored offers" });
@@ -50,9 +54,7 @@ test("native advertising uses the original direct tag once, only after consent, 
   await page
     .getByRole("button", { name: "Cookie settings", exact: true })
     .click();
-  await page
-    .getByRole("button", { name: "Accept cookies", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Accept all", exact: true }).click();
   const slot = page.locator(".ad-slot-banner");
   await slot.scrollIntoViewIfNeeded();
   await expect(
@@ -105,9 +107,7 @@ test("empty native responses leave no blank ad space or account-page ad", async 
     route.fulfill({ contentType: "text/javascript", body: "" }),
   );
   await page.goto("/news");
-  await page
-    .getByRole("button", { name: "Accept cookies", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Accept all", exact: true }).click();
   await page.locator(".ad-slot-banner").scrollIntoViewIfNeeded();
   await expect(page.locator(`#container-${key}`)).toHaveCount(1);
   await expect(page.locator(`#container-${key}`)).toHaveCount(0, {
@@ -143,11 +143,9 @@ test("Home and popular pages have fitting display ads, with no duplicate tag or 
     });
   });
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/");
+  await page.goto("/home");
   expect(requests).toHaveLength(0);
-  await page
-    .getByRole("button", { name: "Accept cookies", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Accept all", exact: true }).click();
   const top = page.locator(".display-ad-leaderboard").first();
   await top.scrollIntoViewIfNeeded();
   await expect(top.getByTitle("Display ad fixture")).toBeVisible();
@@ -193,7 +191,7 @@ test("Home and popular pages have fitting display ads, with no duplicate tag or 
     ).toBe(true);
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/home");
   await page
     .locator(".display-ad-leaderboard")
     .first()
@@ -272,9 +270,7 @@ test("player popunder and sports offer are consent-gated, capped, dismissible an
   ).toBeVisible();
   await page.clock.fastForward(31000);
   expect(tags).toEqual([]);
-  await page
-    .getByRole("button", { name: "Accept cookies", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Accept all", exact: true }).click();
   await page.clock.fastForward(1);
   await expect.poll(() => tags).toEqual(["popunder"]);
   await expect(
@@ -346,10 +342,8 @@ test("resizing during an in-flight banner keeps the original configuration until
     });
   });
   await page.setViewportSize({ width: 1280, height: 900 });
-  await page.goto("/");
-  await page
-    .getByRole("button", { name: "Accept cookies", exact: true })
-    .click();
+  await page.goto("/home");
+  await page.getByRole("button", { name: "Accept all", exact: true }).click();
   await page
     .locator(".display-ad-leaderboard")
     .first()
@@ -397,12 +391,10 @@ test("approved video slider loads only on Home after cookie permission, with a d
       body: "document.documentElement.dataset.videoAdFixture='loaded'",
     });
   });
-  await page.goto("/");
+  await page.goto("/home");
   await page.clock.fastForward(25000);
   expect(formats).toEqual([]);
-  await page
-    .getByRole("button", { name: "Accept cookies", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Accept all", exact: true }).click();
   await page.clock.fastForward(19000);
   expect(formats).toEqual([]);
   await page.clock.fastForward(2000);
@@ -421,7 +413,7 @@ test("approved video slider loads only on Home after cookie permission, with a d
     "data-video-ad-fixture",
     "loaded",
   );
-  await page.goto("/");
+  await page.goto("/home");
   await expect(
     page.getByRole("button", { name: "Cookie settings", exact: true }),
   ).toBeVisible();

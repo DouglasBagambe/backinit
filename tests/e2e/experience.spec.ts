@@ -4,7 +4,7 @@ const widths = [303, 320, 360, 390, 430, 768, 1024, 1440, 1920];
 for (const width of widths) {
   test(`responsive home and match at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 });
-    for (const path of ["/", "/match/north-london"]) {
+    for (const path of ["/home", "/match/north-london"]) {
       await page.goto(path);
       await expect(page.locator("main")).toBeVisible();
       await expect(
@@ -16,7 +16,7 @@ for (const width of widths) {
         ),
       ).toBe(true);
       await page.screenshot({
-        path: `artifacts/${path === "/" ? "home" : "match"}-${width}.png`,
+        path: `artifacts/${path === "/home" ? "home" : "match"}-${width}.png`,
         fullPage: true,
         animations: "disabled",
       });
@@ -94,7 +94,12 @@ test("core pages pass serious/critical accessibility checks in both themes", asy
   for (const theme of ["light", "dark"]) {
     await page.goto("/settings");
     await page.getByRole("button", { name: theme, exact: true }).click();
-    for (const path of ["/", "/match/north-london", "/watch", "/settings"]) {
+    for (const path of [
+      "/home",
+      "/match/north-london",
+      "/watch",
+      "/settings",
+    ]) {
       await page.goto(path);
       const result = await new AxeBuilder({ page }).analyze();
       expect(
@@ -174,7 +179,7 @@ test("unknown routes return 404 and all defined routes render", async ({
 test("mobile accessibility and keyboard match navigation", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const path of ["/", "/match/north-london"]) {
+  for (const path of ["/home", "/match/north-london"]) {
     await page.goto(path);
     const result = await new AxeBuilder({ page }).analyze();
     expect(

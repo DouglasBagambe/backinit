@@ -18,6 +18,18 @@ export default defineConfig({
   workers: 1,
   use: {
     baseURL: webOrigin,
+    // Most product checks use essential cookies; advertising tests exercise both choices.
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: webOrigin,
+          localStorage: [
+            { name: "backinit-ad-preference-v3", value: "declined" },
+          ],
+        },
+      ],
+    },
     browserName: process.env.E2E_BROWSER === "firefox" ? "firefox" : "chromium",
     trace: "retain-on-failure",
   },

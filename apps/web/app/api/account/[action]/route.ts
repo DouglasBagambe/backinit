@@ -34,6 +34,12 @@ async function handle(
     return new Response("Request too large", { status: 413 });
   try {
     const token = (await cookies()).get("backinit-session")?.value;
+    // Guests use device storage; don't wake the account service just to reject them.
+    if (!token && !["register", "login", "recover"].includes(action))
+      return NextResponse.json(
+        { message: "Sign in to continue." },
+        { status: 401, headers: { "Cache-Control": "no-store" } },
+      );
     const body = request.method === "GET" ? undefined : await request.text();
     if (body && body.length > 4096)
       return new Response("Request too large", { status: 413 });
