@@ -125,7 +125,11 @@ export class PpvCatalogue {
     // Stale-while-revalidate keeps catalogue outages out of navigation.
     if (this.snapshot) {
       void this.pending.catch(() => {});
-      return this.result();
+      // A normal background refresh is not an outage. Show a stale notice only
+      // after a failed attempt (retryAt above), or after a materially old snapshot.
+      return time - Date.parse(this.snapshot.updatedAt!) > 180000
+        ? this.result()
+        : this.snapshot;
     }
     return this.pending;
   }

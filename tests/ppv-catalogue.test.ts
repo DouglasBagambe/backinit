@@ -92,12 +92,13 @@ it("coalesces requests, respects one-minute cache and retains last catalogue wit
   time += 61000;
   fail = true;
   const stale = await cache.feed();
-  expect(stale.stale).toBe(true);
+  expect(stale.stale).toBe(false);
   expect(stale.data).toEqual(a.data);
   release();
-  await Promise.resolve();
-  await Promise.resolve();
-  expect((await cache.feed()).data).toEqual(a.data);
+  await new Promise((resolve) => setImmediate(resolve));
+  const failed = await cache.feed();
+  expect(failed.data).toEqual(a.data);
+  expect(failed.stale).toBe(true);
 });
 it("returns explicit no-data state and backs off after first upstream failure", async () => {
   const fetcher = vi.fn(

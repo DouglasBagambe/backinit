@@ -539,7 +539,6 @@ export function Experience({
         <nav className="desktop-nav" aria-label="Main navigation">
           {[
             ["watch", "Watch"],
-            ["multiview", "Multiview"],
             ["fixtures", "Fixtures"],
             ["live", "Live"],
             ["scores", "Scores"],
