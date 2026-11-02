@@ -213,7 +213,7 @@ test("Home and popular pages have fitting display ads, with no duplicate tag or 
   expect(errors).toEqual([]);
 });
 
-test("player popunder and sports offer are consent-gated, capped, dismissible and excluded from account pages", async ({
+test("player Play starts the embed without site popunders; optional sponsorship stays dismissible", async ({
   page,
   baseURL,
 }) => {
@@ -263,6 +263,9 @@ test("player popunder and sports offer are consent-gated, capped, dismissible an
       },
     }),
   );
+  await page.route("https://taifood-blog.asia/**", (r) =>
+    r.fulfill({ contentType: "text/html", body: "<p>Broadcast fixture</p>" }),
+  );
   await page.goto("/watch/ppv-9001");
   // Finish the fixture request before advancing its abort deadline.
   await expect(
@@ -272,10 +275,20 @@ test("player popunder and sports offer are consent-gated, capped, dismissible an
   expect(tags).toEqual([]);
   await page.getByRole("button", { name: "Accept all", exact: true }).click();
   await page.clock.fastForward(1);
-  await expect.poll(() => tags).toEqual(["popunder"]);
+  await page
+    .getByRole("button", { name: "Play NFL Network", exact: true })
+    .click();
+  await expect(page.locator(".broadcast-screen iframe")).toHaveAttribute(
+    "src",
+    "https://taifood-blog.asia/embed/nfl-network",
+  );
+  expect(tags).toEqual([]);
+  await expect(
+    page.locator("script[data-backinit-ad-format=popunder]"),
+  ).toHaveCount(0);
   await expect(
     page.getByText("Play may open a sponsored tab.", { exact: true }),
-  ).toBeVisible();
+  ).toHaveCount(0);
   await page.clock.fastForward(13000);
   const badge = page.locator(".sports-sponsored-badge");
   await expect(badge).toBeVisible();
@@ -286,13 +299,21 @@ test("player popunder and sports offer are consent-gated, capped, dismissible an
   await expect(badge).toHaveCount(0);
   await page.reload();
   await page.clock.fastForward(31000);
-  expect(tags).toEqual(["popunder"]);
+  expect(tags).toEqual([]);
+  for (const playbackPage of ["/multiview", "/videos", "/watch?view=replays"]) {
+    await page.goto(playbackPage);
+    await page.clock.fastForward(31000);
+    expect(tags).toEqual([]);
+    await expect(page.locator("script[data-backinit-ad-format]")).toHaveCount(
+      0,
+    );
+  }
   await page.goto("/news");
   await expect(
     page.getByRole("button", { name: "Cookie settings", exact: true }),
   ).toBeVisible();
   await page.clock.fastForward(16000);
-  await expect.poll(() => tags).toEqual(["popunder", "social"]);
+  await expect.poll(() => tags).toEqual(["social"]);
   await expect(page.locator("html")).toHaveAttribute(
     "data-interactive-ad-fixture",
     "loaded",
@@ -308,10 +329,10 @@ test("player popunder and sports offer are consent-gated, capped, dismissible an
     page.getByRole("button", { name: "Cookie settings", exact: true }),
   ).toBeVisible();
   await page.clock.fastForward(16000);
-  expect(tags).toEqual(["popunder", "social"]);
+  expect(tags).toEqual(["social"]);
   await page.goto("/profile");
   await page.clock.fastForward(31000);
-  expect(tags).toEqual(["popunder", "social"]);
+  expect(tags).toEqual(["social"]);
   await expect(page.locator("script[data-backinit-ad-format]")).toHaveCount(0);
 });
 

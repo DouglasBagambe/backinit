@@ -1,4 +1,5 @@
 "use client";
+import { publicData } from "../lib/public-data-client";
 import Link from "next/link";
 import { WeekendMatches } from "./weekend-matches";
 import { EventSkeleton } from "./brand";
@@ -96,14 +97,13 @@ export function LiveWatch({
       const deadline = new AbortController();
       const timeout = setTimeout(() => deadline.abort(), 20000);
       try {
-        const r = await fetch(
-          `/api/watch${date ? `?date=${encodeURIComponent(date)}` : ""}`,
-          {
-            signal: AbortSignal.any([controller.signal, deadline.signal]),
-          },
+        const result = watchFeedSchema.parse(
+          await publicData.read(
+            `/api/watch${date ? `?date=${encodeURIComponent(date)}` : ""}`,
+            AbortSignal.any([controller.signal, deadline.signal]),
+          ),
         );
-        if (!r.ok) throw new Error();
-        const result = watchFeedSchema.parse(await r.json());
+        if (controller.signal.aborted) return;
         setEntries(result.data);
         setError("");
       } catch {

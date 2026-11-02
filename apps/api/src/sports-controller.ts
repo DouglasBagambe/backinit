@@ -63,11 +63,22 @@ export class SportsController {
         sport: sportSchema.optional(),
         edition: editionSchema,
         q: z.string().max(100).optional(),
+        date: z
+          .string()
+          .regex(/^20\d{2}-\d{2}-\d{2}$/)
+          .refine((value) => {
+            const parsed = new Date(`${value}T12:00:00Z`);
+            return (
+              Number.isFinite(parsed.getTime()) &&
+              parsed.toISOString().slice(0, 10) === value
+            );
+          })
+          .optional(),
       })
       .safeParse(input);
     if (!parsed.success) throw new BadRequestException("Invalid event filters");
-    const { sport, q: query, edition } = parsed.data;
-    const feed = await service.feed(edition);
+    const { sport, q: query, edition, date } = parsed.data;
+    const feed = await service.feed(edition, date, sport);
     if (edition === "real") this.notifications?.ingest(feed.data);
     return { ...feed, data: filterEvents(feed.data, { sport, query }) };
   }

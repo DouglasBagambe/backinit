@@ -29,7 +29,7 @@ const publicPages = new Set([
 ]);
 
 const publicPage = (page: string) =>
-  publicPages.has(page) || /^watch\/[a-z0-9-]+$/.test(page);
+  publicPages.has(page) && !["multiview", "videos"].includes(page);
 
 /** Only original account-issued tags. Loading limits are separate from the
  * network's creative/impression caps; never simulate an ad click or open. */
@@ -75,13 +75,8 @@ export function GlobalAdvertising({ page }: { page: string }) {
   useEffect(() => {
     if (!allowed || !publicPage(page) || externalLoaded) return;
     const video = page === "";
-    const pop = /^watch\/[a-z0-9-]+$/.test(page) || page === "multiview";
-    const key = video
-      ? "backinit-video-tag-v1"
-      : pop
-        ? "backinit-pop-tag-v1"
-        : "backinit-social-tag-v1";
-    const interval = video || pop ? 24 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000;
+    const key = video ? "backinit-video-tag-v1" : "backinit-social-tag-v1";
+    const interval = video ? 24 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000;
     const now = Date.now();
     try {
       const previous = Number(localStorage.getItem(key));
@@ -103,16 +98,11 @@ export function GlobalAdvertising({ page }: { page: string }) {
         }
         script = document.createElement("script");
         script.setAttribute("data-cfasync", "false");
-        script.dataset.backinitAdFormat = video
-          ? "video-slider"
-          : pop
-            ? "popunder"
-            : "social-bar";
+        script.dataset.backinitAdFormat = video ? "video-slider" : "social-bar";
         if (video) script.text = videoLoader;
         else
-          script.src = pop
-            ? "https://capitalhospitals.org/1/548b0877b7f514cfb8326cf26dbd7fe2"
-            : "https://czernik.org/14/1ed8358b832d318983f90d4b83b1eb73";
+          script.src =
+            "https://czernik.org/14/1ed8358b832d318983f90d4b83b1eb73";
         script.onerror = () => {
           try {
             if (localStorage.getItem(key) === stamp)
@@ -120,7 +110,7 @@ export function GlobalAdvertising({ page }: { page: string }) {
           } catch {}
         };
         externalLoaded = true;
-        (pop ? document.head : document.body).append(script);
+        document.body.append(script);
         if (
           video &&
           script.previousElementSibling instanceof HTMLScriptElement
@@ -128,7 +118,7 @@ export function GlobalAdvertising({ page }: { page: string }) {
           script.previousElementSibling.onerror = script.onerror;
         }
       },
-      video ? 20000 : pop ? 0 : 15000,
+      video ? 20000 : 15000,
     );
     return () => {
       clearTimeout(timer);

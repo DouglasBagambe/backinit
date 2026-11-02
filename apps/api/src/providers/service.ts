@@ -62,24 +62,26 @@ export class SportsService {
   async feed(
     edition: "real" | "demo" = "real",
     date = new Date().toISOString().slice(0, 10),
+    sport?: string,
   ): Promise<EventFeed> {
     if (edition !== "real" || process.env.SPORTS_PROVIDERS_DISABLED === "true")
-      return this.loadFeed(edition, date);
-    const cached = this.snapshots.get(date);
+      return this.loadFeed(edition, date, sport);
+    const key = `${date}:${sport || "All"}`;
+    const cached = this.snapshots.get(key);
     const refresh = () => {
-      let task = this.feedRequests.get(date);
+      let task = this.feedRequests.get(key);
       if (!task) {
-        task = this.loadFeed(edition, date).then((value) => {
-          if (this.snapshots.size >= 8 && !this.snapshots.has(date))
+        task = this.loadFeed(edition, date, sport).then((value) => {
+          if (this.snapshots.size >= 8 && !this.snapshots.has(key))
             this.snapshots.delete(this.snapshots.keys().next().value!);
-          this.snapshots.set(date, {
+          this.snapshots.set(key, {
             value: structuredClone(value),
             at: Date.now(),
           });
           return value;
         });
-        this.feedRequests.set(date, task);
-        void task.finally(() => this.feedRequests.delete(date)).catch(() => {});
+        this.feedRequests.set(key, task);
+        void task.finally(() => this.feedRequests.delete(key)).catch(() => {});
       }
       return task;
     };
@@ -96,6 +98,7 @@ export class SportsService {
   private async loadFeed(
     edition: "real" | "demo",
     date: string,
+    sport?: string,
   ): Promise<EventFeed> {
     if (edition === "demo" && process.env.ALLOW_DEMO_MODE !== "true")
       throw new ForbiddenException("Demo mode is disabled.");
@@ -189,7 +192,7 @@ export class SportsService {
         load: () => this.espn.events(league, date),
         message: `${league.label} scoreboard refreshed every 30 seconds. Public undocumented endpoint; availability and reuse terms are not guaranteed.`,
       })),
-    ];
+    ].filter((provider) => !sport || provider.sport === sport);
     // Multi-step channel discovery must not hold every healthy sport beyond
     // the website's 15-second request budget. Underlying requests stay bounded
     // by their provider cache and may warm it for the following refresh.

@@ -1,3 +1,4 @@
+import { playbackRecovery } from "./playback-recovery";
 import type { StreamSource } from "@backinit/domain";
 export type Transport = {
   destroy(): void;
@@ -40,7 +41,17 @@ export async function attachPlayback(
   if (callbacks.cancelled()) return;
   if (!Hls.isSupported())
     throw new Error("This browser does not support this stream format.");
-  const engine = new Hls({ maxBufferLength: 30 });
+  const engine = new Hls({
+    maxBufferLength: 30,
+    backBufferLength: 30,
+    capLevelToPlayerSize: true,
+  });
+  const recovery = playbackRecovery({
+    reload: () => engine.startLoad(),
+    media: () => engine.recoverMediaError(),
+    exhausted: callbacks.error,
+    cancelled: callbacks.cancelled,
+  });
   engine.loadSource(source.url);
   engine.attachMedia(video);
   engine.on(Hls.Events.MANIFEST_PARSED, () =>
@@ -51,11 +62,22 @@ export async function attachPlayback(
   engine.on(Hls.Events.LEVEL_LOADED, (_, data) =>
     callbacks.live(data.details.live),
   );
+  engine.on(Hls.Events.FRAG_LOADED, () => recovery.healthy());
   engine.on(Hls.Events.ERROR, (_, data) => {
-    if (data.fatal) callbacks.error();
+    if (data.fatal)
+      recovery.fatal(
+        data.type === Hls.ErrorTypes.NETWORK_ERROR
+          ? "network"
+          : data.type === Hls.ErrorTypes.MEDIA_ERROR
+            ? "media"
+            : "other",
+      );
   });
   return {
-    destroy: () => engine.destroy(),
+    destroy: () => {
+      recovery.destroy();
+      engine.destroy();
+    },
     quality: (index) => {
       engine.currentLevel = index;
     },

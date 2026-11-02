@@ -44,17 +44,12 @@ it("reads live match and catalogue updates without the persistent frontend cache
   const feed = await loadEvents("real");
   expect(feed.data[0]?.kind === "score" && feed.data[0].homeScore).toBe(3);
 });
-it("paints a known match from the catalogue without waiting for a second summary request", async () => {
+it("fetches a match directly without requesting the all-sport catalogue first", async () => {
   vi.stubEnv("ALLOW_DEMO_MODE", "false");
   const event = verifiedCupFixtures[0]!;
   const fetcher = vi.fn(async (input: string | URL | Request) => {
-    expect(new URL(String(input)).pathname).toBe("/events");
-    return Response.json({
-      data: [event, { ...event, id: "another-fixture" }],
-      edition: "real",
-      source: "Test",
-      coverage: [],
-    });
+    expect(new URL(String(input)).pathname).toBe(`/events/${event.id}`);
+    return Response.json(event);
   });
   vi.stubGlobal("fetch", fetcher);
   const page = await loadPageData(`watch/${event.id}`, "real");
@@ -123,5 +118,14 @@ it("broadcast rooms render without waiting for the all-sport fixture service", a
   for (const route of ["broadcasts", "multiview", "watch/ppv-123"]) {
     expect((await loadPageData(route, "real")).feed.data).toEqual([]);
   }
+  expect(fetcher).not.toHaveBeenCalled();
+});
+
+it("renders real overview and sport pages without any blocking catalogue requests", async () => {
+  vi.stubEnv("ALLOW_DEMO_MODE", "false");
+  const fetcher = vi.fn();
+  vi.stubGlobal("fetch", fetcher);
+  for (const route of ["fixtures", "scores", "live", "sport/tennis"])
+    expect((await loadPageData(route, "real")).feed.data).toEqual([]);
   expect(fetcher).not.toHaveBeenCalled();
 });

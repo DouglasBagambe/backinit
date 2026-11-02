@@ -9,11 +9,15 @@ import {
 import { resolveEdition } from "./edition";
 export async function loadEvents(
   edition: "real" | "demo" = resolveEdition(),
-  timeout = 20000,
+  timeout = 12000,
+  filters: { sport?: string; date?: string } = {},
 ): Promise<EventFeed> {
   edition = resolveEdition(edition);
   try {
-    const response = await fetch(apiUrl(`/events?edition=${edition}`), {
+    const params = new URLSearchParams({ edition });
+    if (filters.sport) params.set("sport", filters.sport);
+    if (filters.date) params.set("date", filters.date);
+    const response = await fetch(apiUrl(`/events?${params}`), {
       signal: AbortSignal.timeout(timeout),
       cache: "no-store",
     });
