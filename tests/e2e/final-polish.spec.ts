@@ -1,13 +1,15 @@
 import { test, expect } from "@playwright/test";
 
-test("domain opens Watch, logo opens Home, and Watch navigation stands out", async ({
+test("domain and brand open Home, and Watch has its distinct navigation", async ({
   page,
 }) => {
   await page.goto("/");
+  await expect(page).toHaveURL(/\/$/);
+  await page.locator("header .nav-watch").click();
   await expect(page).toHaveURL(/\/watch$/);
   await expect(page.locator("header .nav-watch")).toContainText("Watch");
   await page.locator("header .brand").click();
-  await expect(page).toHaveURL(/\/home$/);
+  await expect(page).toHaveURL(/\/$/);
 });
 
 test("Settings controls change appearance and persist match timezone without unavailable placeholders", async ({

@@ -51,8 +51,9 @@ export function Privacy({
           your BackInIt account credentials. PPV broadcast players load only
           when you select Play. PPV and its embed providers receive your IP
           address, browser information and may show their own advertising. Their
-          controls and privacy practices apply. Viewer counts labelled PPV are
-          supplied by that provider, not measured BackInIt viewers.
+          controls and privacy practices apply. Viewer counts shown with
+          broadcasts are supplied by that provider, not measured BackInIt
+          viewers.
         </p>
         <h2>Advertising</h2>
         {nativeAdsEnabled ? (

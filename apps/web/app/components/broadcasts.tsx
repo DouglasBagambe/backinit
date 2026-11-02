@@ -567,15 +567,6 @@ export function BroadcastDirectory({
               </button>
             </nav>
           )}
-          {!preview && (
-            <p className="broadcast-credit">
-              Schedule and viewer figures supplied by PPV. Playback availability
-              can change.{" "}
-              <a href="https://ppv.st/api" target="_blank" rel="noreferrer">
-                Integration information ↗
-              </a>
-            </p>
-          )}
         </>
       )}
     </section>
@@ -812,22 +803,11 @@ export function BroadcastViewing({ id }: { id: string }) {
           )}
           {item.viewers !== null && (
             <p className="broadcast-viewers">
-              {new Intl.NumberFormat().format(item.viewers)} watching across PPV
-              · provider figure{feed.stale ? " · last snapshot" : ""}
+              {new Intl.NumberFormat().format(item.viewers)} watching
+              {feed.stale ? " · last update" : ""}
             </p>
           )}
           <DisplayAdvertising />
-          <details className="viewing-notes">
-            <summary>Broadcast information</summary>
-            <p>
-              Embedded player supplied by PPV. Its playback restrictions,
-              controls and advertising remain in place. A loaded frame does not
-              confirm live playback.{" "}
-              <a href={item.pageUrl} target="_blank" rel="noreferrer">
-                Open provider page ↗
-              </a>
-            </p>
-          </details>
         </div>
         <aside>
           {event && !mainTracker && wide && !theatre && (
@@ -1098,10 +1078,10 @@ export function BroadcastArchive() {
       <div className="section-heading">
         <h2>More sports replays</h2>
         <a href="https://ppv.rw/vods" target="_blank" rel="noreferrer">
-          PPV archive ↗
+          Full replay archive ↗
         </a>
       </div>
-      <p>Full-event replays on PPV. These open on the provider’s site.</p>
+      <p>Full-event replays. These open in a separate viewing site.</p>
       <div className="broadcast-grid">
         {archive.map((v) => (
           <a

@@ -46,6 +46,7 @@ test.beforeEach(async ({ page, baseURL }) => {
 test("all upcoming broadcasts are searchable, open source choices and preserve provider iframe behavior", async ({
   page,
 }) => {
+  await page.clock.install();
   await page.goto("/broadcasts");
   await expect(
     page.getByRole("heading", { name: "Broadcasts", exact: true }),
@@ -82,9 +83,23 @@ test("all upcoming broadcasts are searchable, open source choices and preserve p
   );
   await page.getByRole("button", { name: "Stop Match 2", exact: true }).click();
   await expect(page.locator(".broadcast-screen iframe")).toHaveCount(0);
-  await expect(
-    page.getByText("21 watching across PPV", { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByText("21 watching", { exact: true })).toBeVisible();
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({
+      json: {
+        data: items.map((item) =>
+          item.id === "ppv-2" ? { ...item, viewers: 2300 } : item,
+        ),
+        updatedAt: new Date().toISOString(),
+        stale: false,
+      },
+    }),
+  );
+  await page.clock.fastForward(61000);
+  await expect(page.getByText("2,300 watching", { exact: true })).toBeVisible();
+  await expect(page.locator("main")).not.toContainText(
+    /across PPV|provider figure|supplied by PPV/,
+  );
 });
 test("multiview adds, focuses, removes and restores independent streams on mobile without overflow", async ({
   page,

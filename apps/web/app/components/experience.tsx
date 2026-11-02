@@ -190,7 +190,7 @@ export function Experience({
         body: JSON.stringify({ edition: real ? "demo" : "real" }),
       });
       if (!response.ok) throw new Error();
-      window.location.assign("/home");
+      window.location.assign("/");
     } catch {
       setEditionError("Unable to switch edition. Please retry.");
     }
@@ -535,7 +535,7 @@ export function Experience({
         Skip to content
       </a>
       <header className="topbar">
-        <Link className="brand" href="/home" title="BackInIt home">
+        <Link className="brand" href="/" title="BackInIt home">
           <BrandMark className="brand-mark" />
           back<span>in</span>it<span className="brand-dot">.</span>
         </Link>
@@ -622,11 +622,7 @@ export function Experience({
             "settings",
             "profile",
           ].map((p) => (
-            <Link
-              onClick={() => setMenu(false)}
-              key={p}
-              href={p === "" ? "/home" : "/" + p}
-            >
+            <Link onClick={() => setMenu(false)} key={p} href={"/" + p}>
               {p}
             </Link>
           ))}
@@ -1261,7 +1257,7 @@ export function Experience({
             controlsOnly={route === "privacy"}
           />
           <footer>
-            <Link className="footer-brand" href="/home">
+            <Link className="footer-brand" href="/">
               <BrandMark />
               <span>backinit.</span>
             </Link>
@@ -1306,7 +1302,7 @@ export function Experience({
           return (
             <Link
               key={p as string}
-              href={p === "" ? "/home" : "/" + p}
+              href={"/" + p}
               className={
                 route === p || (p === "watch" && route.startsWith("watch/"))
                   ? "active"

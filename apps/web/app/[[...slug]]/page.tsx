@@ -1,5 +1,5 @@
 import { demoEnabled } from "../lib/edition";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { sports } from "@backinit/domain";
 import { cookies } from "next/headers";
 import { Experience } from "../components/experience";
@@ -11,7 +11,6 @@ export default async function Page({
 }) {
   const { slug = [] } = await params;
   const requestedRoute = slug.join("/");
-  if (!requestedRoute) redirect("/watch");
   const route = requestedRoute === "home" ? "" : requestedRoute;
   if (route === "playback" && !demoEnabled()) notFound();
   const pages = [
