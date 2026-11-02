@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 type Preference = "accepted" | "declined" | null;
-const storageKey = "backinit-ad-preference-v1";
+const storageKey = "backinit-ad-preference-v2";
 const Advertising = createContext<{
   enabled: boolean;
   nativeEnabled: boolean;
@@ -51,6 +51,8 @@ export function AdvertisingProvider({
     } catch {
       /* The choice still applies for this page when storage is unavailable. */
     }
+    // A fresh document cancels pending vendor scripts as well as their handlers.
+    if (preference === "accepted" && value !== "accepted") location.reload();
   }
   return (
     <Advertising.Provider
@@ -61,29 +63,47 @@ export function AdvertisingProvider({
   );
 }
 
-export function AdPreferences() {
+export function useAdvertising() {
+  return useContext(Advertising);
+}
+
+export function AdPreferences({
+  promptOnly = false,
+  controlsOnly = false,
+}: {
+  promptOnly?: boolean;
+  controlsOnly?: boolean;
+}) {
   const { enabled, nativeEnabled, preference, choose } =
     useContext(Advertising);
-  if (!enabled || !nativeEnabled) return null;
+  if (
+    !enabled ||
+    !nativeEnabled ||
+    (promptOnly && preference) ||
+    (controlsOnly && !preference)
+  )
+    return null;
   return (
     <div className="ad-preferences">
       {preference ? (
         <button className="text-button" onClick={() => choose(null)}>
-          Ad preferences
+          Cookie settings
         </button>
       ) : (
-        <section className="ad-consent" aria-label="Advertising preferences">
+        <section className="ad-consent" aria-label="Cookie preferences">
           <div>
-            <strong>Support BackInIt with ads</strong>
+            <strong>Advertising cookies</strong>
             <p>
               Allow Adsterra and its advertising partners to use cookies and
               device information to show and measure ads. Your choice won’t
-              affect playback. <Link href="/privacy">Privacy</Link>
+              affect playback. Ads may include banners, native offers,
+              dismissible overlays and occasional sponsored tabs after a click.{" "}
+              <Link href="/privacy">Privacy</Link>
             </p>
           </div>
           <div className="ad-consent-actions">
-            <button onClick={() => choose("declined")}>Decline ads</button>
-            <button onClick={() => choose("accepted")}>Allow ads</button>
+            <button onClick={() => choose("declined")}>Essential only</button>
+            <button onClick={() => choose("accepted")}>Accept cookies</button>
           </div>
         </section>
       )}

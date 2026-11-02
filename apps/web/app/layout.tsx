@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   description:
     "Discover live sport, follow scores and find your next match on BackInIt.",
   robots: { index: false, follow: false },
+  other: {
+    "9ba3ffb5f4bb7ceb2b0050a8dc89c6ebc648f3eb":
+      "9ba3ffb5f4bb7ceb2b0050a8dc89c6ebc648f3eb",
+  },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },

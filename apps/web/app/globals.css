@@ -4774,3 +4774,18 @@ footer {
   color: var(--muted);
   font-size: 12px;
 }
+
+.display-ad-host {
+  width: 100%;
+  min-width: 0;
+}
+.ad-display:not(.ad-ready) {
+  margin: 0;
+}
+.ad-display iframe {
+  border: 0;
+  display: block;
+}
+.display-ad-leaderboard .ad-ready {
+  margin: 12px 0 22px;
+}

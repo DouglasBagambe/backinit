@@ -54,17 +54,23 @@ export function Privacy({
         {nativeAdsEnabled ? (
           <>
             <p>
-              With your permission, we load ads from Adsterra and its
+              With your cookie permission, we load ads from Adsterra and its
               advertising partners. They may receive your IP address, device and
               browser information, and use cookies or similar technologies to
-              personalize and measure advertising. We do not send them your
-              BackInIt email, password or favourites.
+              personalize and measure advertising. Formats include display and
+              native banners, Social Bar overlays and Popunder sponsored tabs
+              triggered by visitor interaction. We limit loading of the Popunder
+              tag to once per 24 hours and Social Bar to once per six hours in
+              this browser; creative frequency within the page is controlled by
+              Adsterra. We do not send them your BackInIt email, password or
+              favourites.
             </p>
             <p>
-              You can decline ads or change your choice using Ad preferences at
-              the bottom of any page. Withdrawing permission stops new ads from
-              loading here; it does not erase information already received by
-              advertising partners.
+              Cookie settings at the bottom of the page let you accept
+              advertising cookies or use essential cookies only. Changing this
+              choice after interactive advertising has loaded reloads the page
+              to clear its handlers. It does not erase data already received by
+              partners.
             </p>
           </>
         ) : (

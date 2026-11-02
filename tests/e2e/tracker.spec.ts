@@ -372,7 +372,7 @@ test("a broadcast keeps its tracker beside desktop video and below mobile video,
     route.fulfill({ body: "", contentType: "application/javascript" }),
   );
   await page.addInitScript(() =>
-    localStorage.setItem("backinit-ad-preference-v1", "accepted"),
+    localStorage.setItem("backinit-ad-preference-v2", "accepted"),
   );
   await openFixture(page, fixture.id);
   const play = page.getByRole("button", { name: "Play video", exact: true });
