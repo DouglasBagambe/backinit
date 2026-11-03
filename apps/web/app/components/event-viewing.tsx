@@ -320,9 +320,9 @@ export function EventViewing({
             />
           )}
           <div className="event-mobile-tracker">
-            {(hasBroadcast || (broadcast && mode === "stream")) && !wide && (
-              <LiveTracker event={event} compact />
-            )}
+            {(hasBroadcast ||
+              (Boolean(broadcast?.sources.length) && mode === "stream")) &&
+              !wide && <LiveTracker event={event} compact />}
           </div>
           {Boolean(event.viewingLinks?.length) && (
             <details className="panel viewing-options" id="official-viewing">
@@ -436,11 +436,13 @@ export function EventViewing({
           <AdSlot />
         </div>
         <aside className="event-side">
-          {(hasBroadcast || (broadcast && mode === "stream")) && wide && (
-            <div className="event-desktop-tracker">
-              <LiveTracker event={event} compact />
-            </div>
-          )}
+          {(hasBroadcast ||
+            (Boolean(broadcast?.sources.length) && mode === "stream")) &&
+            wide && (
+              <div className="event-desktop-tracker">
+                <LiveTracker event={event} compact />
+              </div>
+            )}
           <DisplayAdvertising placement="rectangle" />
           <AdSlot format="rectangle" sponsored native />
           <section className="event-switcher">

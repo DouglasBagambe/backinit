@@ -291,3 +291,63 @@ test("a silent publisher startup recovers with Retry instead of remaining ready 
     page.getByRole("link", { name: "Open official source ↗", exact: true }),
   ).toBeVisible();
 });
+
+test("replay filters apply to the featured player and every replay section", async ({
+  page,
+  baseURL,
+}) => {
+  await catalog(page, baseURL!);
+  const highlight = {
+    ...examples[1],
+    id: "yt-highlight-ci",
+    name: "MMA highlights",
+    catalog: { ...examples[1]!.catalog!, category: "Highlights" },
+  };
+  await page.route("**/api/videos", (r) =>
+    r.fulfill({ json: { data: [...examples, highlight] } }),
+  );
+  await page.goto("/watch?view=replays");
+  await expect(
+    page.getByRole("heading", { name: "More sports replays" }),
+  ).toBeVisible();
+  await page.getByLabel("Filter videos by type").selectOption("Highlights");
+  await expect(page.locator(".watch-feature")).toContainText("MMA highlights");
+  await expect(
+    page.getByRole("heading", { name: "More sports replays" }),
+  ).toHaveCount(0);
+  await page.getByLabel("Filter videos by type").selectOption("Full replays");
+  await page.getByLabel("Filter videos by sport").selectOption("MMA");
+  await expect(page.locator(".broadcast-archive-card")).toHaveCount(1);
+  await expect(page.locator(".broadcast-archive-card")).toContainText(
+    "ONE Samurai 1",
+  );
+  await page.getByLabel("Search videos").fill("no-such-replay");
+  await expect(page.locator(".watch-feature")).toHaveCount(0);
+  await expect(
+    page.locator(".watch-card, .broadcast-archive-card"),
+  ).toHaveCount(0);
+});
+
+test("a pending video registry request does not claim the selected video was removed", async ({
+  page,
+  baseURL,
+}) => {
+  await catalog(page, baseURL!);
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/api/streams?library=1", async (r) => {
+    await gate;
+    await r.fulfill({ json: { data: examples } });
+  });
+  await page.goto("/watch?view=replays");
+  await expect(
+    page.getByRole("heading", { name: "Loading video…", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(/This video is no longer listed/)).toHaveCount(0);
+  release();
+  await expect(
+    page.getByRole("button", { name: "Play video", exact: true }),
+  ).toBeVisible();
+});

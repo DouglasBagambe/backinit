@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { ProviderCache } from "./cache.js";
-import { safeTeamImage } from "./identities.js";
+import { safeTeamImage, playerImage } from "./identities.js";
 const cache = new ProviderCache();
+const searchCache = new ProviderCache();
 const sportNames: Record<string, string> = {
   soccer: "Football",
   basketball: "Basketball",
@@ -23,7 +24,7 @@ const itemSchema = z.object({
   headshot: z.object({ href: z.string() }).optional(),
   logos: z.array(z.object({ href: z.string() })).optional(),
 });
-export async function searchEntities(query: string, store = cache) {
+export async function searchEntities(query: string, store = searchCache) {
   const results = await Promise.allSettled(
     ["player", "team"].map((type) =>
       store.json(
@@ -53,7 +54,14 @@ export async function searchEntities(query: string, store = cache) {
                   sport: sportNames[e.sport]!,
                   providerSport: e.sport,
                   league: e.league || "",
-                  image: safeTeamImage(e.headshot?.href || e.logos?.[0]?.href),
+                  image:
+                    e.type === "player"
+                      ? playerImage(
+                          e.id,
+                          `${e.sport}/${e.league || ""}`,
+                          e.headshot?.href,
+                        )
+                      : safeTeamImage(e.logos?.[0]?.href),
                 },
               ];
             }),
@@ -160,7 +168,7 @@ export async function athleteProfile(
 ) {
   if (
     !sportNames[sport] ||
-    !/^[a-z0-9.]{1,40}$/.test(league) ||
+    !/^[a-z0-9][a-z0-9._-]{0,39}$/.test(league) ||
     !/^\d{1,15}$/.test(id)
   )
     throw Error("Invalid profile");
@@ -208,7 +216,7 @@ export async function athleteProfile(
         sport: sportNames[sport]!,
         position: a.position?.displayName,
         team: a.team,
-        image: safeTeamImage(a.headshot?.href),
+        image: playerImage(a.id, `${sport}/${league}`, a.headshot?.href),
         height: a.displayHeight,
         weight: a.displayWeight,
         birthDate: a.displayDOB,
@@ -232,10 +240,15 @@ export async function athleteProfile(
   };
 }
 
-export async function teamProfile(sport: string, league: string, id: string) {
+export async function teamProfile(
+  sport: string,
+  league: string,
+  id: string,
+  store = cache,
+) {
   if (
     !sportNames[sport] ||
-    !/^[a-z0-9.]{1,40}$/.test(league) ||
+    !/^[a-z0-9][a-z0-9._-]{0,39}$/.test(league) ||
     !/^\d{1,15}$/.test(id)
   )
     throw Error("Invalid profile");
@@ -250,7 +263,7 @@ export async function teamProfile(sport: string, league: string, id: string) {
   };
   const base = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/teams/${id}`;
   const results = await Promise.allSettled([
-    cache.json(`${base}/schedule`, 60000, (raw) => {
+    store.json(`${base}/schedule`, 60000, (raw) => {
       const d = z
         .object({
           team: z.object({ displayName: z.string() }),
@@ -267,11 +280,12 @@ export async function teamProfile(sport: string, league: string, id: string) {
         ),
       };
     }),
-    cache.json(`${base}/roster`, 300000, (raw) => {
+    store.json(`${base}/roster`, 300000, (raw) => {
       const person = z.object({
         id: z.string(),
         displayName: z.string(),
         jersey: z.string().optional(),
+        headshot: z.object({ href: z.string() }).optional(),
         position: z.object({ displayName: z.string() }).optional(),
       });
       const d = z
@@ -290,6 +304,7 @@ export async function teamProfile(sport: string, league: string, id: string) {
         .map((p) => ({
           id: p.id,
           name: p.displayName,
+          image: playerImage(p.id, `${sport}/${league}`, p.headshot?.href),
           jersey: p.jersey,
           position: p.position?.displayName,
         }));

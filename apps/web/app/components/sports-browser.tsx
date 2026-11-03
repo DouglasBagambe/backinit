@@ -30,8 +30,9 @@ export function SportsBrowser({
   const today = localDay(new Date().toISOString(), zone);
   const date = params.get("date") || today;
   const status =
-    params.get("status") ||
-    (route === "live" ? "live" : route === "scores" ? "finished" : "all");
+    route === "live"
+      ? "live"
+      : params.get("status") || (route === "scores" ? "finished" : "all");
   const sport = route.startsWith("sport/")
     ? sports.find(
         (s) => s.toLowerCase().replaceAll(" ", "-") === route.slice(6),
@@ -88,14 +89,16 @@ export function SportsBrowser({
         </Link>
       </header>
       <div className="sports-browser-toolbar">
-        <label>
-          Date
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => change("date", e.target.value)}
-          />
-        </label>
+        {route !== "live" && (
+          <label>
+            Date
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => change("date", e.target.value)}
+            />
+          </label>
+        )}
         {!route.startsWith("sport/") && (
           <label>
             Sport
@@ -119,26 +122,30 @@ export function SportsBrowser({
           />
         </label>
       </div>
-      <div className="filter-tabs" role="group" aria-label="Match status">
-        {[
-          ["all", "All"],
-          ["live", "Live now"],
-          ["upcoming", "Upcoming"],
-          ["finished", "Results"],
-        ].map(([value, label]) => (
-          <button
-            key={value}
-            aria-pressed={status === value}
-            onClick={() => change("status", value!)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {route !== "live" && (
+        <div className="filter-tabs" role="group" aria-label="Match status">
+          {[
+            ["all", "All"],
+            ["live", "Live now"],
+            ["upcoming", "Upcoming"],
+            ["finished", "Results"],
+          ].map(([value, label]) => (
+            <button
+              key={value}
+              aria-pressed={status === value}
+              onClick={() => change("status", value!)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       <EntitySuggestions query={query} sport={sport} />
-      <p className="fine">
-        {filtered.length} matches · {zone}
-      </p>
+      {!(loading && !events.length) && (
+        <p className="fine">
+          {filtered.length} matches · {zone}
+        </p>
+      )}
       {loading && !filtered.length ? (
         <p role="status">Loading matches…</p>
       ) : !filtered.length ? (
@@ -148,7 +155,11 @@ export function SportsBrowser({
               ? "No matching games on this date"
               : "No matches in this view"}
           </h2>
-          <p>Try another date, sport or match status.</p>
+          <p>
+            {route === "live"
+              ? "No matches are currently reporting live scores. Browse available broadcasts or check upcoming fixtures."
+              : "Try another date, sport or match status."}
+          </p>
           <Link
             href={`/watch${sport ? `?sport=${encodeURIComponent(sport)}` : ""}`}
           >

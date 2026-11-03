@@ -406,3 +406,421 @@ test("a player profile can retry provider failure without losing the page", asyn
     0,
   );
 });
+
+test("followed players are visible in Saved even without current match data", async ({
+  page,
+}) => {
+  await page.route("**/api/search?*", (r) =>
+    r.fulfill({
+      json: {
+        data: [
+          {
+            id: "296395",
+            name: "Cole Palmer",
+            kind: "athlete",
+            sport: "Football",
+            providerSport: "soccer",
+            league: "eng.1",
+          },
+        ],
+      },
+    }),
+  );
+  await page.route("**/api/athlete-profile?*", (r) =>
+    r.fulfill({
+      json: {
+        value: { id: "296395", name: "Cole Palmer", sport: "Football" },
+        stale: false,
+        fetchedAt: at,
+      },
+    }),
+  );
+  await page.addInitScript(() =>
+    localStorage.setItem(
+      "backinit-following",
+      JSON.stringify([{ kind: "athlete", target: "Cole Palmer" }]),
+    ),
+  );
+  await page.goto("/favorites");
+  await expect(
+    page.locator(".saved-following").getByRole("link", { name: /Cole Palmer/ }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.locator(".saved-following").getByRole("link", { name: /Cole Palmer/ }),
+  ).toBeVisible();
+  await page
+    .locator(".saved-following")
+    .getByRole("link", { name: /Cole Palmer/ })
+    .click();
+  await expect(page.locator(".entity-header .eyebrow")).toContainText(
+    "Football",
+  );
+  await expect(
+    page.getByRole("button", { name: "Following ✓", exact: true }),
+  ).toBeVisible();
+});
+test("search failures have recovery instead of an incorrect no-results message", async ({
+  page,
+}) => {
+  let calls = 0;
+  await page.route("**/api/search?*", (r) => {
+    calls++;
+    return calls <= 2
+      ? r.fulfill({ status: 503, json: { message: "temporary" } })
+      : r.fulfill({
+          json: {
+            data: [
+              {
+                id: "45843",
+                name: "Lionel Messi",
+                kind: "athlete",
+                sport: "Football",
+                providerSport: "soccer",
+                league: "usa.1",
+              },
+            ],
+          },
+        });
+  });
+  await page.goto("/search?q=messi");
+  await expect(
+    page.getByRole("button", { name: "Retry search" }),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: /No results/ })).toHaveCount(
+    0,
+  );
+  await page.getByRole("button", { name: "Retry search" }).click();
+  await expect(page.getByRole("link", { name: /Lionel Messi/ })).toBeVisible();
+});
+test("Live remains live-only even when an old results URL is opened", async ({
+  page,
+}) => {
+  const feedRequest = page.waitForRequest(
+    (r) => new URL(r.url()).pathname === "/api/events",
+  );
+  await page.goto("/live?status=finished&date=2020-01-01");
+  expect((await feedRequest).url()).not.toContain("2020-01-01");
+  await expect(page.getByLabel("Date", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("group", { name: "Match status" })).toHaveCount(
+    0,
+  );
+  await expect(page.locator(".sports-browser")).toContainText("Liverpool");
+});
+
+test("signed-in player follows survive Saved, navigation and reload", async ({
+  page,
+  baseURL,
+}) => {
+  const email = `player-follow-${Date.now()}@example.test`;
+  const registered = await page.request.post("/api/account/register", {
+    headers: { Origin: baseURL! },
+    data: { email, password: "backinit-test-player-follow" },
+  });
+  expect(registered.ok()).toBe(true);
+  await page.route("**/api/athlete-profile?*", (r) =>
+    r.fulfill({
+      json: {
+        value: { id: "296395", name: "Cole Palmer", sport: "Football" },
+        stale: false,
+        fetchedAt: at,
+      },
+    }),
+  );
+  const url =
+    "/explore/athlete?name=Cole+Palmer&sport=Football&pid=296395&psport=soccer&league=eng.1";
+  await page.goto(url);
+  await page.getByRole("button", { name: "Follow", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Following ✓", exact: true }),
+  ).toBeVisible();
+  await page.goto("/favorites");
+  await expect(
+    page.locator(".saved-following").getByRole("link", { name: /Cole Palmer/ }),
+  ).toBeVisible();
+  await page.goto(url);
+  await expect(
+    page.getByRole("button", { name: "Following ✓", exact: true }),
+  ).toBeVisible();
+  await page.reload();
+  await expect(
+    page.getByRole("button", { name: "Following ✓", exact: true }),
+  ).toBeVisible();
+  const saved = await page.request.get("/api/account/favorites");
+  expect((await saved.json()).data).toContainEqual({
+    kind: "athlete",
+    target: "Cole Palmer",
+  });
+});
+test("Watch excludes a broadcast when a matching fixture reports full time", async ({
+  page,
+}) => {
+  const b = {
+    id: "ppv-99991",
+    title: "Liverpool vs Chelsea",
+    category: "Football",
+    competition: "Cup",
+    start: Date.parse(event.start),
+    end: Date.parse(at) + 4 * 3600000,
+    channel: false,
+    viewers: 10,
+    sources: [{ id: "hd", label: "HD", url: "https://example.test/embed" }],
+    poster: null,
+    pageUrl: "https://example.test/game",
+    replay: false,
+  };
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({ json: { data: [b], updatedAt: at, stale: false } }),
+  );
+  await page.route("**/api/watch*", (r) =>
+    r.fulfill({
+      json: {
+        data: [],
+        statusEvents: [{ ...event, status: "finished" }],
+        coverage: [],
+        generatedAt: at,
+      },
+    }),
+  );
+  await page.goto("/watch?range=live");
+  await expect(page.locator(".broadcast-card")).toHaveCount(0);
+});
+
+test("partial search results remain usable when the retry fails", async ({
+  page,
+}) => {
+  let requests = 0;
+  await page.route("**/api/search?*", (r) => {
+    requests++;
+    return requests === 1
+      ? r.fulfill({
+          json: {
+            data: [
+              {
+                id: "28003",
+                name: "Lionel Messi",
+                kind: "athlete",
+                sport: "Football",
+                providerSport: "soccer",
+                league: "usa.1",
+              },
+            ],
+            partial: true,
+          },
+        })
+      : r.fulfill({ status: 503, json: { message: "Temporary outage" } });
+  });
+  await page.goto("/search?q=Messi");
+  await expect(
+    page.getByRole("link", { name: /Lionel Messi Football/ }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Retry search" }),
+  ).toBeVisible();
+  await expect(page.getByText(/No results for/)).toHaveCount(0);
+});
+
+test("player profiles can recover a saved-status outage without enabling unsynchronized edits", async ({
+  page,
+}) => {
+  let healthy = false;
+  for (const action of ["me", "favorites"]) {
+    await page.route(`**/api/account/${action}`, (r) =>
+      r.fulfill({
+        status: healthy ? 401 : 503,
+        json: { message: healthy ? "Sign in" : "Temporary outage" },
+      }),
+    );
+  }
+  await page.route("**/api/athlete-profile?*", (r) =>
+    r.fulfill({
+      json: {
+        value: { id: "296395", name: "Cole Palmer", sport: "Football" },
+        stale: false,
+        fetchedAt: at,
+      },
+    }),
+  );
+  await page.goto(
+    "/explore/athlete?name=Cole+Palmer&sport=Football&pid=296395&psport=soccer&league=eng.1",
+  );
+  await expect(
+    page.getByRole("button", { name: "Retry sync", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Loading saved status…", exact: true }),
+  ).toBeDisabled();
+  healthy = true;
+  await page.getByRole("button", { name: "Retry sync", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Follow", exact: true }),
+  ).toBeEnabled();
+});
+
+test("team squads keep portraits and player identity on small screens", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.route("**/api/team-profile?*", (r) =>
+    r.fulfill({
+      json: {
+        name: "Chelsea",
+        data: [],
+        players: [
+          {
+            id: "296395",
+            name: "Cole Palmer",
+            position: "Midfielder",
+            jersey: "10",
+            image: "/sports/football.webp",
+          },
+        ],
+      },
+    }),
+  );
+  await page.goto(
+    "/explore/team?name=Chelsea&sport=Football&pid=363&psport=soccer&league=eng.1",
+  );
+  await page.getByRole("button", { name: "Squad", exact: true }).click();
+  const player = page.locator(".squad-card");
+  await expect(player).toContainText("Cole Palmer");
+  await expect(player).toContainText("Midfielder · #10");
+  await expect(player).toHaveAttribute("href", /pid=296395/);
+  await expect(player.locator("img")).toHaveAttribute(
+    "src",
+    "/sports/football.webp",
+  );
+  await page.screenshot({
+    path: "/tmp/backinit-squad-mobile-verification.png",
+    fullPage: true,
+  });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+});
+
+test("account and notification outages recover without showing a false empty inbox", async ({
+  page,
+}) => {
+  let accountHealthy = false,
+    updatesHealthy = false;
+  await page.route("**/api/account/me", (r) =>
+    r.fulfill({
+      status: accountHealthy ? 200 : 503,
+      json: accountHealthy
+        ? {
+            user: { id: "ci-user", email: "viewer@example.test", role: "user" },
+          }
+        : { message: "Temporary outage" },
+    }),
+  );
+  await page.route("**/api/account/notifications", (r) =>
+    r.fulfill({
+      status: updatesHealthy ? 200 : 503,
+      json: updatesHealthy
+        ? {
+            enabled: false,
+            data: [
+              {
+                id: 1,
+                eventId: event.id,
+                title: "Chelsea update",
+                message: "Goal reported",
+                provider: "CI",
+                sourceUrl: "https://example.test",
+                reportedAt: at,
+                read: 0,
+              },
+            ],
+          }
+        : { message: "Temporary outage" },
+    }),
+  );
+  await page.route("**/api/account/notification-preferences", (r) =>
+    r.fulfill({ json: { enabled: true } }),
+  );
+  await page.route("**/api/account/notification-read", (r) =>
+    r.fulfill({ json: { ok: true } }),
+  );
+  await page.goto("/profile");
+  await expect(
+    page.getByRole("button", { name: "Retry account" }),
+  ).toBeVisible();
+  accountHealthy = true;
+  await page.getByRole("button", { name: "Retry account" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Your account" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Retry updates" }),
+  ).toBeVisible();
+  await expect(
+    page.getByLabel("Notify me in BackInIt about my saved sport"),
+  ).toBeDisabled();
+  await expect(page.getByText(/No match updates yet/)).toHaveCount(0);
+  updatesHealthy = true;
+  await page.getByRole("button", { name: "Retry updates" }).click();
+  await expect(
+    page.getByRole("link", { name: "Chelsea update" }),
+  ).toHaveAttribute("href", `/watch/${event.id}`);
+  await expect(page.locator(".notification-item time")).toHaveText(/23:05/);
+  await page.getByLabel("Notify me in BackInIt about my saved sport").check();
+  await expect(
+    page.getByText("Match updates enabled.", { exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Mark all as read" }).click();
+  await expect(
+    page.locator(".notification-panel .section-heading .pill"),
+  ).toHaveText("0 UNREAD");
+});
+
+for (const kind of ["athlete", "team"]) {
+  test(`${kind} profiles keep loading while their own provider request is pending`, async ({
+    page,
+  }) => {
+    await page.route("**/api/events*", (r) =>
+      r.fulfill({
+        json: { data: [], edition: "real", source: "CI", coverage: [] },
+      }),
+    );
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route(
+      `**/api/${kind === "athlete" ? "athlete" : "team"}-profile?*`,
+      async (r) => {
+        await gate;
+        await r.fulfill({
+          json:
+            kind === "athlete"
+              ? {
+                  value: {
+                    id: "296395",
+                    name: "Cole Palmer",
+                    sport: "Football",
+                  },
+                  stale: false,
+                  fetchedAt: at,
+                }
+              : { name: "Chelsea", data: [], players: [] },
+        });
+      },
+    );
+    await page.goto(
+      `/explore/${kind}?name=${kind === "athlete" ? "Cole+Palmer" : "Chelsea"}&sport=Football&pid=${kind === "athlete" ? "296395" : "363"}&psport=soccer&league=eng.1`,
+    );
+    await expect(
+      page.getByText("Loading profile…", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("No matches in the current catalogue.", { exact: true }),
+    ).toHaveCount(0);
+    release();
+    await expect(
+      page.getByText("Loading profile…", { exact: true }),
+    ).toHaveCount(0);
+  });
+}

@@ -86,7 +86,7 @@ function State({ item }: { item: Broadcast }) {
   );
 }
 /** Small editorial entry point; the full catalogue remains in Watch. */
-export function HomeBroadcasts() {
+export function HomeBroadcasts({ intro = true }: { intro?: boolean } = {}) {
   const { feed } = useBroadcasts();
   const now = useNow();
   const time = now || Date.now();
@@ -98,21 +98,23 @@ export function HomeBroadcasts() {
     .slice(0, 3);
   return (
     <section className="home-spotlight" aria-label="Your matchday">
-      <div className="home-intro">
-        <div>
-          <span className="eyebrow">EVERY MOMENT MATTERS</span>
-          <h1>
-            Make time for
-            <br />
-            the big moments.
-          </h1>
-          <p>Find your next game. Follow the action. Get back in it.</p>
+      {intro && (
+        <div className="home-intro">
+          <div>
+            <span className="eyebrow">EVERY MOMENT MATTERS</span>
+            <h1>
+              Make time for
+              <br />
+              the big moments.
+            </h1>
+            <p>Find your next game. Follow the action. Get back in it.</p>
+          </div>
+          <Link className="home-watch-cta" href="/watch">
+            <Play size={18} fill="currentColor" />
+            Explore Watch
+          </Link>
         </div>
-        <Link className="home-watch-cta" href="/watch">
-          <Play size={18} fill="currentColor" />
-          Explore Watch
-        </Link>
-      </div>
+      )}
       <nav className="home-shortcuts" aria-label="Explore BackInIt">
         <Link href="/watch?range=live">
           <Radio size={16} />
@@ -202,7 +204,10 @@ export function BroadcastDirectory({
           ),
         );
         if (!c.signal.aborted) {
-          setMatchEvents(body.data.map((entry) => entry.event));
+          setMatchEvents([
+            ...body.data.map((entry) => entry.event),
+            ...body.statusEvents,
+          ]);
           setWatchableIds(
             body.data
               .filter((entry) =>
@@ -608,7 +613,6 @@ export function BroadcastDirectory({
       {replays ? (
         <>
           <WatchHub />
-          <BroadcastArchive />
         </>
       ) : (
         <>
@@ -1067,64 +1071,6 @@ export function Multiview() {
             ))}
         </div>
       </dialog>
-    </section>
-  );
-}
-const archive = [
-  {
-    title: "ONE Samurai 1",
-    category: "MMA",
-    date: "29 Apr 2026",
-    url: "https://ppv.rw/vod/one-samurai-1",
-  },
-  {
-    title: "East vs West 25: Batumi",
-    category: "Arm wrestling",
-    date: "1 Aug 2026",
-    url: "https://ppv.rw/vod/east-vs-west-25-batumi",
-  },
-  {
-    title: "East vs West 25: Extended Pass",
-    category: "Arm wrestling",
-    date: "2 Aug 2026",
-    url: "https://ppv.rw/vod/east-vs-west-25-extended-pass",
-  },
-  {
-    title: "East vs West 23: Germany",
-    category: "Arm wrestling",
-    date: "18 Apr 2026",
-    url: "https://ppv.rw/vod/east-vs-west-23",
-  },
-];
-export function BroadcastArchive() {
-  return (
-    <section className="broadcast-archive">
-      <div className="section-heading">
-        <h2>More sports replays</h2>
-        <a href="https://ppv.rw/vods" target="_blank" rel="noreferrer">
-          Full replay archive ↗
-        </a>
-      </div>
-      <p>Full-event replays. These open in a separate viewing site.</p>
-      <div className="broadcast-grid">
-        {archive.map((v) => (
-          <a
-            className="broadcast-card broadcast-archive-card"
-            href={v.url}
-            target="_blank"
-            rel="noreferrer"
-            key={v.url}
-          >
-            <small>
-              {v.category} · {v.date}
-            </small>
-            <h3>{v.title}</h3>
-            <span>
-              Watch replay <ExternalLink size={15} />
-            </span>
-          </a>
-        ))}
-      </div>
     </section>
   );
 }

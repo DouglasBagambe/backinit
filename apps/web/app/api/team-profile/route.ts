@@ -6,7 +6,7 @@ export async function GET(request: Request) {
     id = params.get("id") || "";
   if (
     !/^[a-z]{2,20}$/.test(sport) ||
-    !/^[a-z0-9.]{1,40}$/.test(league) ||
+    !/^[a-z0-9][a-z0-9._-]{0,39}$/.test(league) ||
     !/^\d{1,15}$/.test(id)
   )
     return Response.json({ message: "Invalid profile" }, { status: 400 });

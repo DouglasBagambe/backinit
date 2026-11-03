@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Play, ArrowUpRight, RefreshCw } from "lucide-react";
 import { streamSourceSchema, type StreamSource } from "@backinit/domain";
 import { z } from "zod";
+import { BroadcastArchive, replaySports } from "./replay-archive";
 import { SportMark } from "./marks";
 import { LazyPlayer as Player } from "./lazy-player";
 export function WatchHub({ preview = false }: { preview?: boolean }) {
@@ -51,14 +52,6 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
       });
     return () => controller.abort();
   }, [attempt, preview]);
-  useEffect(() => {
-    if (
-      !preview &&
-      sport !== "All sports" &&
-      selected?.catalog?.sport !== sport
-    )
-      setSelected(videos.find((v) => v.catalog?.sport === sport) || null);
-  }, [sport, preview, videos, selected]);
   const available = videos.filter(
     (v) =>
       (sport === "All sports" || v.catalog?.sport === sport) &&
@@ -70,6 +63,12 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
         .toLowerCase()
         .includes(query.toLowerCase()),
   );
+  useEffect(() => {
+    if (preview || (selected && available.some((v) => v.id === selected.id)))
+      return;
+    const next = available[0] || null;
+    if (next !== selected) setSelected(next);
+  }, [sport, query, kind, preview, videos, selected]);
   return (
     <section className="watch-hub" aria-label="Official sports viewing">
       <div className="section-heading">
@@ -129,11 +128,13 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
             >
               {[
                 "All sports",
-                ...new Set(
-                  videos
+                ...new Set([
+                  ...replaySports,
+                  ...(selectedSport === "All sports" ? [] : [selectedSport]),
+                  ...videos
                     .map((v) => v.catalog?.sport)
                     .filter((v): v is NonNullable<typeof v> => Boolean(v)),
-                ),
+                ]),
               ].map((s) => (
                 <option key={s}>{s}</option>
               ))}
@@ -169,7 +170,11 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
             <article className="watch-card" key={video.id}>
               <Link
                 className="watch-poster"
-                href={preview ? `/videos?video=${video.id}` : "#watch-player"}
+                href={
+                  preview
+                    ? `/watch?view=replays&video=${video.id}`
+                    : "#watch-player"
+                }
                 onClick={() => {
                   if (!preview) setSelected(video);
                 }}
@@ -223,6 +228,7 @@ export function WatchHub({ preview = false }: { preview?: boolean }) {
       {!loading && !available.length && !message && (
         <p>No videos match that search. Try another sport or title.</p>
       )}
+      {!preview && <BroadcastArchive sport={sport} query={query} kind={kind} />}
       {!preview && (
         <>
           <button onClick={() => setAttempt((a) => a + 1)} disabled={loading}>

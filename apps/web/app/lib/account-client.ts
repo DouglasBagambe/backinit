@@ -5,6 +5,8 @@ export async function accountRequest(
 ) {
   const response = await fetch(`/api/account/${action}`, {
     method,
+    cache: "no-store",
+    signal: AbortSignal.timeout(12000),
     headers: { "Content-Type": "application/json" },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });

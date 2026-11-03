@@ -241,8 +241,11 @@ test("compact discovery shows matches immediately and every sport stays reachabl
   await page.goto(`/watch/${priority}`);
   const unavailablePlayer = page.locator(".player-unavailable");
   await expect(unavailablePlayer).toBeVisible();
-  const player = await unavailablePlayer.boundingBox();
-  expect(player!.height).toBeLessThan(440);
+  await expect
+    .poll(
+      async () => (await unavailablePlayer.boundingBox())?.height ?? Infinity,
+    )
+    .toBeLessThan(440);
   await expect(
     unavailablePlayer.getByLabel("Match tracker", { exact: true }),
   ).toBeVisible();

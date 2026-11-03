@@ -9,7 +9,6 @@ import {
   HomeBroadcasts,
   BroadcastDirectory,
   BroadcastViewing,
-  BroadcastArchive,
   Multiview,
 } from "./broadcasts";
 import Link from "next/link";
@@ -43,6 +42,7 @@ import {
 import {
   sports,
   eventTitle,
+  entityHref,
   filterEvents,
   type SportEvent,
   type Coverage,
@@ -119,7 +119,7 @@ export function Experience({
   );
   const router = useRouter();
   const searchParams = useSearchParams();
-  const feedDate = searchParams.get("date") || "";
+  const feedDate = route === "live" ? "" : searchParams.get("date") || "";
   const feedSport = sports.includes(
     searchParams.get("sport") as (typeof sports)[number],
   )
@@ -216,9 +216,8 @@ export function Experience({
     let failed = false;
     setSyncing(true);
     setSyncError("");
-    void accountRequest("me")
-      .then(async (r) => {
-        const saved = await accountRequest("favorites");
+    void Promise.all([accountRequest("me"), accountRequest("favorites")])
+      .then(([r, saved]) => {
         if (!active) return;
         setUser(r.user);
         setFavorites(
@@ -370,7 +369,15 @@ export function Experience({
     if (user) {
       setSyncing(true);
       try {
-        await accountRequest("favorites", saved ? "DELETE" : "POST", item);
+        const result = await accountRequest(
+          "favorites",
+          saved ? "DELETE" : "POST",
+          item,
+        );
+        setFollowing(
+          result.data.filter((f: { kind: string }) => f.kind !== "event"),
+        );
+        return;
       } catch (error) {
         setSyncError((error as Error).message);
         return;
@@ -378,11 +385,15 @@ export function Experience({
         setSyncing(false);
       }
     }
-    setFollowing((f) =>
-      saved
-        ? f.filter((x) => x.kind !== item.kind || x.target !== item.target)
-        : [...f, item],
-    );
+    const next = saved
+      ? following.filter(
+          (x) => x.kind !== item.kind || x.target !== item.target,
+        )
+      : [...following, item];
+    try {
+      localStorage.setItem("backinit-following", JSON.stringify(next));
+    } catch {}
+    setFollowing(next);
   }
   function favorite(e: SportEvent) {
     return (
@@ -738,14 +749,22 @@ export function Experience({
               "news",
               "videos",
             ].includes(route) && <DisplayAdvertising />}
-          {syncError && ["favorites", "profile"].includes(route) && (
-            <p className="account-notice" role="alert">
-              {syncError}{" "}
-              <button onClick={() => setAccountVersion((v) => v + 1)}>
-                Retry sync
-              </button>
-            </p>
-          )}
+          {syncError &&
+            ([
+              "favorites",
+              "profile",
+              "teams",
+              "athletes",
+              "competitions",
+            ].includes(route) ||
+              route.startsWith("explore/")) && (
+              <p className="account-notice" role="alert">
+                {syncError}{" "}
+                <button onClick={() => setAccountVersion((v) => v + 1)}>
+                  Retry sync
+                </button>
+              </p>
+            )}
           {route.startsWith("watch/ppv-") ? (
             <BroadcastViewing id={route.split("/")[1]!} />
           ) : route === "multiview" ? (
@@ -854,6 +873,36 @@ export function Experience({
                   </div>
                 </div>
               )}
+              {route === "favorites" && (
+                <section className="panel saved-following">
+                  <h2>Following</h2>
+                  {syncing ? (
+                    <p role="status">Loading saved sport…</p>
+                  ) : following.length ? (
+                    <div className="directory-grid">
+                      {following.map((f) => (
+                        <Link
+                          key={f.kind + f.target}
+                          href={
+                            f.kind === "sport"
+                              ? `/sport/${f.target.toLowerCase().replaceAll(" ", "-")}`
+                              : entityHref(f.kind, f.target, "")
+                          }
+                        >
+                          <strong>{f.target}</strong>
+                          <small>
+                            {f.kind === "athlete" ? "Player" : f.kind}
+                          </small>
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <p>
+                      Follow players, teams or competitions to keep them here.
+                    </p>
+                  )}
+                </section>
+              )}
               {route === "watch" ? (
                 <>
                   <BroadcastDirectory primary />
@@ -861,7 +910,6 @@ export function Experience({
               ) : route === "videos" ? (
                 <>
                   <WatchHub />
-                  <BroadcastArchive />
                 </>
               ) : route === "playback" ? (
                 <>

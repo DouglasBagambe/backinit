@@ -14,15 +14,29 @@ export function Account({ onChange }: { onChange: () => void }) {
   const [pending, setPending] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [retry, setRetry] = useState(0);
   useEffect(() => {
+    let active = true;
+    setChecking(true);
+    setUnavailable(false);
+    setMessage("");
     void accountRequest("me")
-      .then((r) => setUser(r.user))
-      .catch((error) => {
-        if (error.status >= 500) setUnavailable(true);
-        if (error.status !== 401) setMessage(error.message);
+      .then((r) => {
+        if (active) setUser(r.user);
       })
-      .finally(() => setChecking(false));
-  }, []);
+      .catch((error) => {
+        if (active && error.status !== 401) {
+          setUnavailable(true);
+          setMessage(error.message);
+        }
+      })
+      .finally(() => {
+        if (active) setChecking(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [retry]);
   if (checking)
     return (
       <div className="account-panel">
@@ -34,9 +48,16 @@ export function Account({ onChange }: { onChange: () => void }) {
       <section className="panel account-panel">
         <h2>Accounts are temporarily unavailable</h2>
         <p>
-          Please try again later. You can still browse events and watch
-          available broadcasts.
+          You can retry now, or browse events and watch available broadcasts.
         </p>
+        <button
+          onClick={() => {
+            onChange();
+            setRetry((v) => v + 1);
+          }}
+        >
+          Retry account
+        </button>
         <Link className="primary" href="/watch">
           Browse sport
         </Link>

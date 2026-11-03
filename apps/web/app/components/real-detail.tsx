@@ -4,6 +4,7 @@ import Link from "next/link";
 import { entityHref, formationLines, type SportEvent } from "@backinit/domain";
 import { LazyPlayer as Player } from "./lazy-player";
 import { localStart, useViewingZone } from "../lib/viewing-time";
+import { Crest } from "./marks";
 import { Empty } from "./primitives";
 export function RealDetail({
   event,
@@ -140,9 +141,18 @@ export function RealDetail({
                       <div className="formation-line" key={i}>
                         {line.map((p) => (
                           <div className="formation-player" key={p.name}>
-                            <b>{p.jersey || "•"}</b>
+                            <span className="lineup-portrait">
+                              <Crest name={p.name} imageUrl={p.imageUrl} />
+                              <b>{p.jersey || "•"}</b>
+                            </span>
                             <Link
-                              href={entityHref("athlete", p.name, event.sport)}
+                              href={entityHref("athlete", p.name, event.sport, {
+                                id: p.id,
+                                providerSport: event.source?.provider
+                                  .split(":")[1]
+                                  ?.split("/")[0],
+                                league: event.source?.provider.split("/")[1],
+                              })}
                             >
                               {p.name}
                             </Link>
@@ -175,9 +185,18 @@ export function RealDetail({
                       <ul className="lineup-list">
                         {group.players.map((p, i) => (
                           <li key={p.name + i}>
-                            <b>{p.jersey || "–"}</b>
+                            <span className="lineup-portrait">
+                              <Crest name={p.name} imageUrl={p.imageUrl} />
+                              <b>{p.jersey || "–"}</b>
+                            </span>
                             <Link
-                              href={entityHref("athlete", p.name, event.sport)}
+                              href={entityHref("athlete", p.name, event.sport, {
+                                id: p.id,
+                                providerSport: event.source?.provider
+                                  .split(":")[1]
+                                  ?.split("/")[0],
+                                league: event.source?.provider.split("/")[1],
+                              })}
                             >
                               {p.name}
                             </Link>

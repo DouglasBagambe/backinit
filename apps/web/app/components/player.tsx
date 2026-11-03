@@ -521,14 +521,22 @@ export function Player({
                   ? "Watch this event"
                   : "No stream available"
                 : sourceId
-                  ? "Video unavailable"
+                  ? state === "Checking streams…"
+                    ? "Loading video…"
+                    : state.startsWith("Streams unavailable")
+                      ? "Unable to check video"
+                      : "Video unavailable"
                   : "Test the player"}
             </h2>
             <p>
               {eventId
                 ? "Check the viewing options below."
                 : sourceId
-                  ? "This video is no longer listed. Choose another video or open its official source."
+                  ? state === "Checking streams…"
+                    ? "Checking video availability."
+                    : state.startsWith("Streams unavailable")
+                      ? "Try again to check this video."
+                      : "This video is no longer listed. Choose another video or open its official source."
                   : "Public test signals verify playback only. They are not sports broadcasts."}
             </p>
             {source && (

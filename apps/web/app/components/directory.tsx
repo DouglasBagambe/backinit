@@ -69,7 +69,7 @@ export function Directory({
                   {entity.sport} · {kind}
                 </span>
                 <h2>
-                  {kind === "team" && (
+                  {(kind === "team" || kind === "athlete") && (
                     <Crest name={name} imageUrl={entity.image} />
                   )}{" "}
                   {name}
@@ -94,7 +94,7 @@ export function Directory({
       {entries.length > limit && (
         <button onClick={() => setLimit((n) => n + 48)}>Show more</button>
       )}
-      {entries.length === 0 && (
+      {entries.length === 0 && query.trim().length < 2 && (
         <section className="panel">
           <p>
             {loading && !events.length

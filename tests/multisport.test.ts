@@ -169,21 +169,24 @@ describe("automated multi-sport feeds", () => {
   });
   it("refreshes live scores after TTL and retains a marked snapshot on provider failure", async () => {
     let time = Date.parse(at);
-    const fetcher = vi
-      .fn()
-      .mockResolvedValueOnce(Response.json(board()))
-      .mockResolvedValueOnce(
-        Response.json(
-          board({
-            ...match,
-            competitors: [
-              { ...match.competitors[0], score: "53" },
-              match.competitors[1],
-            ],
-          }),
-        ),
-      )
-      .mockRejectedValueOnce(new Error("offline"));
+    let currentRequests = 0;
+    const fetcher = vi.fn(async (input) => {
+      if (String(input).includes("dates=20261027"))
+        return Response.json({ events: [] });
+      currentRequests++;
+      if (currentRequests >= 3) throw Error("offline");
+      return Response.json(
+        currentRequests === 1
+          ? board()
+          : board({
+              ...match,
+              competitors: [
+                { ...match.competitors[0], score: "53" },
+                match.competitors[1],
+              ],
+            }),
+      );
+    });
     const p = new EspnProvider(new ProviderCache(fetcher, () => time));
     expect((await p.events(nba, "2026-10-28")).value[0]).toMatchObject({
       homeScore: 51,
@@ -200,7 +203,11 @@ describe("automated multi-sport feeds", () => {
       homeScore: 53,
       clock: "Updates delayed",
     });
-    expect(String(fetcher.mock.calls[0][0])).toContain("dates=20261028");
+    expect(
+      fetcher.mock.calls.some(([url]) =>
+        String(url).includes("dates=20261028"),
+      ),
+    ).toBe(true);
   });
   it("fails explicitly on malformed scoreboards", () =>
     expect(() =>

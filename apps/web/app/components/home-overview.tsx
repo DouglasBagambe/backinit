@@ -46,7 +46,7 @@ export function HomeOverview({
           Explore Watch →
         </Link>
       </header>
-      <HomeBroadcasts />
+      <HomeBroadcasts intro={false} />
       {live.length > 0 && (
         <section>
           <div className="section-heading">
