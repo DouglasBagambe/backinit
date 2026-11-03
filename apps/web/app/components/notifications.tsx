@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { localStart, useViewingZone } from "../lib/viewing-time";
 import { accountRequest } from "../lib/account-client";
 type Update = {
   id: number;
@@ -17,19 +18,36 @@ export function Notifications() {
   const [updates, setUpdates] = useState<Update[]>([]);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(true);
+  const { zone } = useViewingZone();
+  const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [retry, setRetry] = useState(0);
+  const inFlight = useRef<symbol | null>(null);
   useEffect(() => {
     let active = true;
+    let requestToken: symbol | null = null;
     async function load() {
+      if (inFlight.current) return;
+      const token = Symbol();
+      requestToken = token;
+      inFlight.current = token;
+      if (active) setPending(true);
       try {
         const result = await accountRequest("notifications");
         if (active) {
+          setReady(true);
+          setLoadError(false);
           setEnabled(result.enabled);
           setUpdates(result.data);
           setMessage("");
         }
       } catch (error) {
-        if (active) setMessage((error as Error).message);
+        if (active) {
+          setLoadError(true);
+          setMessage((error as Error).message);
+        }
       } finally {
+        if (inFlight.current === token) inFlight.current = null;
         if (active) setPending(false);
       }
     }
@@ -39,15 +57,20 @@ export function Notifications() {
     }, 60000);
     return () => {
       active = false;
+      if (inFlight.current === requestToken) inFlight.current = null;
       clearInterval(timer);
     };
-  }, []);
+  }, [retry]);
   return (
     <section className="panel notification-panel">
       <div className="section-heading">
         <h2>Your updates</h2>
         <span className="pill">
-          {updates.filter((u) => !u.read).length} UNREAD
+          {ready
+            ? `${updates.filter((u) => !u.read).length} UNREAD`
+            : loadError
+              ? "Updates"
+              : "Loading updates"}
         </span>
       </div>
       <p>
@@ -58,8 +81,10 @@ export function Notifications() {
         <input
           type="checkbox"
           checked={enabled}
-          disabled={pending}
+          disabled={pending || !ready}
           onChange={async (e) => {
+            if (inFlight.current) return;
+            inFlight.current = Symbol();
             const value = e.target.checked;
             setEnabled(value);
             setPending(true);
@@ -75,6 +100,7 @@ export function Notifications() {
               setEnabled(!value);
               setMessage((error as Error).message);
             } finally {
+              inFlight.current = null;
               setPending(false);
             }
           }}
@@ -83,8 +109,10 @@ export function Notifications() {
       </label>
       {updates.length > 0 && (
         <button
-          disabled={pending}
+          disabled={pending || !ready}
           onClick={async () => {
+            if (inFlight.current) return;
+            inFlight.current = Symbol();
             setPending(true);
             try {
               await accountRequest("notification-read", "POST", {});
@@ -92,6 +120,7 @@ export function Notifications() {
             } catch (error) {
               setMessage((error as Error).message);
             } finally {
+              inFlight.current = null;
               setPending(false);
             }
           }}
@@ -99,7 +128,7 @@ export function Notifications() {
           Mark all as read
         </button>
       )}
-      {!pending && updates.length === 0 && (
+      {ready && !loadError && !pending && updates.length === 0 && (
         <p>
           No match updates yet. New changes appear here after you enable updates
           and save an event or follow a participant.
@@ -108,7 +137,7 @@ export function Notifications() {
       {updates.map((update) => (
         <article className="notification-item" key={update.id}>
           <h3>
-            <Link href={`/match/${update.eventId}`}>{update.title}</Link>
+            <Link href={`/watch/${update.eventId}`}>{update.title}</Link>
             {!update.read && <span className="pill">NEW</span>}
           </h3>
           <p>{update.message}</p>
@@ -117,14 +146,25 @@ export function Notifications() {
               {update.provider} ↗
             </a>{" "}
             · Reported{" "}
-            {new Date(update.reportedAt).toLocaleString("en-GB", {
-              timeZone: "UTC",
-            })}{" "}
-            UTC
+            <time dateTime={update.reportedAt}>
+              {localStart(update.reportedAt, zone)}
+            </time>{" "}
+            {zone}
           </small>
         </article>
       ))}
       {message && <p role="status">{message}</p>}
+      {loadError && (
+        <button
+          disabled={pending}
+          onClick={() => {
+            setPending(true);
+            setRetry((v) => v + 1);
+          }}
+        >
+          Retry updates
+        </button>
+      )}
     </section>
   );
 }

@@ -526,3 +526,43 @@ it("loads players from hyphenated provider leagues without allowing URL paths", 
     "Invalid profile",
   );
 });
+
+it("preserves roster portraits and identities across flat and grouped provider rosters", async () => {
+  const { teamProfile } =
+    await import("../apps/api/src/providers/entity-search");
+  const store = new ProviderCache(async (input) =>
+    Response.json(
+      String(input).endsWith("/roster")
+        ? {
+            athletes: [
+              {
+                items: [
+                  {
+                    id: "123",
+                    displayName: "Player One",
+                    jersey: "7",
+                    position: { displayName: "Forward" },
+                    headshot: {
+                      href: "https://a.espncdn.com/i/headshots/soccer/players/full/123.png",
+                    },
+                  },
+                ],
+              },
+              { id: "456", displayName: "Player Two" },
+            ],
+          }
+        : { team: { displayName: "Chelsea" }, events: [] },
+    ),
+  );
+  const result = await teamProfile("soccer", "eng.1", "363", store);
+  expect(result.players).toEqual([
+    expect.objectContaining({
+      id: "123",
+      name: "Player One",
+      jersey: "7",
+      position: "Forward",
+      image: "https://a.espncdn.com/i/headshots/soccer/players/full/123.png",
+    }),
+    expect.objectContaining({ id: "456", name: "Player Two" }),
+  ]);
+});

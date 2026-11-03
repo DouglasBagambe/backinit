@@ -38,6 +38,8 @@ export function EntityProfile({
   const requestedSport = params.get("sport") || "";
   const { zone } = useViewingZone();
   const [retry, setRetry] = useState(0);
+  const [bioPending, setBioPending] = useState(false);
+  const [teamPending, setTeamPending] = useState(false);
   const [profileError, setProfileError] = useState("");
   const [bio, setBio] = useState<ReturnType<
     typeof athleteProfileSchema.parse
@@ -66,7 +68,9 @@ export function EntityProfile({
   useEffect(() => {
     setBio(null);
     setProfileError("");
-    if (kind !== "athlete" || !name) return;
+    setBioPending(false);
+    if (kind !== "athlete" || !name || !pid || !psport || !league) return;
+    setBioPending(true);
     const c = new AbortController();
     const load = async () => {
       try {
@@ -82,6 +86,8 @@ export function EntityProfile({
       } catch {
         if (!c.signal.aborted)
           setProfileError("Player details could not load.");
+      } finally {
+        if (!c.signal.aborted) setBioPending(false);
       }
     };
     void load();
@@ -122,11 +128,19 @@ export function EntityProfile({
   const scheduleName = scheduleTeam?.name;
   const [teamData, setTeamData] = useState<{
     data: SportEvent[];
-    players: { id: string; name: string; position?: string; jersey?: string }[];
+    players: {
+      id: string;
+      name: string;
+      position?: string;
+      jersey?: string;
+      image?: string;
+    }[];
   } | null>(null);
   useEffect(() => {
     setTeamData(null);
+    setTeamPending(false);
     if (!scheduleTeamId || !scheduleSport || !scheduleLeague) return;
+    setTeamPending(true);
     const c = new AbortController();
     fetch(
       `/api/team-profile?${new URLSearchParams({ id: scheduleTeamId, sport: scheduleSport, league: scheduleLeague })}`,
@@ -147,6 +161,7 @@ export function EntityProfile({
                 name: z.string(),
                 position: z.string().optional(),
                 jersey: z.string().optional(),
+                image: z.string().optional(),
               }),
             ),
           })
@@ -169,6 +184,9 @@ export function EntityProfile({
       })
       .catch(() => {
         if (!c.signal.aborted) setProfileError("Team details could not load.");
+      })
+      .finally(() => {
+        if (!c.signal.aborted) setTeamPending(false);
       });
     return () => c.abort();
   }, [scheduleTeamId, scheduleSport, scheduleLeague, scheduleName, retry]);
@@ -189,12 +207,20 @@ export function EntityProfile({
   const leagueTable = useLeagueStandings(profileMatches);
   const standings = relevant.find((e) => e.detail?.standings?.length)?.detail
     ?.standings;
-  const squad = new Map<string, string>();
+  const squad = new Map<
+    string,
+    { id?: string; position?: string; jersey?: string; image?: string }
+  >();
   for (const e of relevant)
     for (const t of e.detail?.lineups || [])
       if (same(t.team))
-        for (const p of t.players) squad.set(p.name, p.position || "");
-  for (const p of teamData?.players || []) squad.set(p.name, p.position || "");
+        for (const p of t.players)
+          squad.set(p.name, {
+            id: p.id,
+            position: p.position,
+            image: p.imageUrl,
+          });
+  for (const p of teamData?.players || []) squad.set(p.name, p);
   const tabs = [
     "Overview",
     "Matches",
@@ -234,8 +260,8 @@ export function EntityProfile({
             : "competitions"}
       </Link>
       <header className="entity-header panel">
-        {bio?.value.image ? (
-          <Crest name={name} imageUrl={bio.value.image} />
+        {kind === "team" || bio?.value.image ? (
+          <Crest name={name} imageUrl={bio?.value.image} />
         ) : (
           <SportMark name={sport} />
         )}
@@ -370,7 +396,10 @@ export function EntityProfile({
             ))}
           </section>
         )}
-      {loading && !relevant.length && !teamData && !bio ? (
+      {(loading || bioPending || (kind === "team" && teamPending)) &&
+      !relevant.length &&
+      !teamData &&
+      !bio ? (
         <p role="status">Loading profile…</p>
       ) : (
         <>
@@ -429,17 +458,28 @@ export function EntityProfile({
                   : "Players in reported lineups"}
               </h2>
               <div className="directory-grid">
-                {[...squad].map(([player, position]) => (
+                {[...squad].map(([player, details]) => (
                   <Link
                     key={player}
+                    className="squad-card"
                     href={entityHref("athlete", player, sport, {
-                      id: teamData?.players.find((p) => p.name === player)?.id,
+                      id: details.id,
                       providerSport: psport || undefined,
                       league: league || undefined,
                     })}
                   >
-                    <strong>{player}</strong>
-                    <small>{position}</small>
+                    <Crest name={player} imageUrl={details.image} />
+                    <span>
+                      <strong>{player}</strong>
+                      <small>
+                        {[
+                          details.position,
+                          details.jersey ? `#${details.jersey}` : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </small>
+                    </span>
                   </Link>
                 ))}
               </div>

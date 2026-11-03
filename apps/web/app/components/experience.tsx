@@ -9,7 +9,6 @@ import {
   HomeBroadcasts,
   BroadcastDirectory,
   BroadcastViewing,
-  BroadcastArchive,
   Multiview,
 } from "./broadcasts";
 import Link from "next/link";
@@ -911,7 +910,6 @@ export function Experience({
               ) : route === "videos" ? (
                 <>
                   <WatchHub />
-                  <BroadcastArchive />
                 </>
               ) : route === "playback" ? (
                 <>

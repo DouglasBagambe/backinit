@@ -94,3 +94,16 @@ Record new test results, production commit/deployment IDs, known limitations and
 - Review branch is being prepared without merging or deploying. Premium stays deferred for a working week. The owner-edited advertising component and cookie assertions remain unchanged.
 
 - Review pull request: https://github.com/DouglasBagambe/backinit/pull/62 (code commit a3e4b92). Open for review only; main and production are unchanged.
+
+### Follow-up audit — squads and recovery
+
+- [x] Preserve team roster portraits, player IDs and shirt numbers; make squad cards readable at narrow widths and link to the identified player.
+- [x] Account outage recovery without reload; notification outage recovery without a false empty inbox or editing unknown preferences.
+- [x] Notification timestamps respect the viewing zone; updates open the shared match room.
+- [x] Independent profile-request loading states, with delayed player/team response tests.
+- Follow-up verification: 172 unit tests passed / 8 optional skips; 22 affected browser journeys passed before the final fallback-initials visual adjustment. Full regression results are recorded in the review report. No merge/deployment in this audit.
+
+- [x] Replay filters cover the featured player and archive cards; News video links stay in Watch's replay tab.
+- [x] Video registry loading does not falsely claim the selected video was removed.
+- Follow-up broad run: 87 passed / 1 optional skip / 3 failures (two unchanged cookie-choice failures and a tracker measurement race). The tracker measurement now waits across re-renders without weakening its height/tracker checks. Final affected rerun: 39 passed. See the review report for final video-loading verification.
+- Final video-loading regression: 7 passed (six overlap the 39-journey run); final build/typecheck passed. Real replay refresh recovered an initially empty provider response. Playback readiness remains distinct from decoded playback.

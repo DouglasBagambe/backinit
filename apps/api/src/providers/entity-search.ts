@@ -240,7 +240,12 @@ export async function athleteProfile(
   };
 }
 
-export async function teamProfile(sport: string, league: string, id: string) {
+export async function teamProfile(
+  sport: string,
+  league: string,
+  id: string,
+  store = cache,
+) {
   if (
     !sportNames[sport] ||
     !/^[a-z0-9][a-z0-9._-]{0,39}$/.test(league) ||
@@ -258,7 +263,7 @@ export async function teamProfile(sport: string, league: string, id: string) {
   };
   const base = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/teams/${id}`;
   const results = await Promise.allSettled([
-    cache.json(`${base}/schedule`, 60000, (raw) => {
+    store.json(`${base}/schedule`, 60000, (raw) => {
       const d = z
         .object({
           team: z.object({ displayName: z.string() }),
@@ -275,11 +280,12 @@ export async function teamProfile(sport: string, league: string, id: string) {
         ),
       };
     }),
-    cache.json(`${base}/roster`, 300000, (raw) => {
+    store.json(`${base}/roster`, 300000, (raw) => {
       const person = z.object({
         id: z.string(),
         displayName: z.string(),
         jersey: z.string().optional(),
+        headshot: z.object({ href: z.string() }).optional(),
         position: z.object({ displayName: z.string() }).optional(),
       });
       const d = z
@@ -298,6 +304,7 @@ export async function teamProfile(sport: string, league: string, id: string) {
         .map((p) => ({
           id: p.id,
           name: p.displayName,
+          image: playerImage(p.id, `${sport}/${league}`, p.headshot?.href),
           jersey: p.jersey,
           position: p.position?.displayName,
         }));

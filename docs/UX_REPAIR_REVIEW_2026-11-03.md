@@ -4,21 +4,21 @@ Work in progress — 3 November 2026. This report records inspected behavior, no
 
 ## Fixed findings
 
-| Area | Finding | Repair |
-| --- | --- | --- |
-| Live coverage | US-calendar NBA/NHL games after UTC midnight absent | Fetch requested and previous venue day, deduplicate IDs |
-| Watch status | Broadcast time windows kept known finished matches live | Reconcile recent authoritative completed/cancelled/postponed/suspended fixtures |
-| Live navigation | Results duplicated Scores; date picker conflicted with live-only purpose | Dedicated in-progress list, ignore old status/date URL parameters |
-| Search | Profile-request failures could cool down independent search; failure looked like zero results | Isolate search cache, bounded retry, useful partial results, explicit recovery |
-| Following | Saved only showed events; Follow briefly displayed before synchronization | Following cards in Saved; authoritative account response; guest synchronous storage; loading state |
-| Saved hierarchy | New Following panel appeared before the page heading | Move it below the Saved title |
-| Tennis | HTML collapsed spaces between set values | Explicit centered-dot separators |
-| Watch artwork | Wide team logos cropped into narrow image strips | Contain full artwork; wider compact desktop image column |
-| Home | Two large introductions repeated the Watch invitation | Keep one introduction |
-| Lineups | IDs/photos dropped; valid mixed midfield formation failed | Carry provider identities/photos; merge adjacent midfield roles only where reported formation fits |
-| Lineup fallback | Tiny initials and names aligned awkwardly beside pitch portraits | Consistent portrait/initial badges; names below; jersey badges and player cards |
-| Search focus | Large square inner focus outline | Visible rounded outline around the whole search field |
-| Play | Provider Play can still initiate its own advertising | No BackInIt click-to-ad handler or fabricated pre-roll; provider integration remains an open dependency |
+| Area            | Finding                                                                                       | Repair                                                                                                  |
+| --------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Live coverage   | US-calendar NBA/NHL games after UTC midnight absent                                           | Fetch requested and previous venue day, deduplicate IDs                                                 |
+| Watch status    | Broadcast time windows kept known finished matches live                                       | Reconcile recent authoritative completed/cancelled/postponed/suspended fixtures                         |
+| Live navigation | Results duplicated Scores; date picker conflicted with live-only purpose                      | Dedicated in-progress list, ignore old status/date URL parameters                                       |
+| Search          | Profile-request failures could cool down independent search; failure looked like zero results | Isolate search cache, bounded retry, useful partial results, explicit recovery                          |
+| Following       | Saved only showed events; Follow briefly displayed before synchronization                     | Following cards in Saved; authoritative account response; guest synchronous storage; loading state      |
+| Saved hierarchy | New Following panel appeared before the page heading                                          | Move it below the Saved title                                                                           |
+| Tennis          | HTML collapsed spaces between set values                                                      | Explicit centered-dot separators                                                                        |
+| Watch artwork   | Wide team logos cropped into narrow image strips                                              | Contain full artwork; wider compact desktop image column                                                |
+| Home            | Two large introductions repeated the Watch invitation                                         | Keep one introduction                                                                                   |
+| Lineups         | IDs/photos dropped; valid mixed midfield formation failed                                     | Carry provider identities/photos; merge adjacent midfield roles only where reported formation fits      |
+| Lineup fallback | Tiny initials and names aligned awkwardly beside pitch portraits                              | Consistent portrait/initial badges; names below; jersey badges and player cards                         |
+| Search focus    | Large square inner focus outline                                                              | Visible rounded outline around the whole search field                                                   |
+| Play            | Provider Play can still initiate its own advertising                                          | No BackInIt click-to-ad handler or fabricated pre-roll; provider integration remains an open dependency |
 
 ## Scope of remaining limitations
 
@@ -60,3 +60,23 @@ The feature repair can be reviewed as a separate change. Universal player-photo 
 - Added/retained review blockers: comprehensive football photos, external player playback/ad integration, network overlay placement and unchanged cookie-choice failures. These are not silently marked complete.
 
 Review: [PR #62](https://github.com/DouglasBagambe/backinit/pull/62), code commit `a3e4b92`. Not merged/deployed. The real college-player check also passed through the frontend proxy, not only the API directly.
+
+### Follow-up profile and account audit
+
+- Team roster parsing now preserves provider-issued player IDs and portrait URLs, including grouped rosters. Squad cards show position/shirt number, a portrait or readable initials, and open the identified player profile. Team headers use the team crest when available.
+- Account failures now offer Retry account and protect against responses from an abandoned view. Network errors no longer incorrectly fall through to a sign-in form.
+- Notifications distinguish a failed request from an empty inbox, offer Retry updates, and keep preference controls disabled until the existing preferences are known. Polling and mutations are serialized. Update timestamps use the saved viewing zone and match links open the shared Watch match room.
+- Added a provider roster test and two browser journeys covering a 360px squad and account/notification outage recovery. Unit suite: 172 passed / 8 optional skips. First affected browser run: 22 passed. Production builds and all typechecks passed. A final full regression run follows the small fallback-initials visual adjustment.
+- Real Chelsea squad inspected in the browser: supplied portraits display where available; many provider portraits remain absent. This is not a claim of comprehensive photo coverage.
+- Additional audit follow-up retained: profile-specific requests should have independent loading indicators rather than relying on the global catalogue loading flag. Do not mark this behavior verified merely because profile requests usually finish quickly.
+
+Follow-up findings were repaired rather than left as checklist entries:
+
+- Player/team profile requests now retain Loading profile while their own response is pending, even after the catalogue finishes. Two delayed-response browser cases cover this.
+- Replay type/sport/search filters now cover the selected player and the additional archive cards. Highlights cannot leave a full-fight player above or full replays below. Featured video links from News open the replay tab inside Watch. The archive is a separate component consumed by the same filtering UI.
+- Pending video-registry checks show Loading video, rather than briefly claiming the selected video was removed. Unavailable and failed-registry responses remain distinct.
+- Broad regression snapshot before the last replay/loading changes: **87 passed, 1 optional media check skipped, 3 failed**. Two failures are the unchanged cookie-choice behavior. The third measured a player bounding box between renders; the test now waits for the same visible tracker player and retains the original height/tracker assertions.
+- Final affected regression after replay/profile changes: **39 passed**, including that tracker case and all sports/broadcast/viewing checks. The last video-loading adjustment is covered by a separate final viewing run. Production builds and all typechecks pass.
+- User-edited advertising code and cookie assertions remain untouched. These results do not certify external decoded playback or complete photo coverage. No merge or deployment was performed.
+
+Final video regression: **7 passed**, including the new pending-registry case, replay filtering, provider-startup recovery, both themes and account security. These overlap six checks from the 39-journey run; they are not 46 distinct tests. The final build and all typechecks passed. Real replay browsing recovered via Check sources again after an initially empty provider response, displayed 20 highlight cards, selected a highlight in the player, and displayed zero full-replay archive cards. A provider metadata/ready state is not proof of decoded playback.
