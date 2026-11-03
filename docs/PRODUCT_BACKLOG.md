@@ -92,3 +92,5 @@ Record new test results, production commit/deployment IDs, known limitations and
 - College/cup player and team identities now pass all three request boundaries, while path-like league input is rejected. Real college-player bio/history was confirmed through HTTP.
 - Player directory cards preserve supplied photos and provider IDs. Missing-photo coverage remains explicitly incomplete.
 - Review branch is being prepared without merging or deploying. Premium stays deferred for a working week. The owner-edited advertising component and cookie assertions remain unchanged.
+
+- Review pull request: https://github.com/DouglasBagambe/backinit/pull/62 (code commit a3e4b92). Open for review only; main and production are unchanged.

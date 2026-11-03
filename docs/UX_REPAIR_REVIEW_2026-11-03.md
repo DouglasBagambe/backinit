@@ -58,3 +58,5 @@ The feature repair can be reviewed as a separate change. Universal player-photo 
 - Player directory indexing preserves supplied portrait URLs and provider IDs. Athlete cards now include image/initial marks as team cards do.
 - Media privacy copy now reflects automatic player loading when opening a broadcast/source; it no longer incorrectly promises the request waits for Play.
 - Added/retained review blockers: comprehensive football photos, external player playback/ad integration, network overlay placement and unchanged cookie-choice failures. These are not silently marked complete.
+
+Review: [PR #62](https://github.com/DouglasBagambe/backinit/pull/62), code commit `a3e4b92`. Not merged/deployed. The real college-player check also passed through the frontend proxy, not only the API directly.
