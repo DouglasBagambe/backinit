@@ -326,3 +326,60 @@ it("a scoped tennis feed never invokes football, racing or publisher discovery a
   await service.feed("real", "2026-11-02", "Football");
   expect(football).toHaveBeenCalledTimes(1);
 });
+
+it("reconciles a completed cup match even when today's scoreboard no longer includes it", async () => {
+  vi.stubEnv("SPORTS_PROVIDERS_DISABLED", "false");
+  const empty = {
+    value: [],
+    fetchedAt: new Date().toISOString(),
+    stale: false,
+  };
+  for (const Provider of [OpenLigaProvider, JolpicaProvider, WweProvider])
+    vi.spyOn(Provider.prototype, "events").mockResolvedValue(empty);
+  vi.spyOn(OfficialBroadcastProvider.prototype, "events").mockResolvedValue(
+    empty,
+  );
+  const official = verifiedCupFixtures.find((e) =>
+    e.id.includes("liverpool-chelsea"),
+  )!;
+  vi.spyOn(EflProvider.prototype, "events").mockResolvedValue({
+    ...empty,
+    value: [official],
+  });
+  vi.spyOn(EspnProvider.prototype, "events").mockImplementation(
+    async (league, date) => ({
+      ...empty,
+      value:
+        league.path === "soccer/eng.league_cup" && date === "2026-10-28"
+          ? [
+              {
+                ...official,
+                id: "espn-soccer-eng-league-cup-123",
+                status: "finished",
+                scheduleOnly: false,
+                homeScore: 1,
+                awayScore: 1,
+                clock: "FT-Pens",
+                source: {
+                  ...official.source!,
+                  provider: "ESPN:soccer/eng.league_cup",
+                  fetchedAt: new Date().toISOString(),
+                  stale: false,
+                },
+              },
+            ]
+          : [],
+    }),
+  );
+  const feed = await new SportsService().feed("real", "2026-11-03", "Football");
+  expect(feed.data.filter((e) => e.id === official.id)).toHaveLength(1);
+  expect(feed.data.find((e) => e.id === official.id)).toMatchObject({
+    status: "finished",
+    scheduleOnly: false,
+    homeScore: 1,
+    awayScore: 1,
+  });
+  expect(feed.data.some((e) => e.id === "espn-soccer-eng-league-cup-123")).toBe(
+    false,
+  );
+});

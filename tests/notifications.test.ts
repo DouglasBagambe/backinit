@@ -56,3 +56,47 @@ it("generates deduplicated, isolated opt-in updates only from fresh real changes
     a.db.close();
   }
 });
+
+it("notifies followed tennis athletes when a set changes even without aggregate totals", async () => {
+  const a = new Accounts(":memory:");
+  try {
+    const n = new Notifications(a);
+    const fan = await a.authenticate(
+      {
+        email: "tennis-updates@example.test",
+        password: "tennis-notification-password",
+      },
+      true,
+    );
+    a.favorite(fan.user, { kind: "athlete", target: "Carlos Alcaraz" }, false);
+    n.preferences(fan.user, { enabled: true });
+    const event = {
+      ...events[0]!,
+      sport: "Tennis",
+      kind: "score",
+      home: "Carlos Alcaraz",
+      away: "Jannik Sinner",
+      homeScore: null,
+      awayScore: null,
+      provenance: "provider",
+      source: {
+        provider: "Test",
+        url: "https://example.test",
+        license: "Test",
+        fetchedAt: new Date(Date.now() + 100).toISOString(),
+        stale: false,
+      },
+      detail: { periods: [{ label: "Set 1", home: "5", away: "4" }] },
+    } as SportEvent;
+    n.ingest([event]);
+    n.ingest([
+      {
+        ...event,
+        detail: { periods: [{ label: "Set 1", home: "6", away: "4" }] },
+      },
+    ]);
+    expect(n.list(fan.user).data).toHaveLength(1);
+  } finally {
+    a.db.close();
+  }
+});

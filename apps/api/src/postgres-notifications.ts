@@ -3,6 +3,7 @@ import { BadRequestException, Logger } from "@nestjs/common";
 import { z } from "zod";
 import {
   eventTitle,
+  eventScore,
   type SportEvent,
 } from "../../../packages/domain/src/index.js";
 import type { User } from "./account-types.js";
@@ -120,7 +121,14 @@ export class PostgresNotifications {
           `sport:${e.sport}`,
           `competition:${e.competition}`,
         ];
-        if (e.kind === "score") keys.push(`team:${e.home}`, `team:${e.away}`);
+        if (e.kind === "score")
+          keys.push(
+            `team:${e.home}`,
+            `team:${e.away}`,
+            ...(["Tennis", "Badminton"].includes(e.sport)
+              ? [`athlete:${e.home}`, `athlete:${e.away}`]
+              : []),
+          );
         for (const g of e.detail?.goals || [])
           if (g.player) keys.push(`athlete:${g.player}`);
         for (const c of e.detail?.classification || [])
@@ -148,6 +156,7 @@ export class PostgresNotifications {
           score:
             event.kind === "score" ? [event.homeScore, event.awayScore] : null,
           goals: event.detail?.goals,
+          periods: event.detail?.periods,
           classification: event.detail?.classification,
         };
         const revision = createHash("sha256")
@@ -163,7 +172,7 @@ export class PostgresNotifications {
           continue;
         const score =
           event.kind === "score"
-            ? `${event.homeScore ?? "–"}–${event.awayScore ?? "–"}`
+            ? `${eventScore(event, "home")}–${eventScore(event, "away")}`
             : event.status;
         updates.push({
           event_id: event.id,

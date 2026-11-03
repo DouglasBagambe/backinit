@@ -3,6 +3,7 @@ import { BadRequestException } from "@nestjs/common";
 import { z } from "zod";
 import {
   eventTitle,
+  eventScore,
   type SportEvent,
 } from "../../../packages/domain/src/index.js";
 import type { Accounts, User } from "./accounts.js";
@@ -90,6 +91,7 @@ export class Notifications {
           score:
             event.kind === "score" ? [event.homeScore, event.awayScore] : null,
           goals: event.detail?.goals,
+          periods: event.detail?.periods,
           classification: event.detail?.classification,
         };
         const revision = createHash("sha256")
@@ -108,7 +110,13 @@ export class Notifications {
           `competition:${event.competition}`,
         ];
         if (event.kind === "score")
-          keys.push(`team:${event.home}`, `team:${event.away}`);
+          keys.push(
+            `team:${event.home}`,
+            `team:${event.away}`,
+            ...(["Tennis", "Badminton"].includes(event.sport)
+              ? [`athlete:${event.home}`, `athlete:${event.away}`]
+              : []),
+          );
         for (const goal of event.detail?.goals || [])
           if (goal.player) keys.push(`athlete:${goal.player}`);
         for (const result of event.detail?.classification || [])
@@ -119,7 +127,7 @@ export class Notifications {
             users.set(follow.user_id, follow.changed_at);
         const score =
           event.kind === "score"
-            ? `${event.homeScore ?? "–"}–${event.awayScore ?? "–"}`
+            ? `${eventScore(event, "home")}–${eventScore(event, "away")}`
             : event.status;
         const message =
           old.start !== event.start
