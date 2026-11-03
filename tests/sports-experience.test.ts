@@ -287,3 +287,77 @@ it("looks up players independently of match lists and retains verified provider 
   ]);
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
+
+it("player history uses only reported appearances with valid IDs and statistics", async () => {
+  const { normalizeAthleteLog } =
+    await import("../apps/api/src/providers/entity-search");
+  const raw = {
+    displayNames: ["Goals", "Assists"],
+    events: {
+      "123": {
+        id: "123",
+        gameDate: "2026-10-31T12:30:00Z",
+        opponent: { displayName: "Opponent" },
+        team: { id: "1", abbreviation: "TEAM" },
+        homeTeamId: "2",
+        awayTeamId: "1",
+        homeTeamScore: "0",
+        awayTeamScore: "2",
+        score: "2-0",
+        gameResult: "W",
+      },
+      "999": {
+        id: "999",
+        gameDate: "2026-10-20T12:00:00Z",
+        opponent: { displayName: "Did not play" },
+      },
+    },
+    seasonTypes: [
+      {
+        categories: [
+          {
+            events: [
+              { eventId: "123", stats: ["1", "0"] },
+              { eventId: "999", stats: ["DNP"] },
+              { eventId: "missing", stats: ["1"] },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const rows = normalizeAthleteLog(raw, "soccer", "eng.1");
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({
+    id: "espn-soccer-eng-1-123",
+    score: "2–0",
+    opponent: "Opponent",
+    statistics: [
+      { label: "Goals", value: "1" },
+      { label: "Assists", value: "0" },
+    ],
+  });
+});
+
+it("a player biography survives a provider stats heading with no statistics array", async () => {
+  const store = new ProviderCache(async (input) =>
+    Response.json(
+      String(input).includes("gamelog")
+        ? {}
+        : {
+            athlete: {
+              id: "777777",
+              displayName: "Tennis Player",
+              age: 23,
+              statsSummary: { displayName: "Current season" },
+            },
+          },
+    ),
+  );
+  const { athleteProfile } =
+    await import("../apps/api/src/providers/entity-search");
+  const result = await athleteProfile("tennis", "atp", "777777", store);
+  expect(result.value.name).toBe("Tennis Player");
+  expect(result.value.statistics).toBeUndefined();
+  expect(result.value.appearances).toEqual([]);
+});
