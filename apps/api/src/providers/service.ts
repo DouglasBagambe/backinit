@@ -174,6 +174,41 @@ export class SportsService {
           "Official cup schedule; scores supplemented by ESPN when available.",
       },
       {
+        provider: "ESPN recent cup results",
+        sport: "Football",
+        load: async () => {
+          const schedule = await this.cup.events();
+          const dates = [
+            ...new Set(
+              schedule.value
+                .filter(
+                  (e) =>
+                    Date.parse(e.start) < now.getTime() &&
+                    Date.parse(e.start) > now.getTime() - 30 * 86400000,
+                )
+                .map((e) => e.start.slice(0, 10)),
+            ),
+          ]
+            .sort()
+            .slice(-3);
+          const league = espnLeagues.find(
+            (l) => l.path === "soccer/eng.league_cup",
+          )!;
+          const boards = await Promise.allSettled(
+            dates.map((day) => this.espn.events(league, day, false)),
+          );
+          return {
+            value: boards.flatMap((r) =>
+              r.status === "fulfilled" ? r.value.value : [],
+            ),
+            fetchedAt: new Date().toISOString(),
+            stale: boards.some((r) => r.status === "rejected" || r.value.stale),
+          };
+        },
+        message:
+          "Recent cup scoreboards reconcile completed fixtures with their original event URLs.",
+      },
+      {
         provider: "WWE official schedule",
         sport: "WWE",
         load: () => this.wrestling.events(),
@@ -234,9 +269,13 @@ export class SportsService {
         "No reliable free live feed connected. No manually maintained fixtures are presented as current coverage.",
       fetchedAt: null,
     });
-    const all = results.flatMap((r) =>
-      r.status === "fulfilled" ? r.value.value : [],
-    );
+    const all = [
+      ...new Map(
+        results
+          .flatMap((r) => (r.status === "fulfilled" ? r.value.value : []))
+          .map((e) => [e.id, e]),
+      ).values(),
+    ];
     // Preserve existing cup URLs and source associations while replacing schedule-only
     // records with a provider scoreboard. Match BOTH participants and kickoff.
     const key = (s: string) =>
@@ -271,7 +310,22 @@ export class SportsService {
           detail: { ...official.detail, ...e.detail },
         };
       })
-      .concat(cup)
+      .concat(
+        cup.map((e) => {
+          const known = this.known.get(e.id);
+          return known &&
+            !known.scheduleOnly &&
+            ["finished", "cancelled", "postponed"].includes(known.status)
+            ? known
+            : Date.parse(e.start) + 86400000 < Date.now()
+              ? {
+                  ...e,
+                  status: "unknown" as const,
+                  ...(e.kind === "score" ? { clock: "Status pending" } : {}),
+                }
+              : e;
+        }),
+      )
       .sort((a, b) => a.start.localeCompare(b.start));
     for (const event of merged) {
       if (this.known.size >= 2000 && !this.known.has(event.id))
@@ -381,9 +435,11 @@ export class SportsService {
       if (table && !table.stale)
         event.detail = { ...event.detail, standings: table.value };
     }
+    if (event) this.known.set(id, event);
     return event;
   }
-  async standings() {
+  async standings(league?: string) {
+    if (league) return this.espn.standings(league);
     const now = new Date();
     return this.football.standings(
       now.getUTCMonth() >= 6 ? now.getUTCFullYear() : now.getUTCFullYear() - 1,

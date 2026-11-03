@@ -37,7 +37,33 @@ export const standingSchema = z.object({
   goalsAgainst: z.number(),
   points: z.number(),
 });
+const historyMatchSchema = z.object({
+  id: z.string(),
+  date: z.string(),
+  home: z.string(),
+  away: z.string(),
+  homeScore: z.string(),
+  awayScore: z.string(),
+  competition: z.string().optional(),
+});
 export const liveDetailSchema = z.object({
+  headToHead: z.array(historyMatchSchema).optional(),
+  form: z
+    .array(
+      z.object({
+        team: z.string(),
+        matches: z.array(
+          z.object({
+            id: z.string(),
+            date: z.string(),
+            opponent: z.string(),
+            result: z.enum(["W", "D", "L"]),
+            score: z.string(),
+          }),
+        ),
+      }),
+    )
+    .optional(),
   venue: z.string().nullable().optional(),
   round: z.string().optional(),
   goals: z.array(goalSchema).optional(),
@@ -53,9 +79,12 @@ export const liveDetailSchema = z.object({
     .array(
       z.object({
         team: z.string(),
+        formation: z.string().optional(),
         players: z.array(
           z.object({
             name: z.string(),
+            jersey: z.string().optional(),
+            formationPlace: z.string().optional(),
             position: z.string().optional(),
             starter: z.boolean().optional(),
           }),
@@ -644,4 +673,184 @@ export function broadcastState(b: Broadcast, now = Date.now()) {
         : now <= b.end
           ? "Live"
           : "Ended";
+}
+
+const aliases: Record<string, string> = {
+  manutd: "manchesterunited",
+  manchesterutd: "manchesterunited",
+  manunited: "manchesterunited",
+  psg: "parissaintgermain",
+  bayernmunchen: "bayernmunich",
+  bayern: "bayernmunich",
+  inter: "intermilan",
+  internazionale: "intermilan",
+  fcbarcelona: "barcelona",
+};
+export function participantKey(value: string) {
+  const key = value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\b(?:fc|afc)\b/g, "")
+    .replace(/[^a-z0-9]/g, "");
+  return aliases[key] || key;
+}
+export function sportKey(value: string) {
+  const key = value.toLowerCase();
+  return key === "wrestling" ? "wwe" : key === "motorsport" ? "formula 1" : key;
+}
+/** Match both participants and kickoff; ambiguous matches are never joined. */
+export function matchBroadcastEvent(
+  broadcast: Broadcast,
+  events: SportEvent[],
+) {
+  if (broadcast.channel) return null;
+  const teams = broadcast.title.split(/\s+(?:vs?\.?|@|at)\s+/i);
+  if (teams.length !== 2) return null;
+  const matches = events.filter((e) => {
+    if (
+      e.kind !== "score" ||
+      e.provenance !== "provider" ||
+      sportKey(e.sport) !== sportKey(broadcast.category) ||
+      Math.abs(Date.parse(e.start) - broadcast.start) > 6 * 3600000
+    )
+      return false;
+    const sides = [participantKey(e.home), participantKey(e.away)].sort();
+    return sides.join(":") === teams.map(participantKey).sort().join(":");
+  });
+  return matches.length === 1 ? matches[0]! : null;
+}
+export function isMediaEvent(event: SportEvent) {
+  return (
+    event.kind === "card" &&
+    !event.bouts.length &&
+    /full match|full basketball game|highlights|weekly|marathon|extended highlights/i.test(
+      event.title,
+    )
+  );
+}
+export function eventScore(event: SportEvent, side: "home" | "away") {
+  if (event.kind !== "score") return "";
+  const total = side === "home" ? event.homeScore : event.awayScore;
+  if (total !== null) return String(total);
+  if (event.sport === "Tennis" && event.detail?.periods?.length)
+    return event.detail.periods.map((p) => p[side]).join("  ");
+  return event.status === "upcoming" ? "" : "–";
+}
+export function entityHref(
+  kind: "team" | "athlete" | "competition",
+  name: string,
+  sport: string,
+  identity?: { id?: string; providerSport?: string; league?: string },
+) {
+  return `/explore/${kind}?${new URLSearchParams({ name, sport, ...(identity?.id && identity.providerSport && identity.league ? { pid: identity.id, psport: identity.providerSport, league: identity.league } : {}) })}`;
+}
+export type SportsEntity = {
+  kind: "team" | "athlete" | "competition";
+  name: string;
+  sport: string;
+  image?: string;
+  id?: string;
+  providerSport?: string;
+  league?: string;
+};
+export function sportsEntities(events: SportEvent[]): SportsEntity[] {
+  const entities = new Map<string, SportsEntity>();
+  const add = (entity: SportsEntity) => {
+    if (!entity.name.trim() || /^(tbd|unknown)$/i.test(entity.name.trim()))
+      return;
+    const key = `${entity.kind}:${entity.sport}:${participantKey(entity.name)}`;
+    const old = entities.get(key);
+    entities.set(key, { ...old, ...entity, image: entity.image || old?.image });
+  };
+  for (const e of events) {
+    if (isMediaEvent(e)) continue;
+    add({ kind: "competition", name: e.competition, sport: e.sport });
+    if (e.kind === "score") {
+      const path = e.source?.provider.match(/^ESPN:([a-z]+)\/([a-z0-9.]+)$/);
+      const identity = path ? { providerSport: path[1], league: path[2] } : {};
+      const kind = ["Tennis", "Badminton"].includes(e.sport)
+        ? "athlete"
+        : "team";
+      add({
+        kind,
+        name: e.home,
+        sport: e.sport,
+        image: e.homeParticipant?.imageUrl,
+        ...(path ? { ...identity, id: e.homeParticipant?.id } : {}),
+      });
+      add({
+        kind,
+        name: e.away,
+        sport: e.sport,
+        image: e.awayParticipant?.imageUrl,
+        ...(path ? { ...identity, id: e.awayParticipant?.id } : {}),
+      });
+    }
+    for (const r of e.detail?.classification || []) {
+      add({ kind: "athlete", name: r.driver, sport: e.sport });
+      add({ kind: "team", name: r.team, sport: e.sport });
+    }
+    for (const team of e.detail?.lineups || [])
+      for (const p of team.players)
+        add({ kind: "athlete", name: p.name, sport: e.sport });
+    for (const goal of e.detail?.goals || [])
+      if (goal.player)
+        add({ kind: "athlete", name: goal.player, sport: e.sport });
+    if (e.kind === "card")
+      for (const bout of e.bouts)
+        for (const name of bout.performers)
+          add({ kind: "athlete", name, sport: e.sport });
+  }
+  return [...entities.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Draw only when reported player positions agree with the reported formation. */
+export function formationLines(
+  team: NonNullable<LiveDetail["lineups"]>[number],
+) {
+  const formation = team.formation?.split("-").map(Number);
+  const starters = team.players.filter((p) => p.starter === true);
+  if (
+    !formation?.every((n) => Number.isInteger(n) && n > 0 && n <= 6) ||
+    formation.reduce((a, b) => a + b, 0) !== 10 ||
+    starters.length !== 11
+  )
+    return null;
+  const groups: Array<typeof starters> = Array.from({ length: 5 }, () => []);
+  for (const p of starters) {
+    const pos = p.position || "";
+    const group =
+      pos === "G" || pos === "GK"
+        ? 0
+        : /^(CD|CB|LB|RB)(-|$)/.test(pos)
+          ? 1
+          : /^(DM|CM|LM|RM|M)(-|$)/.test(pos)
+            ? 2
+            : /^(AM)(-|$)/.test(pos)
+              ? 3
+              : /^(F|LF|RF|CF|ST|LW|RW)(-|$)/.test(pos)
+                ? 4
+                : -1;
+    if (group < 0) return null;
+    groups[group]!.push(p);
+  }
+  const lines = groups.filter((g) => g.length);
+  if (lines.map((g) => g.length).join("-") !== [1, ...formation].join("-"))
+    return null;
+  const lateral = (position = "") =>
+    /^(LB|LWB|LM|LF|LW)$/.test(position)
+      ? 0
+      : position.endsWith("-L")
+        ? 1
+        : position.endsWith("-R")
+          ? 3
+          : /^(RB|RWB|RM|RF|RW)$/.test(position)
+            ? 4
+            : 2;
+  return lines
+    .map((line) =>
+      [...line].sort((a, b) => lateral(a.position) - lateral(b.position)),
+    )
+    .reverse();
 }

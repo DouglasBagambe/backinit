@@ -9,6 +9,11 @@ import {
   Optional,
   Inject,
 } from "@nestjs/common";
+import {
+  searchEntities,
+  athleteProfile,
+  teamProfile,
+} from "./providers/entity-search.js";
 import { z } from "zod";
 import { interval, map } from "rxjs";
 import {
@@ -39,6 +44,38 @@ export class SportsController {
   ) {}
   @Get("news") news() {
     return news.feed();
+  }
+  @Get("search") async search(@Query("q") input?: string) {
+    const query = input?.trim() || "";
+    if (query.length < 2 || query.length > 80)
+      throw new BadRequestException("Search needs 2–80 characters");
+    return searchEntities(query);
+  }
+  @Get("athlete-profile") async athlete(@Query() input: unknown) {
+    const parsed = z
+      .object({
+        sport: z.string().regex(/^[a-z]{2,20}$/),
+        league: z.string().regex(/^[a-z0-9.]{1,40}$/),
+        id: z.string().regex(/^\d{1,15}$/),
+      })
+      .safeParse(input);
+    if (!parsed.success) throw new BadRequestException("Invalid profile");
+    return athleteProfile(
+      parsed.data.sport,
+      parsed.data.league,
+      parsed.data.id,
+    );
+  }
+  @Get("team-profile") async team(@Query() input: unknown) {
+    const parsed = z
+      .object({
+        sport: z.string().regex(/^[a-z]{2,20}$/),
+        league: z.string().regex(/^[a-z0-9.]{1,40}$/),
+        id: z.string().regex(/^\d{1,15}$/),
+      })
+      .safeParse(input);
+    if (!parsed.success) throw new BadRequestException("Invalid profile");
+    return teamProfile(parsed.data.sport, parsed.data.league, parsed.data.id);
   }
   @Get("health") health() {
     return {
@@ -93,8 +130,15 @@ export class SportsController {
     if (!event) throw new NotFoundException("Event not found");
     return event;
   }
-  @Get("standings") async standings() {
-    return service.standings();
+  @Get("standings") async standings(@Query("league") league?: string) {
+    if (
+      league &&
+      !["eng.1", "esp.1", "ger.1", "ita.1", "fra.1", "ned.1", "por.1"].includes(
+        league,
+      )
+    )
+      throw new BadRequestException("Unsupported league");
+    return service.standings(league);
   }
   @Sse("updates") updates() {
     return interval(15000).pipe(

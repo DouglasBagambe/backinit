@@ -376,6 +376,69 @@ export class EspnProvider {
       ),
     };
   }
+  async standings(league: string) {
+    const supported = [
+      "eng.1",
+      "esp.1",
+      "ger.1",
+      "ita.1",
+      "fra.1",
+      "ned.1",
+      "por.1",
+    ];
+    if (!supported.includes(league)) throw new Error("Unsupported league");
+    const entry = z.object({
+      team: z.object({ displayName: z.string() }),
+      stats: z.array(
+        z.object({ name: z.string(), value: z.number().optional() }),
+      ),
+    });
+    const schema = z.object({
+      season: z.object({ displayName: z.string().optional() }).optional(),
+      children: z.array(
+        z.object({
+          standings: z.object({ entries: z.array(entry) }).optional(),
+        }),
+      ),
+    });
+    return this.cache.json(
+      `https://site.api.espn.com/apis/v2/sports/soccer/${league}/standings`,
+      300000,
+      (raw) => {
+        const data = schema.parse(raw);
+        const groups = data.children.filter((c) => c.standings?.entries.length);
+        if (groups.length !== 1)
+          throw new Error("Grouped standings need separate tables");
+        const rows = groups[0]!
+          .standings!.entries.map((e) => {
+            const number = (key: string) => {
+              const value = e.stats.find((s) => s.name === key)?.value;
+              if (value === undefined)
+                throw new Error("Missing standing statistic");
+              return value;
+            };
+            return {
+              team: e.team.displayName,
+              rank: number("rank"),
+              played: number("gamesPlayed"),
+              won: number("wins"),
+              drawn: number("ties"),
+              lost: number("losses"),
+              goalsFor: number("pointsFor"),
+              goalsAgainst: number("pointsAgainst"),
+              points: number("points"),
+            };
+          })
+          .sort((a, b) => a.rank - b.rank);
+        return {
+          rows,
+          season: data.season?.displayName,
+          provider: "ESPN",
+          url: `https://www.espn.com/soccer/standings/_/league/${league}`,
+        };
+      },
+    );
+  }
   async detail(event: SportEvent): Promise<LiveDetail | undefined> {
     const path = event.source?.provider.replace(/^ESPN:/, "");
     if (
@@ -390,6 +453,8 @@ export class EspnProvider {
       displayValue: z.string(),
     });
     const summarySchema = z.object({
+      lastFiveGames: z.array(z.unknown()).optional(),
+      seasonseries: z.array(z.unknown()).optional(),
       boxscore: z
         .object({
           teams: z
@@ -430,15 +495,30 @@ export class EspnProvider {
         .array(
           z.object({
             team: z.object({ displayName: z.string() }),
-            roster: z.array(
-              z.object({
-                athlete: z.object({
-                  displayName: z.string(),
+            formation: z.string().optional(),
+            roster: z
+              .array(
+                z.object({
+                  athlete: z.object({
+                    displayName: z.string(),
+                    position: z.object({ abbreviation: z.string() }).optional(),
+                  }),
+                  starter: z.boolean().optional(),
+                  jersey: z.string().optional(),
+                  formationPlace: z.string().optional(),
                   position: z.object({ abbreviation: z.string() }).optional(),
                 }),
-                starter: z.boolean().optional(),
-              }),
-            ),
+              )
+              .default([]),
+          }),
+        )
+        .optional(),
+      commentary: z
+        .array(
+          z.object({
+            sequence: z.number(),
+            text: z.string(),
+            time: z.object({ displayValue: z.string() }).optional(),
           }),
         )
         .optional(),
@@ -482,15 +562,22 @@ export class EspnProvider {
           ]
         : [];
     });
+    const rosters = data.rosters?.filter((r) => r.roster.length);
     const lineups =
-      data.rosters?.map((r) => ({
-        team: r.team.displayName,
-        players: r.roster.map((a) => ({
-          name: a.athlete.displayName,
-          position: a.athlete.position?.abbreviation,
-          starter: a.starter,
-        })),
-      })) ||
+      (rosters?.length ? rosters : undefined)
+        ?.filter((r) => r.roster.length)
+        .map((r) => ({
+          team: r.team.displayName,
+          formation: r.formation,
+          players: r.roster.map((a) => ({
+            name: a.athlete.displayName,
+            position:
+              a.position?.abbreviation || a.athlete.position?.abbreviation,
+            jersey: a.jersey,
+            formationPlace: a.formationPlace,
+            starter: a.starter,
+          })),
+        })) ||
       data.boxscore?.players?.map((r) => ({
         team: r.team.displayName,
         players: (r.statistics || [])
@@ -501,8 +588,77 @@ export class EspnProvider {
             starter: a.starter,
           })),
       }));
+    const formSchema = z.object({
+      team: z.object({ displayName: z.string() }),
+      events: z.array(
+        z.object({
+          id: z.string(),
+          gameDate: z.string(),
+          opponent: z.object({ displayName: z.string() }),
+          gameResult: z.enum(["W", "D", "L"]),
+          score: z.string(),
+        }),
+      ),
+    });
+    const form = data.lastFiveGames?.flatMap((raw) => {
+      const p = formSchema.safeParse(raw);
+      return p.success
+        ? [
+            {
+              team: p.data.team.displayName,
+              matches: p.data.events.map((e) => ({
+                id: e.id,
+                date: e.gameDate,
+                opponent: e.opponent.displayName,
+                result: e.gameResult,
+                score: e.score,
+              })),
+            },
+          ]
+        : [];
+    });
+    const seriesSchema = z.object({
+      type: z.string(),
+      events: z.array(
+        z.object({
+          id: z.string(),
+          date: z.string(),
+          competitionName: z.string().optional(),
+          competitors: z.array(
+            z.object({
+              homeAway: z.string(),
+              score: z.string(),
+              team: z.object({ displayName: z.string() }),
+            }),
+          ),
+        }),
+      ),
+    });
+    const headToHead = data.seasonseries?.flatMap((raw) => {
+      const p = seriesSchema.safeParse(raw);
+      if (!p.success || p.data.type !== "head-to-head") return [];
+      return p.data.events.flatMap((e) => {
+        const h = e.competitors.find((t) => t.homeAway === "home"),
+          a = e.competitors.find((t) => t.homeAway === "away");
+        return h && a
+          ? [
+              {
+                id: e.id,
+                date: e.date,
+                home: h.team.displayName,
+                away: a.team.displayName,
+                homeScore: h.score,
+                awayScore: a.score,
+                competition: e.competitionName,
+              },
+            ]
+          : [];
+      });
+    });
     return {
       ...event.detail,
+      ...(form?.length ? { form } : {}),
+      ...(headToHead?.length ? { headToHead } : {}),
       ...(statistics?.length ? { statistics } : {}),
       ...(lineups?.length ? { lineups } : {}),
       ...(data.plays?.length
@@ -519,7 +675,15 @@ export class EspnProvider {
               team: p.team?.displayName,
             })),
           }
-        : {}),
+        : data.commentary?.length
+          ? {
+              timeline: data.commentary.map((p) => ({
+                id: `commentary-${p.sequence}`,
+                clock: p.time?.displayValue || "",
+                text: p.text,
+              })),
+            }
+          : {}),
     };
   }
 }
