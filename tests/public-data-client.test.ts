@@ -43,7 +43,22 @@ it("isolates filters, expires results, and never caches private endpoints", asyn
   await expect(cache.read("/api/account/me")).rejects.toThrow(
     "Not a public feed",
   );
-  expect(eventsUrl("sport/american-football")).toBe(
-    "/api/events?sport=American%20football",
+  expect(
+    new URL(
+      eventsUrl("sport/american-football"),
+      "https://example.test",
+    ).searchParams.get("sport"),
+  ).toBe("American football");
+  const scoped = new URL(
+    eventsUrl("fixtures", { sport: "Tennis", date: "2026-11-03" }),
+    "https://example.test",
   );
+  expect(scoped.searchParams.get("sport")).toBe("Tennis");
+  expect(scoped.searchParams.get("date")).toBe("2026-11-03");
+  expect(
+    new URL(
+      eventsUrl("sport/football", { sport: "Tennis" }),
+      "https://example.test",
+    ).searchParams.get("sport"),
+  ).toBe("Football");
 });

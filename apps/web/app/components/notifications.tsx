@@ -51,8 +51,8 @@ export function Notifications() {
         </span>
       </div>
       <p>
-        Get updates here for saved events and the sport you follow. Updates may
-        be delayed. Email and push notifications aren’t available.
+        Get match updates in BackInIt for saved events and the sport you follow.
+        Updates reflect the latest reported scores.
       </p>
       <label className="check-label">
         <input

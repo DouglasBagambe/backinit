@@ -37,6 +37,11 @@ export default async function Page({
     "multiview",
   ];
   if (
+    !(
+      slug[0] === "explore" &&
+      slug.length === 2 &&
+      ["team", "athlete", "competition"].includes(slug[1]!)
+    ) &&
     !pages.includes(route) &&
     !(slug.length === 2 && ["match", "watch"].includes(slug[0]!)) &&
     !(
@@ -73,6 +78,11 @@ async function PageContent({
           : undefined;
   const { feed, news } = await loadPageData(route, requestedEdition);
   if (
+    !(
+      slug[0] === "explore" &&
+      slug.length === 2 &&
+      ["team", "athlete", "competition"].includes(slug[1]!)
+    ) &&
     !pages.includes(route) &&
     !(
       ["match", "watch"].includes(slug[0] || "") &&
@@ -99,4 +109,40 @@ async function PageContent({
       nativeAdsEnabled={process.env.ADSTERRA_NATIVE_ENABLED !== "false"}
     />
   );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug?: string[] }>;
+}) {
+  const { slug = [] } = await params;
+  const route = slug[0] || "";
+  const titles: Record<string, string> = {
+    watch: "Watch live sport",
+    scores: "Scores & results",
+    fixtures: "Fixtures",
+    live: "Live scores",
+    news: "Sports news",
+    search: "Search sport",
+    teams: "Teams",
+    athletes: "Athletes",
+    competitions: "Competitions",
+    settings: "Settings",
+    profile: "Account",
+    multiview: "Multiview",
+    privacy: "Privacy",
+  };
+  return {
+    title:
+      titles[route] ||
+      (route === "match"
+        ? "Match centre"
+        : route === "explore"
+          ? "Sport profile"
+          : "Live sport, scores & streams"),
+    ...(["admin", "profile", "settings", "favorites", "search"].includes(route)
+      ? { robots: { index: false, follow: false } }
+      : {}),
+  };
 }

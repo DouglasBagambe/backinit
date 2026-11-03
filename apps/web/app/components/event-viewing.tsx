@@ -1,4 +1,7 @@
 "use client";
+import { LeagueStandings, useLeagueStandings } from "./league-standings";
+import { BroadcastPlayer } from "./broadcast-player";
+import { useBroadcasts } from "./use-broadcasts";
 import { AdSlot } from "./advertising";
 import { DisplayAdvertising } from "./display-advertising";
 import { LiveTracker } from "./live-tracker";
@@ -6,6 +9,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   eventTitle,
+  eventScore,
+  entityHref,
+  matchBroadcastEvent,
+  type Broadcast,
   eventSchema,
   watchFeedSchema,
   type SportEvent,
@@ -18,12 +25,36 @@ export function EventViewing({
   event: initialEvent,
   events,
   favorite,
+  broadcast: suppliedBroadcast,
 }: {
   event: SportEvent;
   events: SportEvent[];
   favorite: React.ReactNode;
+  broadcast?: Broadcast;
 }) {
   const [event, setEvent] = useState(initialEvent);
+  const { feed: broadcasts } = useBroadcasts();
+  const broadcast =
+    suppliedBroadcast ||
+    broadcasts.data.find(
+      (item) => matchBroadcastEvent(item, [event])?.id === event.id,
+    );
+  const [mode, setMode] = useState("stream");
+  const [theatre, setTheatre] = useState(false);
+  const leagueTable = useLeagueStandings([event]);
+  const tabs = [
+    "Overview",
+    ...(leagueTable ? ["Standings"] : []),
+    ...(event.detail?.form?.length ? ["Form"] : []),
+    ...(event.detail?.headToHead?.length ? ["Head to head"] : []),
+    ...(event.detail?.statistics?.length ? ["Statistics"] : []),
+    ...(event.detail?.lineups?.some((t) => t.players.length)
+      ? ["Lineups"]
+      : []),
+    ...(event.detail?.timeline?.length || event.detail?.goals?.length
+      ? ["Timeline"]
+      : []),
+  ];
   const [hasBroadcast, setHasBroadcast] = useState(false);
   const [wide, setWide] = useState(false);
   useEffect(() => {
@@ -35,6 +66,7 @@ export function EventViewing({
   }, []);
   useEffect(() => {
     setEvent(initialEvent);
+    if (suppliedBroadcast) return;
     const controller = new AbortController();
     let running = false;
     const refresh = async () => {
@@ -75,7 +107,7 @@ export function EventViewing({
       clearInterval(timer);
       document.removeEventListener("visibilitychange", refresh);
     };
-  }, [initialEvent]);
+  }, [initialEvent, Boolean(suppliedBroadcast)]);
   const [tab, setTab] = useState("Overview");
   const [watchableIds, setWatchableIds] = useState<string[]>([]);
   const [watchEvents, setWatchEvents] = useState<SportEvent[]>([]);
@@ -143,13 +175,18 @@ export function EventViewing({
     )
     .slice(0, 12);
   return (
-    <div className="event-viewing">
+    <div className={`event-viewing${theatre ? " broadcast-theatre" : ""}`}>
       <Link className="back-link" href="/watch">
-        ← All events
+        ← Watch
       </Link>
       <header className="event-viewing-header">
         <span className="eyebrow">
-          <SportMark name={event.sport} /> {event.competition}
+          <SportMark name={event.sport} />{" "}
+          <Link
+            href={entityHref("competition", event.competition, event.sport)}
+          >
+            {event.competition}
+          </Link>
         </span>
         <h1>
           {event.kind === "score" ? (
@@ -162,9 +199,43 @@ export function EventViewing({
                     : undefined
                 }
               />
-              {event.home}
+              <Link
+                href={entityHref(
+                  ["Tennis", "Badminton"].includes(event.sport)
+                    ? "athlete"
+                    : "team",
+                  event.home,
+                  event.sport,
+                  {
+                    id: event.homeParticipant?.id,
+                    providerSport: event.source?.provider
+                      .split(":")[1]
+                      ?.split("/")[0],
+                    league: event.source?.provider.split("/")[1],
+                  },
+                )}
+              >
+                {event.home}
+              </Link>
               <span className="muted"> vs </span>
-              {event.away}
+              <Link
+                href={entityHref(
+                  ["Tennis", "Badminton"].includes(event.sport)
+                    ? "athlete"
+                    : "team",
+                  event.away,
+                  event.sport,
+                  {
+                    id: event.awayParticipant?.id,
+                    providerSport: event.source?.provider
+                      .split(":")[1]
+                      ?.split("/")[0],
+                    league: event.source?.provider.split("/")[1],
+                  },
+                )}
+              >
+                {event.away}
+              </Link>
               <Crest
                 name={event.away}
                 imageUrl={
@@ -178,6 +249,15 @@ export function EventViewing({
             eventTitle(event)
           )}
         </h1>
+        {event.kind === "score" && event.status !== "upcoming" && (
+          <div className="match-header-result">
+            <strong>
+              {eventScore(event, "home")} <span>:</span>{" "}
+              {eventScore(event, "away")}
+            </strong>
+            <small>{event.clock}</small>
+          </div>
+        )}
         <p>
           <time dateTime={event.start}>
             {event.timeConfirmed === false
@@ -189,146 +269,174 @@ export function EventViewing({
         </p>
         <div className="event-header-actions">
           {favorite}
-          <a href="#official-viewing">Viewing options ↓</a>
+          {Boolean(event.viewingLinks?.length) && (
+            <a href="#official-viewing">Viewing options ↓</a>
+          )}
           <a href={`/api/calendar/${event.id}`}>Calendar ↗</a>
-          <Link href={`/match/${event.id}`}>Match Centre ↗</Link>
+          <button aria-pressed={theatre} onClick={() => setTheatre((v) => !v)}>
+            {theatre ? "Exit theatre" : "Theatre mode"}
+          </button>
         </div>
       </header>
       <div className="event-viewing-layout">
         <div className="event-viewing-main">
-          <Player
-            key={event.id}
-            eventId={event.id}
-            fallback={<LiveTracker event={event} />}
-            onAvailability={setHasBroadcast}
-          />
+          {broadcast?.sources.length ? (
+            <>
+              <div
+                className="filter-tabs"
+                role="group"
+                aria-label="Viewing mode"
+              >
+                <button
+                  aria-pressed={mode === "stream"}
+                  onClick={() => setMode("stream")}
+                >
+                  Watch stream
+                </button>
+                <button
+                  aria-pressed={mode === "tracker"}
+                  onClick={() => setMode("tracker")}
+                >
+                  Match tracker
+                </button>
+              </div>
+              {mode === "tracker" ? (
+                <LiveTracker event={event} />
+              ) : (
+                <BroadcastPlayer item={broadcast} autoLoad />
+              )}
+              {broadcast.viewers !== null && (
+                <p className="broadcast-viewers">
+                  {new Intl.NumberFormat().format(broadcast.viewers)} watching
+                </p>
+              )}
+            </>
+          ) : (
+            <Player
+              key={event.id}
+              eventId={event.id}
+              fallback={<LiveTracker event={event} />}
+              onAvailability={setHasBroadcast}
+            />
+          )}
           <div className="event-mobile-tracker">
-            {hasBroadcast && !wide && <LiveTracker event={event} compact />}
-          </div>
-          <DisplayAdvertising />
-          <AdSlot />
-          <section className="panel viewing-options" id="official-viewing">
-            <h2>Viewing options</h2>
-            {event.viewingLinks?.length ? (
-              event.viewingLinks.map((link) => (
-                <article key={link.url + link.label}>
-                  <div>
-                    <h3>{link.label}</h3>
-                    <span className="pill">
-                      {link.countries.length
-                        ? link.countries.join(" / ")
-                        : "Regional access"}{" "}
-                      ·{" "}
-                      {link.access === "audio"
-                        ? "Audio / updates"
-                        : link.access === "information"
-                          ? "Information"
-                          : link.access === "free-account"
-                            ? "Free account"
-                            : "Subscription"}{" "}
-                      ·{" "}
-                      {link.confirmation === "confirmed"
-                        ? "Confirmed"
-                        : "Check schedule"}
-                    </span>
-                    <details className="viewing-note">
-                      <summary>Access details</summary>
-                      <p>{link.note}</p>
-                      <small>
-                        Checked{" "}
-                        {new Date(link.checkedAt).toLocaleDateString("en-GB", {
-                          timeZone: zone,
-                        })}{" "}
-                        ·{" "}
-                        <a
-                          href={link.evidenceUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          Evidence ↗
-                        </a>
-                      </small>
-                    </details>
-                  </div>
-                  <a
-                    className="back-link"
-                    href={link.url}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Visit site ↗
-                  </a>
-                </article>
-              ))
-            ) : (
-              <p>No viewing options confirmed.</p>
+            {(hasBroadcast || (broadcast && mode === "stream")) && !wide && (
+              <LiveTracker event={event} compact />
             )}
-          </section>
+          </div>
+          {Boolean(event.viewingLinks?.length) && (
+            <details className="panel viewing-options" id="official-viewing">
+              <summary>Viewing options</summary>
+              {event.viewingLinks?.length ? (
+                event.viewingLinks.map((link) => (
+                  <article key={link.url + link.label}>
+                    <div>
+                      <h3>{link.label}</h3>
+                      <span className="pill">
+                        {link.countries.length
+                          ? link.countries.join(" / ")
+                          : "Regional access"}{" "}
+                        ·{" "}
+                        {link.access === "audio"
+                          ? "Audio / updates"
+                          : link.access === "information"
+                            ? "Information"
+                            : link.access === "free-account"
+                              ? "Free account"
+                              : "Subscription"}{" "}
+                        ·{" "}
+                        {link.confirmation === "confirmed"
+                          ? "Confirmed"
+                          : "Check schedule"}
+                      </span>
+                      <details className="viewing-note">
+                        <summary>Access details</summary>
+                        <p>{link.note}</p>
+                        <small>
+                          Checked{" "}
+                          {new Date(link.checkedAt).toLocaleDateString(
+                            "en-GB",
+                            {
+                              timeZone: zone,
+                            },
+                          )}{" "}
+                          ·{" "}
+                          <a
+                            href={link.evidenceUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Evidence ↗
+                          </a>
+                        </small>
+                      </details>
+                    </div>
+                    <a
+                      className="back-link"
+                      href={link.url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Visit site ↗
+                    </a>
+                  </article>
+                ))
+              ) : (
+                <p>No viewing options confirmed.</p>
+              )}
+            </details>
+          )}
           <section className="panel event-supporting">
             <div
               className="filter-tabs"
               role="group"
               aria-label="Event information"
             >
-              {(event.sport === "Football"
-                ? ["Overview", "Tracker", "Statistics", "Timeline", "Lineups"]
-                : event.kind === "race"
-                  ? ["Overview", "Classification"]
-                  : event.kind === "card"
-                    ? ["Overview", "Card"]
-                    : ["Overview", "Statistics", "Timeline"]
-              ).map((t) => (
+              {tabs.map((t) => (
                 <button
                   key={t}
-                  aria-pressed={tab === t}
+                  aria-pressed={(tabs.includes(tab) ? tab : "Overview") === t}
                   onClick={() => setTab(t)}
                 >
                   {t}
                 </button>
               ))}
             </div>
-            <div className="event-data-summary">
-              <h2>
-                {event.status === "live"
-                  ? "Live"
-                  : event.scheduleOnly
-                    ? "Schedule only"
-                    : event.status === "finished"
-                      ? "Result"
-                      : "Event information"}
-              </h2>
-              {event.kind === "score" && (
-                <p className="event-score">
-                  {event.homeScore ?? "–"} : {event.awayScore ?? "–"}
-                </p>
-              )}
-              <p>
-                {event.scheduleOnly
-                  ? "Live match data unavailable."
-                  : "Latest available match data."}
-              </p>
-              {event.source && (
+            {event.source && (
+              <details className="event-source-details">
+                <summary>Match data</summary>
                 <p className="fine">
                   <a href={event.source.url} target="_blank" rel="noreferrer">
                     {event.source.provider} ↗
                   </a>{" "}
-                  · {event.source.stale ? "Stale snapshot" : "Checked"}{" "}
+                  · {event.source.stale ? "Last available snapshot" : "Checked"}{" "}
                   {localStart(event.source.fetchedAt, zone)} · {zone}
                 </p>
-              )}
-            </div>
-            {(!event.scheduleOnly || tab !== "Overview") && (
-              <RealDetail
-                key={event.id + tab}
-                event={event}
-                tab={tab}
-                hidePlayer
+              </details>
+            )}
+            {tab === "Standings" && leagueTable ? (
+              <LeagueStandings
+                data={leagueTable}
+                highlight={
+                  event.kind === "score" ? [event.home, event.away] : []
+                }
               />
+            ) : (
+              (!event.scheduleOnly || tab !== "Overview") && (
+                <RealDetail
+                  key={event.id + tab}
+                  event={event}
+                  tab={tabs.includes(tab) ? tab : "Overview"}
+                  hidePlayer
+                />
+              )
             )}
           </section>
+          <DisplayAdvertising />
+          <AdSlot />
         </div>
         <aside className="event-side">
-          {hasBroadcast && wide && (
+          {(hasBroadcast || (broadcast && mode === "stream")) && wide && (
             <div className="event-desktop-tracker">
               <LiveTracker event={event} compact />
             </div>
@@ -350,7 +458,9 @@ export function EventViewing({
                 <span>Watch →</span>
               </Link>
             ))}
-            {!related.length && <p>No other streams available.</p>}
+            {!related.length && (
+              <Link href="/watch">Browse matches & channels →</Link>
+            )}
             <Link href="/fixtures">All fixtures →</Link>
           </section>
         </aside>

@@ -1,5 +1,9 @@
 "use client";
 import { publicData, eventsUrl } from "../lib/public-data-client";
+import { HomeOverview } from "./home-overview";
+import { SportsSearch } from "./sports-search";
+import { EntityProfile } from "./entity-profile";
+import { SportsBrowser } from "./sports-browser";
 import { SportsSponsoredBadge } from "./sports-sponsored-badge";
 import {
   HomeBroadcasts,
@@ -114,6 +118,13 @@ export function Experience({
     [route, edition, initialEvents.length, liveFeed.data.length],
   );
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const feedDate = searchParams.get("date") || "";
+  const feedSport = sports.includes(
+    searchParams.get("sport") as (typeof sports)[number],
+  )
+    ? searchParams.get("sport") || ""
+    : "";
   const real = edition === "real";
   const [editionError, setEditionError] = useState("");
   const [date, setDate] = useState("");
@@ -137,7 +148,7 @@ export function Experience({
         const body = await publicData.read(
           matchId
             ? `/api/events/${encodeURIComponent(matchId)}`
-            : eventsUrl(route),
+            : eventsUrl(route, { sport: feedSport, date: feedDate }),
           controller.signal,
           matchId ? 3000 : 10000,
         );
@@ -167,7 +178,7 @@ export function Experience({
         if (!controller.signal.aborted) setCatalogueLoading(false);
       }
     };
-    if (!initialEvents.length || matchId) void refresh();
+    if (!initialEvents.length || matchId || feedDate) void refresh();
     const timer = setInterval(() => {
       void refresh();
     }, 30000);
@@ -175,7 +186,7 @@ export function Experience({
       controller.abort();
       clearInterval(timer);
     };
-  }, [real, route, initialEvents.length]);
+  }, [real, route, initialEvents.length, feedDate, feedSport]);
   async function changeEdition() {
     setEditionError("");
     try {
@@ -193,7 +204,6 @@ export function Experience({
   const [favorites, setFavorites] = useState<string[]>([]);
   const [ready, setReady] = useState(false);
   const [theme, setTheme] = useState("system");
-  const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get("q") || "");
   useEffect(() => setVisibleCount(60), [route, date, query]);
   const [user, setUser] = useState<AccountUser | null>(null);
@@ -270,7 +280,6 @@ export function Experience({
     };
   }, [accountVersion]);
   const [menu, setMenu] = useState(false);
-  const [hasBroadcasts, setHasBroadcasts] = useState(false);
   const [offline, setOffline] = useState(false);
   useEffect(() => {
     try {
@@ -556,7 +565,7 @@ export function Experience({
               {path === "watch" && (
                 <Play size={14} fill="currentColor" aria-hidden="true" />
               )}
-              {label === "Live" && <i className="live-dot" />}
+
               {label}
             </Link>
           ))}
@@ -652,7 +661,7 @@ export function Experience({
               }
               href={
                 isHome || route.startsWith("watch")
-                  ? `/watch?sport=${encodeURIComponent(s)}&range=upcoming`
+                  ? `/watch?sport=${encodeURIComponent(s)}`
                   : sportUrl(s)
               }
               key={s}
@@ -684,7 +693,7 @@ export function Experience({
                 key={s}
                 href={
                   isHome || route.startsWith("watch")
-                    ? `/watch?sport=${encodeURIComponent(s)}&range=upcoming`
+                    ? `/watch?sport=${encodeURIComponent(s)}`
                     : sportUrl(s)
                 }
                 onClick={(e) =>
@@ -743,7 +752,7 @@ export function Experience({
             <Multiview />
           ) : route === "broadcasts" ? (
             <BroadcastDirectory />
-          ) : match && route.startsWith("watch/") ? (
+          ) : match && real ? (
             <EventViewing
               event={match}
               events={events}
@@ -751,6 +760,32 @@ export function Experience({
             />
           ) : match ? (
             <MatchCentre event={match} favorite={favorite(match)} />
+          ) : real &&
+            (["fixtures", "live", "scores"].includes(route) ||
+              route.startsWith("sport/")) ? (
+            <SportsBrowser
+              route={route}
+              events={events}
+              loading={catalogueLoading}
+              favorite={favorite}
+            />
+          ) : real && route === "search" ? (
+            <SportsSearch events={events} loading={catalogueLoading} />
+          ) : real && isHome ? (
+            <HomeOverview
+              events={events}
+              news={news || null}
+              loading={catalogueLoading}
+            />
+          ) : route.startsWith("explore/") ? (
+            <EntityProfile
+              kind={route.split("/")[1] as Follow["kind"]}
+              events={events}
+              loading={catalogueLoading}
+              following={following}
+              toggle={follow}
+              busy={!ready || syncing}
+            />
           ) : route === "privacy" ? (
             <Privacy nativeAdsEnabled={nativeAdsEnabled} />
           ) : route === "admin" ? (
@@ -764,6 +799,7 @@ export function Experience({
             </>
           ) : ["teams", "athletes", "competitions"].includes(route) ? (
             <Directory
+              loading={catalogueLoading}
               route={route}
               events={events}
               following={following}
@@ -820,27 +856,7 @@ export function Experience({
               )}
               {route === "watch" ? (
                 <>
-                  {!hasBroadcasts &&
-                    !["channels", "replays"].includes(
-                      searchParams.get("view") || "",
-                    ) && (
-                      <div className="watch-mode-links">
-                        <Link href="/broadcasts">Broadcasts & channels</Link>
-                        <Link href="/multiview">Multiview</Link>
-                        <Link href="/watch?view=replays">
-                          Replays & highlights
-                        </Link>
-                      </div>
-                    )}
-                  <BroadcastDirectory
-                    primary
-                    onAvailability={setHasBroadcasts}
-                  />
-                  {!["channels", "replays"].includes(
-                    searchParams.get("view") || "",
-                  ) && (
-                    <LiveWatch weekend={real} supplemental={hasBroadcasts} />
-                  )}
+                  <BroadcastDirectory primary />
                 </>
               ) : route === "videos" ? (
                 <>

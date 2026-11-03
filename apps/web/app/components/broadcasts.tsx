@@ -1,4 +1,12 @@
 "use client";
+import { EntitySuggestions } from "./entity-suggestions";
+import {
+  eventTitle,
+  watchFeedSchema,
+  matchBroadcastEvent,
+  sportKey,
+  type SportEvent,
+} from "@backinit/domain";
 import { prioritizePlayback } from "../lib/playback-priority";
 import { publicData } from "../lib/public-data-client";
 import Link from "next/link";
@@ -24,6 +32,10 @@ import {
   type BroadcastFeed,
 } from "../lib/broadcast-types";
 import { PlayerBrand } from "./player-brand";
+import { BroadcastPlayer } from "./broadcast-player";
+import { useBroadcasts } from "./use-broadcasts";
+import { EventViewing } from "./event-viewing";
+export { BroadcastPlayer } from "./broadcast-player";
 import { WatchHub } from "./watch-hub";
 import { useBroadcastMatch } from "./broadcast-match";
 import { LiveTracker } from "./live-tracker";
@@ -34,53 +46,6 @@ import {
 import { useViewingZone, localDay } from "../lib/viewing-time";
 import { AdSlot } from "./advertising";
 import { DisplayAdvertising } from "./display-advertising";
-function useBroadcasts() {
-  const [feed, setFeed] = useState<BroadcastFeed>({
-    data: [],
-    updatedAt: null,
-    stale: false,
-  });
-  const [loading, setLoading] = useState(true);
-  const [attempt, retry] = useState(0);
-  useEffect(() => {
-    const c = new AbortController();
-    let busy = false;
-    const load = async () => {
-      if (busy || document.hidden) return;
-      busy = true;
-      try {
-        const next = broadcastFeedSchema.parse(
-          await publicData.read("/api/broadcasts", c.signal),
-        );
-        if (!c.signal.aborted)
-          setFeed((old) =>
-            next.updatedAt
-              ? next
-              : { ...old, stale: true, message: next.message },
-          );
-      } catch {
-        if (!c.signal.aborted)
-          setFeed((old) => ({
-            ...old,
-            stale: true,
-            message: "Broadcast catalogue unavailable. Try again.",
-          }));
-      } finally {
-        busy = false;
-        if (!c.signal.aborted) setLoading(false);
-      }
-    };
-    void load();
-    const timer = setInterval(load, 60000);
-    document.addEventListener("visibilitychange", load);
-    return () => {
-      c.abort();
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", load);
-    };
-  }, [attempt]);
-  return { feed, loading, retry: () => retry((x) => x + 1) };
-}
 function useNow() {
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
@@ -97,13 +62,14 @@ function StartTime({ item }: { item: Broadcast }) {
   return (
     <time dateTime={new Date(item.start).toISOString()}>
       {now
-        ? new Intl.DateTimeFormat(undefined, {
+        ? new Intl.DateTimeFormat("en-GB", {
             timeZone: zone,
             weekday: "short",
             day: "numeric",
             month: "short",
             hour: "2-digit",
             minute: "2-digit",
+            hourCycle: "h23",
           }).format(item.start)
         : "Scheduled broadcast"}
     </time>
@@ -215,6 +181,90 @@ export function BroadcastDirectory({
 }) {
   const { feed, loading, retry } = useBroadcasts();
   const params = useSearchParams();
+  const requestedDate = params.get("date") || "";
+  const [matchError, setMatchError] = useState("");
+  const [matchLoading, setMatchLoading] = useState(true);
+  const [matchAttempt, retryMatches] = useState(0);
+  const [matchEvents, setMatchEvents] = useState<SportEvent[]>([]);
+  const [watchableIds, setWatchableIds] = useState<string[]>([]);
+  useEffect(() => {
+    setMatchLoading(true);
+    const c = new AbortController();
+    let busy = false;
+    const load = async () => {
+      if (busy) return;
+      busy = true;
+      try {
+        const body = watchFeedSchema.parse(
+          await publicData.read(
+            `/api/watch${requestedDate ? `?date=${encodeURIComponent(requestedDate)}` : ""}`,
+            c.signal,
+          ),
+        );
+        if (!c.signal.aborted) {
+          setMatchEvents(body.data.map((entry) => entry.event));
+          setWatchableIds(
+            body.data
+              .filter((entry) =>
+                entry.sources.some(
+                  (source) => (source.presentation || "live") === "live",
+                ),
+              )
+              .map((entry) => entry.event.id),
+          );
+          setMatchError("");
+        }
+      } catch {
+        if (!c.signal.aborted)
+          setMatchError(
+            "Match updates could not load. Your available streams are still shown.",
+          );
+      } finally {
+        busy = false;
+        if (!c.signal.aborted) setMatchLoading(false);
+      }
+    };
+    void load();
+    const timer = setInterval(() => {
+      if (!document.hidden) void load();
+    }, 30000);
+    return () => {
+      c.abort();
+      clearInterval(timer);
+    };
+  }, [requestedDate, matchAttempt]);
+  const matchedIds = new Set(
+    feed.data.flatMap((b) => {
+      const e = matchBroadcastEvent(b, matchEvents);
+      return e ? [e.id] : [];
+    }),
+  );
+  const trackerEvents = matchEvents.filter(
+    (e) => !matchedIds.has(e.id) && ["live", "upcoming"].includes(e.status),
+  );
+  const catalogue: Broadcast[] = [
+    ...feed.data,
+    ...trackerEvents.map((e) => ({
+      id: e.id,
+      title: eventTitle(e),
+      category: e.sport,
+      competition: e.competition,
+      start: Date.parse(e.start),
+      end:
+        e.status === "live"
+          ? Date.now() + 60000
+          : Date.parse(e.end || e.start) + 6 * 3600000,
+      channel: false,
+      viewers: null,
+      sources: [],
+      poster: null,
+      pageUrl: "",
+      replay: false,
+    })),
+  ];
+  const officialFor = (b: Broadcast) =>
+    matchEvents.find((e) => e.id === b.id) ||
+    matchBroadcastEvent(b, matchEvents);
   const channels = params.get("view") === "channels";
   const replays = params.get("view") === "replays";
   const [query, setQuery] = useState("");
@@ -225,12 +275,35 @@ export function BroadcastDirectory({
   const [page, setPage] = useState(1);
   const now = useNow();
   const { zone } = useViewingZone();
+  function updateFilter(patch: Record<string, string>) {
+    const next = new URLSearchParams(params.toString());
+    for (const [key, value] of Object.entries(patch))
+      value ? next.set(key, value) : next.delete(key);
+    window.history.replaceState(
+      null,
+      "",
+      `${primary ? "/watch" : "/broadcasts"}?${next}`,
+    );
+  }
+  useEffect(() => setQuery(params.get("q") || ""), [params.get("q")]);
   const requested = params.get("sport");
   const requestedRange = params.get("range");
   useEffect(() => {
-    setRange(requestedRange === "live" ? "Live now" : "Today");
-    setChosenDate(params.get("date") || "");
-  }, [requestedRange, params]);
+    setRange(
+      (
+        {
+          all: "All",
+          upcoming: "All",
+          live: "Live now",
+          today: "Today",
+          next48: "Next 48 hours",
+          tomorrow: "Tomorrow",
+          week: "This week",
+        } as Record<string, string>
+      )[requestedRange || ""] || "Today",
+    );
+    setChosenDate(requestedDate);
+  }, [requestedRange, requestedDate]);
   useEffect(() => {
     onAvailability?.(feed.data.length > 0);
   }, [feed.data.length, onAvailability]);
@@ -257,12 +330,22 @@ export function BroadcastDirectory({
   const tomorrow = nextDay.toISOString().slice(0, 10);
   const inPeriod = (b: Broadcast) => {
     if (channels) return b.channel;
-    if (b.channel || b.end < time) return false;
+    const official = officialFor(b);
+    if (
+      b.channel ||
+      (official
+        ? !["live", "upcoming"].includes(official.status)
+        : b.end < time)
+    )
+      return false;
     const day = localDay(new Date(b.start).toISOString(), zone);
     if (chosenDate) return day === chosenDate;
     if (range === "Today") return day === today;
     if (range === "Tomorrow") return day === tomorrow;
-    if (range === "Live now") return b.start <= time && b.end >= time;
+    if (range === "Live now")
+      return official
+        ? official.status === "live"
+        : b.start <= time && b.end >= time;
     if (range === "This week") {
       const end = new Date(`${today}T12:00:00Z`);
       end.setUTCDate(end.getUTCDate() + ((7 - end.getUTCDay()) % 7));
@@ -271,11 +354,12 @@ export function BroadcastDirectory({
     if (range === "Next 48 hours") return b.start <= time + 2 * 86400000;
     return true;
   };
-  const entries = feed.data
+  const entries = catalogue
     .filter(
       (b) =>
         inPeriod(b) &&
-        (category === "All sports" || category === b.category) &&
+        (category === "All sports" ||
+          sportKey(category) === sportKey(b.category)) &&
         `${b.title} ${b.competition}`
           .toLowerCase()
           .includes(query.toLowerCase()),
@@ -312,10 +396,21 @@ export function BroadcastDirectory({
           />
         ) : (
           <span className="broadcast-poster-fallback">
-            <Play size={30} />
+            <>
+              <Radio size={30} />
+              <strong>{item.title}</strong>
+            </>
           </span>
         )}
-        <State item={item} />
+        {officialFor(item) ? (
+          <span
+            className={`broadcast-badge ${officialFor(item)?.status === "live" ? "is-live" : ""}`}
+          >
+            {officialFor(item)?.status === "live" ? "Live" : "Upcoming"}
+          </span>
+        ) : (
+          <State item={item} />
+        )}
       </div>
       <div className="broadcast-card-copy">
         <small>
@@ -326,6 +421,13 @@ export function BroadcastDirectory({
         )}
         <h3>{item.title}</h3>
         <StartTime item={item} />
+        {!item.sources.length && (
+          <span className="broadcast-sources">
+            {watchableIds.includes(item.id)
+              ? "Watch stream & tracker"
+              : "Match centre & tracker"}
+          </span>
+        )}
         {item.sources.length > 1 && (
           <span className="broadcast-sources">
             {item.sources.length} stream options
@@ -334,12 +436,6 @@ export function BroadcastDirectory({
       </div>
     </Link>
   );
-  if (primary && !feed.data.length && !channels && !replays)
-    return feed.message ? (
-      <p className="broadcast-notice" role="status">
-        {feed.message} <button onClick={retry}>Retry</button>
-      </p>
-    ) : null;
   return (
     <section className="broadcast-directory" aria-label="Broadcast catalogue">
       <div className="section-heading">
@@ -402,6 +498,19 @@ export function BroadcastDirectory({
                       onClick={() => {
                         setChosenDate("");
                         setRange(value);
+                        updateFilter({
+                          date: "",
+                          range: (
+                            {
+                              All: "all",
+                              "Live now": "live",
+                              Today: "today",
+                              "Next 48 hours": "next48",
+                              Tomorrow: "tomorrow",
+                              "This week": "week",
+                            } as Record<string, string>
+                          )[value]!,
+                        });
                       }}
                     >
                       {value}
@@ -414,7 +523,10 @@ export function BroadcastDirectory({
                   Search broadcasts
                   <input
                     value={query}
-                    onChange={(e) => setQuery(e.target.value)}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      updateFilter({ q: e.target.value });
+                    }}
                     placeholder={
                       channels
                         ? "Find a sports channel…"
@@ -426,18 +538,27 @@ export function BroadcastDirectory({
                   Sport
                   <select
                     value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    onChange={(e) => {
+                      setCategory(e.target.value);
+                      updateFilter({
+                        sport:
+                          e.target.value === "All sports" ? "" : e.target.value,
+                      });
+                    }}
                   >
                     {[
                       "All sports",
+                      ...(category !== "All sports" ? [category] : []),
                       ...new Set(
-                        feed.data
+                        catalogue
                           .filter((b) => b.channel === channels)
                           .map((b) => b.category),
                       ),
-                    ].map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
+                    ]
+                      .filter((c, i, all) => all.indexOf(c) === i)
+                      .map((c) => (
+                        <option key={c}>{c}</option>
+                      ))}
                   </select>
                 </label>
                 {!channels && (
@@ -449,7 +570,10 @@ export function BroadcastDirectory({
                         <input
                           type="date"
                           value={chosenDate}
-                          onChange={(e) => setChosenDate(e.target.value)}
+                          onChange={(e) => {
+                            setChosenDate(e.target.value);
+                            updateFilter({ date: e.target.value });
+                          }}
                         />
                       </label>
                       <label>
@@ -466,6 +590,10 @@ export function BroadcastDirectory({
                   </details>
                 )}
               </div>
+              <EntitySuggestions
+                query={query}
+                sport={category === "All sports" ? undefined : category}
+              />
               <div className="broadcast-results-meta">
                 <span>
                   {entries.length} {channels ? "sports channels" : "matches"}
@@ -484,7 +612,15 @@ export function BroadcastDirectory({
         </>
       ) : (
         <>
-          {loading && !feed.data.length && (
+          {matchError && !channels && (
+            <p className="broadcast-notice" role="alert">
+              {matchError}{" "}
+              <button onClick={() => retryMatches((n) => n + 1)}>
+                Retry match updates
+              </button>
+            </p>
+          )}
+          {(loading || matchLoading) && !catalogue.length && (
             <p role="status">Loading broadcasts…</p>
           )}
           {feed.message && (
@@ -515,30 +651,34 @@ export function BroadcastDirectory({
               </div>
             </>
           )}
-          {!loading && !entries.length && !feed.message && (
-            <div className="broadcast-empty">
-              <h2>
-                {channels
-                  ? "No sports channels match"
-                  : "No matches in this view"}
-              </h2>
-              <p>
-                {channels
-                  ? "Try another sport or search."
-                  : "Try another day, sport or All."}
-              </p>
-              <button
-                onClick={() => {
-                  setQuery("");
-                  setCategory("All sports");
-                  setChosenDate("");
-                  setRange("All");
-                }}
-              >
-                Reset filters
-              </button>
-            </div>
-          )}
+          {!loading &&
+            !matchLoading &&
+            !entries.length &&
+            !feed.message &&
+            !matchError && (
+              <div className="broadcast-empty">
+                <h2>
+                  {channels
+                    ? "No sports channels match"
+                    : "No matches in this view"}
+                </h2>
+                <p>
+                  {channels
+                    ? "Try another sport or search."
+                    : "Try another day, sport or All."}
+                </p>
+                <button
+                  onClick={() => {
+                    setQuery("");
+                    setCategory("All sports");
+                    setChosenDate("");
+                    setRange("All");
+                  }}
+                >
+                  Reset filters
+                </button>
+              </div>
+            )}
           {!preview && pageCount > 1 && (
             <nav className="broadcast-pagination" aria-label="Broadcast pages">
               <button
@@ -573,150 +713,6 @@ export function BroadcastDirectory({
     </section>
   );
 }
-export function BroadcastPlayer({
-  item,
-  compact = false,
-}: {
-  item: Broadcast;
-  compact?: boolean;
-}) {
-  const [source, setSource] = useState(item.sources[0]?.id || "");
-  const [playing, setPlaying] = useState(false);
-  const [attempt, retry] = useState(0);
-  const [loaded, setLoaded] = useState(false);
-  const [slow, setSlow] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const root = useRef<HTMLDivElement>(null);
-  const choice = item.sources.find((s) => s.id === source) || item.sources[0];
-  useEffect(() => {
-    let next = item.sources[0]?.id || "";
-    try {
-      const saved = sessionStorage.getItem(`backinit-source:${item.id}`);
-      if (item.sources.some((s) => s.id === saved)) next = saved!;
-    } catch {}
-    setSource(next);
-    setPlaying(false);
-  }, [item.id]);
-  useEffect(() => {
-    setLoaded(false);
-    setSlow(false);
-    setFailed(false);
-    if (!playing) return;
-    const t = setTimeout(() => setSlow(true), 15000);
-    return () => clearTimeout(t);
-  }, [source, playing, attempt]);
-  return (
-    <div
-      className={`broadcast-player${compact ? " broadcast-player-compact" : ""}`}
-      ref={root}
-    >
-      <div className="broadcast-player-rim">
-        <State item={item} />
-        <PlayerBrand />
-      </div>
-      <div className="broadcast-screen">
-        {playing && choice && !failed ? (
-          <iframe
-            key={`${item.id}-${choice.id}-${attempt}`}
-            src={choice.url}
-            title={`${item.title} broadcast`}
-            allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-            allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
-            onLoad={() => {
-              setLoaded(true);
-              performance.mark("backinit:embed-frame-loaded");
-            }}
-            onError={() => setFailed(true)}
-          />
-        ) : (
-          <div className="broadcast-start">
-            {item.poster && <img src={item.poster} alt="" />}
-            {choice && !failed ? (
-              <button
-                aria-label={`Play ${item.title}`}
-                onClick={() => {
-                  prioritizePlayback();
-                  setPlaying(true);
-                }}
-              >
-                <Play size={46} fill="currentColor" strokeWidth={0} />
-              </button>
-            ) : (
-              <p>
-                {failed
-                  ? "This stream could not load. Retry or choose another source."
-                  : "A player has not been supplied yet."}
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-      <div className="broadcast-player-controls">
-        {item.sources.length > 1 && (
-          <label>
-            <span className="sr-only">Stream for {item.title}</span>
-            <select
-              aria-label={`Stream for ${item.title}`}
-              value={choice?.id}
-              onChange={(e) => {
-                setSource(e.target.value);
-                try {
-                  sessionStorage.setItem(
-                    `backinit-source:${item.id}`,
-                    e.target.value,
-                  );
-                } catch {}
-                prioritizePlayback();
-                setPlaying(true);
-              }}
-            >
-              {item.sources.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
-        <button
-          title="Reload stream"
-          aria-label={`Reload ${item.title}`}
-          onClick={() => {
-            prioritizePlayback();
-            retry((n) => n + 1);
-            setPlaying(true);
-          }}
-        >
-          <RefreshCw size={16} />
-        </button>
-        {playing && (
-          <button
-            title="Stop stream"
-            aria-label={`Stop ${item.title}`}
-            onClick={() => setPlaying(false)}
-          >
-            <X size={16} />
-          </button>
-        )}
-        <button
-          title="Fullscreen"
-          aria-label={`Fullscreen ${item.title}`}
-          onClick={() => {
-            void root.current?.requestFullscreen?.().catch(() => {});
-          }}
-        >
-          <Maximize2 size={16} />
-        </button>
-      </div>
-      {slow && !loaded && playing && (
-        <p role="status" className="broadcast-status">
-          Still connecting. Try another stream or reload.
-        </p>
-      )}
-    </div>
-  );
-}
 export function BroadcastViewing({ id }: { id: string }) {
   const { feed, loading, retry } = useBroadcasts();
   const item = feed.data.find((b) => b.id === id);
@@ -749,6 +745,15 @@ export function BroadcastViewing({ id }: { id: string }) {
         <button onClick={retry}>Retry</button>{" "}
         <Link href="/broadcasts">Browse broadcasts</Link>
       </section>
+    );
+  if (event)
+    return (
+      <EventViewing
+        event={event}
+        events={[]}
+        favorite={null}
+        broadcast={item}
+      />
     );
   return (
     <section className={`broadcast-view${theatre ? " broadcast-theatre" : ""}`}>
@@ -806,7 +811,7 @@ export function BroadcastViewing({ id }: { id: string }) {
           {mainTracker && event ? (
             <LiveTracker event={event} />
           ) : (
-            <BroadcastPlayer item={item} />
+            <BroadcastPlayer item={item} autoLoad />
           )}
           {event && !mainTracker && (!wide || theatre) && (
             <div className="broadcast-match-tracker">

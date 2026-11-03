@@ -268,16 +268,12 @@ test("player Play starts the embed without site popunders; optional sponsorship 
   );
   await page.goto("/watch/ppv-9001");
   // Finish the fixture request before advancing its abort deadline.
-  await expect(
-    page.getByRole("button", { name: "Play NFL Network", exact: true }),
-  ).toBeVisible();
+  await expect(page.locator(".broadcast-screen iframe")).toBeVisible();
   await page.clock.fastForward(31000);
   expect(tags).toEqual([]);
   await page.getByRole("button", { name: "Accept all", exact: true }).click();
   await page.clock.fastForward(1);
-  await page
-    .getByRole("button", { name: "Play NFL Network", exact: true })
-    .click();
+
   await expect(page.locator(".broadcast-screen iframe")).toHaveAttribute(
     "src",
     "https://taifood-blog.asia/embed/nfl-network",

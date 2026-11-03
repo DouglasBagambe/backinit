@@ -62,8 +62,9 @@ test("all upcoming broadcasts are searchable, open source choices and preserve p
   await expect(
     page.getByRole("heading", { name: "Match 2", exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".broadcast-screen iframe")).toHaveCount(0);
-  await page.getByRole("button", { name: "Play Match 2", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "Play Match 2", exact: true }),
+  ).toHaveCount(0);
   await expect(page.locator(".broadcast-screen iframe")).toHaveAttribute(
     "src",
     items[1]!.sources[0]!.url,
@@ -191,9 +192,11 @@ test("failed catalogue shows recovery, and archives are sports replays rather th
     }),
   );
   await page.goto("/broadcasts");
-  await expect(page.getByRole("status")).toContainText(
-    "Broadcast catalogue unavailable",
-  );
+  await expect(
+    page
+      .getByRole("status")
+      .filter({ hasText: "Broadcast catalogue unavailable" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Retry", exact: true }),
   ).toBeVisible();
@@ -433,12 +436,16 @@ test("a matched real fixture shows one compact tracker beside or below the strea
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/watch/ppv-2");
   await expect(
-    page.locator(".broadcast-view-layout > aside .broadcast-match-tracker"),
+    page.locator(".event-side .event-desktop-tracker"),
   ).toBeVisible();
-  await expect(page.locator(".broadcast-match-tracker")).toHaveCount(1);
+  await expect(
+    page.locator(
+      ".event-desktop-tracker .event-tracker, .event-mobile-tracker .event-tracker",
+    ),
+  ).toHaveCount(1);
   await page.setViewportSize({ width: 360, height: 800 });
   await expect(
-    page.locator(".broadcast-view-layout > div .broadcast-match-tracker"),
+    page.locator(".event-viewing-main .event-mobile-tracker .event-tracker"),
   ).toBeVisible();
   await page
     .getByRole("group", { name: "Viewing mode" })
@@ -463,8 +470,8 @@ test("a matched real fixture shows one compact tracker beside or below the strea
   await expect(
     page
       .getByRole("group", { name: "Viewing mode" })
-      .getByRole("button", { name: "Stream", exact: true }),
-  ).toBeDisabled();
+      .getByRole("button", { name: "Watch stream", exact: true }),
+  ).toHaveCount(0);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
