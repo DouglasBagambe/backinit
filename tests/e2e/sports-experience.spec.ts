@@ -149,6 +149,10 @@ test("player search works outside match lists and opens a real profile with pers
   await expect(
     page.getByRole("link", { name: /CHE vs Opponent/ }),
   ).toHaveAttribute("href", "/watch/espn-soccer-eng-1-123");
+  await page.screenshot({
+    path: "artifacts/unified-player-profile.png",
+    fullPage: true,
+  });
   await page.getByRole("button", { name: "Follow", exact: true }).click();
   await page.reload();
   await expect(
