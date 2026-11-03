@@ -53,17 +53,17 @@ test("weekend fixtures remain discoverable without claiming a video or animated 
   await page.goto("/watch");
   await loaded;
   await page.clock.fastForward(31000);
-  const section = page.getByRole("region", { name: "Weekend football" });
-  await expect(section).toContainText("Match of the day");
+  const section = page.getByRole("region", { name: "Broadcast catalogue" });
+  await expect(section).toContainText("Big match");
   await expect(section).toContainText("15:30");
   await expect(section.getByRole("link", { name: /Chelsea/ })).toHaveAttribute(
     "href",
     `/watch/${event.id}`,
   );
   await expect(section).not.toContainText("Watch live");
-  await expect(section).toContainText("Match centre & viewing options");
+  await expect(section).toContainText("Match centre & tracker");
   expect(
-    (await new AxeBuilder({ page }).include(".weekend-matches").analyze())
+    (await new AxeBuilder({ page }).include(".broadcast-directory").analyze())
       .violations,
   ).toEqual([]);
   await page.setViewportSize({ width: 375, height: 812 });

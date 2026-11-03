@@ -248,9 +248,9 @@ test("Watch offers Track for real match updates and updates the main tracker wit
     route.fulfill({ json: { data: event } }),
   );
   await page.goto("/watch");
-  const row = page.locator(".live-event-row");
+  const row = page.locator(".broadcast-card");
   await expect(row).toHaveCount(1);
-  await expect(row).toContainText("Track");
+  await expect(row).toContainText("tracker");
   await expect(row).not.toContainText("Watch live");
   await row.click();
   await expect(
@@ -561,7 +561,7 @@ test("a slow publisher navigation stays mounted and recovers without another req
   await expect(
     page.locator(".player-tracker-fallback .event-tracker"),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Statistics", exact: true }).click();
+  await page.getByRole("button", { name: "Timeline", exact: true }).click();
   await page.getByRole("button", { name: "Overview", exact: true }).click();
   await page.clock.fastForward(31000);
   const frame = page.locator(".publisher-tracker iframe");

@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
-import type { SportEvent } from "@backinit/domain";
+import Link from "next/link";
+import { entityHref, formationLines, type SportEvent } from "@backinit/domain";
 import { LazyPlayer as Player } from "./lazy-player";
+import { localStart, useViewingZone } from "../lib/viewing-time";
 import { Empty } from "./primitives";
 export function RealDetail({
   event,
@@ -12,11 +14,60 @@ export function RealDetail({
   tab?: string;
   hidePlayer?: boolean;
 }) {
+  const { zone } = useViewingZone();
   const goals = event.detail?.goals || [];
   const [index, setIndex] = useState(0);
   const current = goals[index];
   const detail = event.detail;
   const rows = tab === "Statistics" ? detail?.statistics : detail?.periods;
+  if (tab === "Form")
+    return (
+      <section className="panel">
+        <h2>Recent form</h2>
+        <div className="lineup-grid">
+          {detail?.form?.map((team) => (
+            <article key={team.team}>
+              <h3>{team.team}</h3>
+              {[...team.matches]
+                .sort((a, b) => b.date.localeCompare(a.date))
+                .map((m) => (
+                  <div className="form-match" key={m.id}>
+                    <span className={`form-result form-${m.result}`}>
+                      {m.result}
+                    </span>
+                    <div>
+                      <strong>{m.opponent}</strong>
+                      <small>{localStart(m.date, zone)}</small>
+                    </div>
+                    <b>{m.score}</b>
+                  </div>
+                ))}
+            </article>
+          ))}
+        </div>
+      </section>
+    );
+  if (tab === "Head to head")
+    return (
+      <section className="panel">
+        <h2>Head to head</h2>
+        {detail?.headToHead?.map((m) => (
+          <div className="entity-match" key={m.id}>
+            <div>
+              <small>
+                {localStart(m.date, zone)} · {m.competition}
+              </small>
+              <strong>
+                {m.home} vs {m.away}
+              </strong>
+            </div>
+            <b>
+              {m.homeScore} – {m.awayScore}
+            </b>
+          </div>
+        ))}
+      </section>
+    );
   if (
     tab === "Statistics" ||
     (event.kind === "score" &&
@@ -67,18 +118,79 @@ export function RealDetail({
     return detail?.lineups?.length ? (
       <section className="panel">
         <h2>Lineups</h2>
-        {detail.lineups.map((team) => (
-          <div key={team.team}>
-            <h3>{team.team}</h3>
-            {team.players.map((p, i) => (
-              <p key={`${p.name}-${i}`}>
-                {p.name}
-                {p.position ? ` · ${p.position}` : ""}
-                {p.starter === true ? " · Starter" : ""}
-              </p>
-            ))}
-          </div>
-        ))}
+        <div className="lineup-grid">
+          {detail.lineups.map((team) => {
+            const lines =
+              event.sport === "Football" ? formationLines(team) : null;
+            const canDraw = Boolean(lines);
+            return (
+              <article key={team.team} className="lineup-team">
+                <header>
+                  <h3>{team.team}</h3>
+                  {team.formation && (
+                    <span className="pill">{team.formation}</span>
+                  )}
+                </header>
+                {canDraw && (
+                  <div
+                    className="formation-pitch"
+                    aria-label={`${team.team} formation ${team.formation}`}
+                  >
+                    {lines?.map((line, i) => (
+                      <div className="formation-line" key={i}>
+                        {line.map((p) => (
+                          <div className="formation-player" key={p.name}>
+                            <b>{p.jersey || "•"}</b>
+                            <Link
+                              href={entityHref("athlete", p.name, event.sport)}
+                            >
+                              {p.name}
+                            </Link>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {[
+                  {
+                    label: "Starting lineup",
+                    players: team.players.filter((p) => p.starter === true),
+                  },
+                  {
+                    label: "Substitutes",
+                    players: team.players.filter((p) => p.starter === false),
+                  },
+                  {
+                    label: "Squad",
+                    players: team.players.filter(
+                      (p) => p.starter === undefined,
+                    ),
+                  },
+                ]
+                  .filter((group) => group.players.length)
+                  .map((group) => (
+                    <div key={group.label}>
+                      <h4>{group.label}</h4>
+                      <ul className="lineup-list">
+                        {group.players.map((p, i) => (
+                          <li key={p.name + i}>
+                            <b>{p.jersey || "–"}</b>
+                            <Link
+                              href={entityHref("athlete", p.name, event.sport)}
+                            >
+                              {p.name}
+                            </Link>
+                            <small>{p.position}</small>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+              </article>
+            );
+          })}
+        </div>
       </section>
     ) : (
       <Empty
@@ -136,7 +248,6 @@ export function RealDetail({
         <p>
           {event.detail?.round} · {event.detail?.venue}
         </p>
-        <p>Detailed match data unavailable.</p>
       </section>
     );
   if (event.scheduleOnly && tab !== "Overview")
@@ -207,7 +318,7 @@ export function RealDetail({
     <>
       <div className={tab === "Overview" ? "real-viewing-grid" : undefined}>
         {tab === "Overview" && !hidePlayer && <Player eventId={event.id} />}
-        {(tab === "Overview" || tab === "Tracker") && (
+        {(tab === "Overview" || tab === "Tracker") && goals.length > 0 && (
           <section className="panel real-tracker">
             <div className="section-heading">
               <h2>Goal event replay</h2>
@@ -256,7 +367,7 @@ export function RealDetail({
           </section>
         )}
       </div>
-      {(tab === "Overview" || tab === "Timeline") && (
+      {(tab === "Overview" || tab === "Timeline") && goals.length > 0 && (
         <section className="panel">
           <h2>Goal timeline</h2>
           {goals.length ? (

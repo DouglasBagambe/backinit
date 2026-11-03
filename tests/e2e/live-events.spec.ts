@@ -40,19 +40,24 @@ test("Watch times out a stalled request and recovers on Retry without overlappin
   await expect.poll(() => requests).toBe(1);
   await page.clock.fastForward(21000);
   const alert = page
-    .getByRole("region", { name: "Live event discovery" })
+    .getByRole("region", { name: "Broadcast catalogue" })
     .getByRole("alert");
-  await expect(alert).toContainText("Events unavailable");
+  await expect(alert).toContainText("Match updates could not load");
   await expect(page.getByText("Loading events", { exact: true })).toHaveCount(
     0,
   );
   expect(requests).toBe(1);
-  await alert.getByRole("button", { name: "Retry", exact: true }).click();
-  await expect(page.locator(".live-event-row")).toHaveCount(1);
+  await alert
+    .getByRole("button", { name: "Retry match updates", exact: true })
+    .click();
+  await expect(page.locator(".broadcast-card")).toHaveCount(1);
   await expect(alert).toHaveCount(0);
   expect(requests).toBe(2);
 });
 async function real(page: Page, baseURL: string) {
+  await page.addInitScript(() =>
+    localStorage.setItem("backinit-timezone", "Africa/Kampala"),
+  );
   await page
     .context()
     .addCookies([{ name: "backinit-edition", value: "real", url: baseURL }]);
@@ -64,14 +69,9 @@ test("official cup discovery gives Kampala kickoffs, no false live player and fa
   await real(page, baseURL!);
   await page.clock.setFixedTime(new Date("2026-10-28T06:00:00Z"));
   await page.goto("/watch?date=2026-10-28");
-  await page.locator(".watch-options summary").click();
-  await page
-    .getByLabel("Viewing timezone", { exact: true })
-    .selectOption("Africa/Kampala");
   await expect(
-    page.getByRole("heading", { name: "No streams available" }),
+    page.getByRole("heading", { name: "Watch", exact: true }),
   ).toBeVisible();
-  await expect(page.locator(".live-event-row")).toHaveCount(0);
   await expect(page.locator("iframe,video")).toHaveCount(0);
   await page.goto(`/watch/${priority}`);
   await expect(page).toHaveURL(new RegExp(`/watch/${priority}$`));
@@ -79,6 +79,7 @@ test("official cup discovery gives Kampala kickoffs, no false live player and fa
     page.locator(".player-tracker-fallback .event-tracker"),
   ).toBeVisible();
   await expect(page.locator(".event-viewing-header")).toContainText("23:00");
+  await page.locator(".viewing-options > summary").click();
   await expect(page.locator(".viewing-options")).toContainText(
     "UK coverage confirmed",
   );
@@ -176,16 +177,21 @@ test("compact discovery shows matches immediately and every sport stays reachabl
   for (const width of [360, 768, 1024, 1440]) {
     await page.setViewportSize({ width, height: 740 });
     await page.goto("/watch?date=2026-10-28");
-    await expect(page.locator(".live-event-row").first()).toBeVisible();
+    await expect(page.locator(".broadcast-card").first()).toBeVisible();
     const visibleRows = await page
-      .locator(".live-event-row")
+      .locator(".broadcast-card")
       .evaluateAll(
         (rows) =>
           rows.filter(
-            (row) => row.getBoundingClientRect().bottom < innerHeight - 60,
+            (row) =>
+              (row.querySelector("h3") || row).getBoundingClientRect().bottom <
+              innerHeight - 60,
           ).length,
       );
-    expect(visibleRows).toBeGreaterThanOrEqual(3);
+    expect(
+      visibleRows,
+      `First match title should be above the fold at ${width}px`,
+    ).toBeGreaterThanOrEqual(1);
     await expect(page.locator(".sidebar")).toHaveCount(0);
     const images = page.locator(".sports-nav img");
     await expect(images).toHaveCount(sports.length + 3);
@@ -207,9 +213,9 @@ test("compact discovery shows matches immediately and every sport stays reachabl
         picker.getByRole("link", { name: sport, exact: true }),
       ).toBeVisible();
     await picker.getByRole("link", { name: "Baseball", exact: true }).click();
-    await expect(page).toHaveURL(/sport=Baseball.*range=upcoming/);
+    await expect(page).toHaveURL(/sport=Baseball/);
     await expect(
-      page.getByRole("heading", { name: "No streams available" }),
+      page.getByRole("heading", { name: "No matches in this view" }),
     ).toBeVisible();
     await expect(page.locator(".sports-picker")).not.toHaveAttribute(
       "open",
@@ -227,10 +233,10 @@ test("compact discovery shows matches immediately and every sport stays reachabl
   await expect(page).toHaveURL(/\/fixtures$/);
   await page.goto("/watch?sport=MMA");
   await page
-    .getByRole("button", { name: "Upcoming events", exact: true })
+    .getByRole("button", { name: "Next 48 hours", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "No streams available" }),
+    page.getByRole("heading", { name: "No matches in this view" }),
   ).toBeVisible();
   await page.goto(`/watch/${priority}`);
   const unavailablePlayer = page.locator(".player-unavailable");
@@ -433,7 +439,7 @@ test("admin sources require verification, match only their fixture, expose retry
   ).toBe(false);
 });
 
-test("Watch excludes unavailable events and replays while keeping live broadcasts across midnight", async ({
+test("Watch keeps live tracker coverage across midnight and distinguishes actual stream availability", async ({
   page,
   baseURL,
 }) => {
@@ -496,15 +502,17 @@ test("Watch excludes unavailable events and replays while keeping live broadcast
     }),
   );
   await page.goto("/watch");
-  await expect(page.locator(".live-event-list")).toContainText(event.title);
-  await page.getByRole("button", { name: "Live", exact: true }).click();
-  await expect(page.locator(".live-event-list")).toContainText(event.title);
-  await expect(page.locator(".live-event-row")).toHaveCount(1);
-  await expect(page.locator(".live-event-list")).toContainText("Watch live");
-  await expect(page.locator(".live-event-list")).not.toContainText(
+  await expect(page.locator(".broadcast-grid")).toContainText(event.title);
+  await page.getByRole("button", { name: "Live now", exact: true }).click();
+  await expect(page.locator(".broadcast-grid")).toContainText(event.title);
+  await expect(page.locator(".broadcast-card")).toHaveCount(3);
+  await expect(page.locator(".broadcast-grid")).toContainText(
+    "Watch stream & tracker",
+  );
+  await expect(page.locator(".broadcast-grid")).toContainText(
     "Unstreamed event",
   );
-  await expect(page.locator(".live-event-list")).not.toContainText(
+  await expect(page.locator(".broadcast-grid")).toContainText(
     "Replay only event",
   );
 });
@@ -573,19 +581,19 @@ test("large fixture lists render in batches and keep search across every event",
   const hydrated = page.waitForResponse((response) =>
     response.url().endsWith("/api/account/me"),
   );
-  await page.goto("/search");
+  await page.goto("/fixtures");
   await hydrated;
   await page.clock.fastForward(31000);
   await expect(page.locator(".match-row")).toHaveCount(60);
   await page
     .getByRole("button", {
-      name: "Show more events (65 remaining)",
+      name: "Show more matches",
       exact: true,
     })
     .click();
   await expect(page.locator(".match-row")).toHaveCount(120);
   await page
-    .getByRole("textbox", { name: "Search events", exact: true })
+    .getByRole("textbox", { name: "Search", exact: true })
     .fill("Batch team 124");
   await expect(page.locator(".match-row")).toHaveCount(1);
   await expect(page.locator(".match-row")).toContainText("Batch team 124");

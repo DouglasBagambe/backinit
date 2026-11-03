@@ -51,10 +51,16 @@ export function createPublicDataClient() {
   return { read };
 }
 export const publicData = createPublicDataClient();
-export function eventsUrl(route: string) {
+export function eventsUrl(
+  route: string,
+  filters: { sport?: string; date?: string } = {},
+) {
   const slug = route.startsWith("sport/") ? route.slice(6) : "";
-  const sport = sports.find(
-    (s) => s.toLowerCase().replaceAll(" ", "-") === slug,
-  );
-  return `/api/events${sport ? `?sport=${encodeURIComponent(sport)}` : ""}`;
+  const sport =
+    sports.find((s) => s.toLowerCase().replaceAll(" ", "-") === slug) ||
+    sports.find((s) => s === filters.sport);
+  const params = new URLSearchParams();
+  if (sport) params.set("sport", sport);
+  if (filters.date) params.set("date", filters.date);
+  return `/api/events${params.size ? `?${params}` : ""}`;
 }
