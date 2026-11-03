@@ -35,7 +35,7 @@ export function EntityProfile({
 }) {
   const params = useSearchParams();
   const name = (params.get("name") || "").slice(0, 180);
-  const sport = params.get("sport") || "";
+  const requestedSport = params.get("sport") || "";
   const { zone } = useViewingZone();
   const [retry, setRetry] = useState(0);
   const [profileError, setProfileError] = useState("");
@@ -55,10 +55,11 @@ export function EntityProfile({
   const identities = lookup.data.filter(
     (e) =>
       e.kind === kind &&
-      (!sport || e.sport === sport) &&
+      (!requestedSport || e.sport === requestedSport) &&
       participantKey(e.name) === participantKey(name),
   );
   const identity = identities.length === 1 ? identities[0] : undefined;
+  const sport = requestedSport || identity?.sport || "";
   const pid = suppliedId || identity?.id,
     psport = suppliedSport || identity?.providerSport,
     league = suppliedLeague || identity?.league;
@@ -252,9 +253,11 @@ export function EntityProfile({
           )}
           onClick={() => toggle({ kind, target: name })}
         >
-          {following.some((f) => f.kind === kind && f.target === name)
-            ? "Following ✓"
-            : "Follow"}
+          {busy
+            ? "Loading saved status…"
+            : following.some((f) => f.kind === kind && f.target === name)
+              ? "Following ✓"
+              : "Follow"}
         </button>
       </header>
       <nav className="filter-tabs" aria-label="Profile sections">

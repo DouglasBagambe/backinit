@@ -57,6 +57,36 @@ it("indexes tennis players as athletes, excludes video titles and deduplicates g
     "name=Carlos+Alcaraz",
   );
 });
+it("keeps player identities and supplied images when a lineup enters the directory", () => {
+  const indexed = sportsEntities([
+    {
+      ...event,
+      detail: {
+        lineups: [
+          {
+            team: "Chelsea",
+            players: [
+              {
+                name: "Cole Palmer",
+                id: "296395",
+                imageUrl:
+                  "https://a.espncdn.com/i/headshots/soccer/players/full/296395.png",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  ]);
+  expect(indexed.find((e) => e.name === "Cole Palmer")).toMatchObject({
+    kind: "athlete",
+    id: "296395",
+    providerSport: "soccer",
+    league: "eng.league_cup",
+    image: expect.stringContaining("296395.png"),
+  });
+});
+
 it("preserves supplied formations, shirt numbers, commentary, form and head-to-head scores", async () => {
   const raw = {
     rosters: [
@@ -247,6 +277,52 @@ it("draws reported football positions rather than treating formation slots as se
   ).toBeNull();
 });
 
+it("fits mixed midfield roles to a reported 3-5-2 or 4-1-4-1 without moving defenders", () => {
+  const team = (formation: string, positions: string[]) => ({
+    team: "Reported team",
+    formation,
+    players: positions.map((position) => ({
+      name: position,
+      position,
+      starter: true,
+    })),
+  });
+  const parma = team("3-5-2", [
+    "G",
+    "CD",
+    "CD-L",
+    "CD-R",
+    "CM-L",
+    "CM-R",
+    "AM",
+    "LM",
+    "RM",
+    "CF-L",
+    "CF-R",
+  ]);
+  expect(formationLines(parma)?.map((line) => line.length)).toEqual([
+    2, 5, 3, 1,
+  ]);
+  expect(formationLines({ ...parma, formation: "5-3-2" })).toBeNull();
+  expect(
+    formationLines(
+      team("4-1-4-1", [
+        "G",
+        "LB",
+        "CD-L",
+        "CD-R",
+        "RB",
+        "DM",
+        "LM",
+        "CM-L",
+        "CM-R",
+        "RM",
+        "F",
+      ]),
+    )?.map((line) => line.length),
+  ).toEqual([1, 4, 1, 4, 1]);
+});
+
 it("looks up players independently of match lists and retains verified provider identities", async () => {
   const { searchEntities } =
     await import("../apps/api/src/providers/entity-search");
@@ -360,4 +436,93 @@ it("a player biography survives a provider stats heading with no statistics arra
   expect(result.value.name).toBe("Tennis Player");
   expect(result.value.statistics).toBeUndefined();
   expect(result.value.appearances).toEqual([]);
+});
+
+it("US sport scoreboards include the previous venue day across UTC midnight", async () => {
+  const calls: string[] = [];
+  const provider = new EspnProvider(
+    new ProviderCache(async (input) => {
+      const url = String(input);
+      calls.push(url);
+      return Response.json({
+        events: [
+          {
+            id: url.includes("dates=20261102") ? "100" : "200",
+            name: "Home vs Away",
+            date: url.includes("dates=20261102")
+              ? "2026-11-03T03:00:00Z"
+              : "2026-11-04T01:00:00Z",
+            status: {
+              type: {
+                state: url.includes("dates=20261102") ? "in" : "pre",
+                name: "STATUS_IN_PROGRESS",
+              },
+            },
+            competitions: [
+              {
+                id: url.includes("dates=20261102") ? "100" : "200",
+                date: "2026-11-03T03:00:00Z",
+                competitors: [
+                  {
+                    id: "1",
+                    homeAway: "home",
+                    team: { displayName: "Home" },
+                    score: "50",
+                  },
+                  {
+                    id: "2",
+                    homeAway: "away",
+                    team: { displayName: "Away" },
+                    score: "48",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      });
+    }),
+  );
+  const r = await provider.events(
+    { path: "basketball/nba", sport: "Basketball", label: "NBA" },
+    "2026-11-03",
+  );
+  expect(calls.some((u) => u.includes("dates=20261102"))).toBe(true);
+  expect(calls.some((u) => u.includes("dates=20261103"))).toBe(true);
+  expect(r.value).toHaveLength(2);
+  expect(r.value.some((e) => e.status === "live")).toBe(true);
+});
+
+it("loads players from hyphenated provider leagues without allowing URL paths", async () => {
+  const { athleteProfile } =
+    await import("../apps/api/src/providers/entity-search");
+  const fetcher = vi.fn(async (url: string | URL | Request) =>
+    String(url).endsWith("/gamelog")
+      ? new Response("Not found", { status: 404 })
+      : Response.json({
+          athlete: { id: "123", displayName: "College player" },
+        }),
+  );
+  const store = new ProviderCache(fetcher);
+  const profile = await athleteProfile(
+    "football",
+    "college-football",
+    "123",
+    store,
+  );
+  expect(profile.value).toMatchObject({
+    id: "123",
+    sport: "American football",
+  });
+  expect(
+    fetcher.mock.calls.some(([url]) =>
+      String(url).includes("/football/college-football/athletes/123"),
+    ),
+  ).toBe(true);
+  await expect(
+    athleteProfile("football", "../nfl", "123", store),
+  ).rejects.toThrow("Invalid profile");
+  await expect(athleteProfile("football", "..", "123", store)).rejects.toThrow(
+    "Invalid profile",
+  );
 });

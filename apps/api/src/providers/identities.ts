@@ -40,6 +40,26 @@ export function safeTeamImage(value: string | undefined): string | undefined {
     return undefined;
   }
 }
+/** Provider-issued athlete IDs may use the provider's public headshot route.
+ * Missing images still fall back to initials in the UI. */
+export function playerImage(
+  id: string | undefined,
+  path: string,
+  supplied?: string,
+) {
+  const actual = safeTeamImage(supplied);
+  if (actual || !id || !/^\d+$/.test(id)) return actual;
+  const parts = path.split("/");
+  const folder =
+    parts[0] === "soccer"
+      ? "soccer"
+      : ["nba", "wnba", "nfl", "nhl", "mlb"].includes(parts[1] || "")
+        ? parts[1]
+        : undefined;
+  return folder
+    ? `https://a.espncdn.com/i/headshots/${folder}/players/full/${id}.png`
+    : undefined;
+}
 const normalizeName = (name: string) =>
   name
     .toLowerCase()

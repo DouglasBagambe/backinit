@@ -55,7 +55,7 @@ export class SportsController {
     const parsed = z
       .object({
         sport: z.string().regex(/^[a-z]{2,20}$/),
-        league: z.string().regex(/^[a-z0-9.]{1,40}$/),
+        league: z.string().regex(/^[a-z0-9][a-z0-9._-]{0,39}$/),
         id: z.string().regex(/^\d{1,15}$/),
       })
       .safeParse(input);
@@ -70,7 +70,7 @@ export class SportsController {
     const parsed = z
       .object({
         sport: z.string().regex(/^[a-z]{2,20}$/),
-        league: z.string().regex(/^[a-z0-9.]{1,40}$/),
+        league: z.string().regex(/^[a-z0-9][a-z0-9._-]{0,39}$/),
         id: z.string().regex(/^\d{1,15}$/),
       })
       .safeParse(input);

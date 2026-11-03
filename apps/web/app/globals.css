@@ -1076,6 +1076,14 @@ footer small {
   color: var(--ink);
   padding: 5px;
 }
+.search-input:focus-within {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.search-input input:focus-visible {
+  outline: none;
+}
 .calendar-label {
   padding: 16px;
   background: var(--surface);
@@ -6463,4 +6471,112 @@ dialog.ad-consent {
   .broadcast-directory > .section-heading .eyebrow {
     display: none;
   }
+}
+/* Keep complete provider artwork visible in every catalogue card. */
+.broadcast-directory .broadcast-poster img {
+  object-fit: contain;
+}
+.broadcast-directory .broadcast-poster {
+  background: #071b18;
+}
+.saved-following .directory-grid > a {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.lineup-portrait {
+  position: relative;
+  display: inline-flex;
+  justify-content: center;
+}
+.lineup-portrait .crest {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--surface);
+  overflow: hidden;
+}
+:root[data-theme="dark"] .lineup-portrait .real-crest:has(img) {
+  background: var(--surface);
+  padding: 0;
+  border-radius: 50%;
+}
+.lineup-portrait .crest img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.lineup-portrait .crest-fallback {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  background: var(--surface-2, var(--surface));
+}
+.formation-player .lineup-portrait > b,
+.lineup-list .lineup-portrait > b {
+  position: absolute;
+  right: -5px;
+  bottom: -2px;
+  width: 22px;
+  height: 22px;
+  font-size: 10px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+}
+.lineup-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.lineup-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  min-width: 0;
+}
+.lineup-list li > a {
+  flex: 1;
+  min-width: 80px;
+}
+@media (min-width: 901px) and (max-height: 800px) {
+  .broadcast-directory .broadcast-card {
+    grid-template-columns: 170px minmax(0, 1fr);
+  }
+}
+@media (max-width: 420px) {
+  .lineup-list {
+    grid-template-columns: 1fr;
+  }
+  .formation-player .lineup-portrait .crest {
+    width: 36px;
+    height: 36px;
+  }
+}
+.formation-player .lineup-portrait {
+  display: inline-flex;
+}
+.formation-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.formation-player > a {
+  overflow-wrap: anywhere;
+  line-height: 1.3;
 }

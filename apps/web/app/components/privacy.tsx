@@ -41,19 +41,19 @@ export function Privacy({
         <h2>Other providers</h2>
         <p>
           Team badges and video thumbnails may load from external image servers.
-          Embedded players load after your consent. Loading a video contacts its
-          publisher. These services may receive your IP address and apply their
-          own privacy policies. News links open the publisher’s website. Fonts
-          are served by BackInIt. Live match visualizations may load from
-          SportScore and its tracker provider when a matching live tracker is
-          available. Those providers receive your IP address and browser
-          information; their own privacy policies apply. They do not receive
-          your BackInIt account credentials. PPV broadcast players load only
-          when you select Play. PPV and its embed providers receive your IP
-          address, browser information and may show their own advertising. Their
-          controls and privacy practices apply. Viewer counts shown with
-          broadcasts are supplied by that provider, not measured BackInIt
-          viewers.
+          Opening a viewing page can load an embedded player. Loading a player
+          contacts its publisher. These services may receive your IP address and
+          apply their own privacy policies. News links open the publisher’s
+          website. Fonts are served by BackInIt. Live match visualizations may
+          load from SportScore and its tracker provider when a matching live
+          tracker is available. Those providers receive your IP address and
+          browser information; their own privacy policies apply. They do not
+          receive your BackInIt account credentials. Broadcast players can load
+          when you open a broadcast or select a stream source. PPV and its embed
+          providers receive your IP address, browser information and may show
+          their own advertising. Their controls and privacy practices apply.
+          Viewer counts shown with broadcasts are supplied by that provider, not
+          measured BackInIt viewers.
         </p>
         <h2>Advertising</h2>
         {nativeAdsEnabled ? (

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
-import { searchResultSchema, type RemoteEntity } from "../lib/entity-model";
+import { type RemoteEntity } from "../lib/entity-model";
+import { useEntitySearch } from "./entity-suggestions";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -23,53 +24,24 @@ export function SportsSearch({
   const router = useRouter();
   const [visible, setVisible] = useState(12);
   const [query, setQuery] = useState(params.get("q") || "");
-  const [remote, setRemote] = useState<RemoteEntity[]>([]);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
+  const [revision, setRevision] = useState(0);
+  const { data: remote, pending, error } = useEntitySearch(query, revision);
   const urlQuery = params.get("q") || "";
   useEffect(() => setQuery(urlQuery), [urlQuery]);
   useEffect(() => {
-    setRemote([]);
     setVisible(12);
-    setError("");
-    if (query.trim().length < 2) {
-      if (!query.trim()) window.history.replaceState(null, "", "/search");
-      setPending(false);
-      return;
-    }
-    const c = new AbortController();
-    setPending(true);
-    const timer = setTimeout(() => {
-      const q = query.trim().slice(0, 80);
-      window.history.replaceState(
-        null,
-        "",
-        `/search?${new URLSearchParams({ q })}`,
-      );
-      fetch(`/api/search?${new URLSearchParams({ q })}`, {
-        signal: AbortSignal.any([c.signal, AbortSignal.timeout(12000)]),
-      })
-        .then((r) => {
-          if (!r.ok) throw Error();
-          return r.json();
-        })
-        .then((raw) => {
-          if (!c.signal.aborted) setRemote(searchResultSchema.parse(raw).data);
-        })
-        .catch(() => {
-          if (!c.signal.aborted)
-            setError(
-              "Player and team search could not load. Try again shortly.",
-            );
-        })
-        .finally(() => {
-          if (!c.signal.aborted) setPending(false);
-        });
-    }, 300);
-    return () => {
-      clearTimeout(timer);
-      c.abort();
-    };
+    const timer = setTimeout(
+      () =>
+        window.history.replaceState(
+          null,
+          "",
+          query.trim()
+            ? `/search?${new URLSearchParams({ q: query.trim().slice(0, 80) })}`
+            : "/search",
+        ),
+      300,
+    );
+    return () => clearTimeout(timer);
   }, [query]);
   const key = query.trim().toLowerCase();
   const local = sportsEntities(events).filter((e) =>
@@ -205,8 +177,15 @@ export function SportsSearch({
             </button>
           )}
           {pending && <p role="status">Searching players and teams…</p>}
-          {error && <p role="status">{error}</p>}
-          {!pending && !entities.length && !matches.length && (
+          {error && (
+            <p role="status">
+              {error}{" "}
+              <button onClick={() => setRevision((n) => n + 1)}>
+                Retry search
+              </button>
+            </p>
+          )}
+          {!pending && !error && !entities.length && !matches.length && (
             <div className="panel">
               <h2>No results for “{query}”</h2>
               <p>Try a shorter name or a competition.</p>

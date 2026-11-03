@@ -21,6 +21,14 @@ export function watchFeed(
 ) {
   const now = date ? Date.parse(`${date}T12:00:00Z`) : Date.now();
   return {
+    statusEvents: feed.data.filter(
+      (e) =>
+        ["finished", "cancelled", "postponed", "suspended"].includes(
+          e.status,
+        ) &&
+        Date.parse(e.start) >= now - 2 * 86400000 &&
+        Date.parse(e.start) <= now,
+    ),
     data: feed.data
       .filter(
         (e) =>

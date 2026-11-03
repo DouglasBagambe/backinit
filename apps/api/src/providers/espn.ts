@@ -6,7 +6,7 @@ import {
   type LiveDetail,
 } from "../../../../packages/domain/src/index.js";
 import { ProviderCache } from "./cache.js";
-import { safeTeamImage } from "./identities.js";
+import { safeTeamImage, playerImage } from "./identities.js";
 import { premierLeagueViewingLinks } from "./premier-league-viewing.js";
 
 const person = z.object({
@@ -356,6 +356,47 @@ export class EspnProvider {
           loaded.some((result) => result.stale) || loaded.length < days.length,
       };
     }
+    if (
+      [
+        "basketball/nba",
+        "basketball/wnba",
+        "hockey/nhl",
+        "baseball/mlb",
+      ].includes(league.path)
+    ) {
+      // US scoreboards use the venue's calendar day. Both dates are needed
+      // for games continuing after midnight in UTC and East Africa.
+      const previous = new Date(`${date}T12:00:00Z`);
+      previous.setUTCDate(previous.getUTCDate() - 1);
+      const days = [
+        previous.toISOString().slice(0, 10).replaceAll("-", ""),
+        from,
+      ];
+      const boards = await Promise.allSettled(
+        days.map((day) =>
+          this.cache.json(
+            `${base}${league.path}/scoreboard?limit=500&dates=${day}`,
+            30000,
+            (raw) => boardSchema.parse(raw),
+          ),
+        ),
+      );
+      const loaded = boards.flatMap((r) =>
+        r.status === "fulfilled" ? [r.value] : [],
+      );
+      if (!loaded.length) throw Error("Scoreboard unavailable");
+      const events = loaded.flatMap((r) =>
+        normalizeScoreboard(r.value, league, r.fetchedAt, r.stale),
+      );
+      return {
+        value: [...new Map(events.map((e) => [e.id, e])).values()],
+        fetchedAt: loaded
+          .map((r) => r.fetchedAt)
+          .sort()
+          .at(-1)!,
+        stale: loaded.some((r) => r.stale) || loaded.length < days.length,
+      };
+    }
     const end = new Date(`${date}T12:00:00Z`);
     end.setUTCDate(end.getUTCDate() + 7);
     const dates = league.week
@@ -476,6 +517,8 @@ export class EspnProvider {
                         z.object({
                           athlete: z.object({
                             displayName: z.string(),
+                            id: z.string().optional(),
+                            headshot: z.object({ href: z.string() }).optional(),
                             position: z
                               .object({ abbreviation: z.string() })
                               .optional(),
@@ -501,6 +544,8 @@ export class EspnProvider {
                 z.object({
                   athlete: z.object({
                     displayName: z.string(),
+                    id: z.string().optional(),
+                    headshot: z.object({ href: z.string() }).optional(),
                     position: z.object({ abbreviation: z.string() }).optional(),
                   }),
                   starter: z.boolean().optional(),
@@ -571,6 +616,8 @@ export class EspnProvider {
           formation: r.formation,
           players: r.roster.map((a) => ({
             name: a.athlete.displayName,
+            id: a.athlete.id,
+            imageUrl: playerImage(a.athlete.id, path, a.athlete.headshot?.href),
             position:
               a.position?.abbreviation || a.athlete.position?.abbreviation,
             jersey: a.jersey,
@@ -584,6 +631,8 @@ export class EspnProvider {
           .flatMap((g) => g.athletes)
           .map((a) => ({
             name: a.athlete.displayName,
+            id: a.athlete.id,
+            imageUrl: playerImage(a.athlete.id, path, a.athlete.headshot?.href),
             position: a.athlete.position?.abbreviation,
             starter: a.starter,
           })),

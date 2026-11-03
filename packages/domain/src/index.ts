@@ -83,6 +83,8 @@ export const liveDetailSchema = z.object({
         players: z.array(
           z.object({
             name: z.string(),
+            id: z.string().optional(),
+            imageUrl: z.string().url().optional(),
             jersey: z.string().optional(),
             formationPlace: z.string().optional(),
             position: z.string().optional(),
@@ -601,6 +603,7 @@ export const watchEntrySchema = z.object({
   availability: z.enum(["in-page", "external-only", "unavailable"]),
 });
 export const watchFeedSchema = z.object({
+  statusEvents: z.array(eventSchema).default([]),
   data: z.array(watchEntrySchema),
   coverage: z.array(coverageSchema),
   generatedAt: z.string().datetime(),
@@ -734,7 +737,7 @@ export function eventScore(event: SportEvent, side: "home" | "away") {
   const total = side === "home" ? event.homeScore : event.awayScore;
   if (total !== null) return String(total);
   if (event.sport === "Tennis" && event.detail?.periods?.length)
-    return event.detail.periods.map((p) => p[side]).join("  ");
+    return event.detail.periods.map((p) => p[side]).join(" · ");
   return event.status === "upcoming" ? "" : "–";
 }
 export function entityHref(
@@ -767,7 +770,7 @@ export function sportsEntities(events: SportEvent[]): SportsEntity[] {
     if (isMediaEvent(e)) continue;
     add({ kind: "competition", name: e.competition, sport: e.sport });
     if (e.kind === "score") {
-      const path = e.source?.provider.match(/^ESPN:([a-z]+)\/([a-z0-9.]+)$/);
+      const path = e.source?.provider.match(/^ESPN:([a-z]+)\/([a-z0-9._-]+)$/);
       const identity = path ? { providerSport: path[1], league: path[2] } : {};
       const kind = ["Tennis", "Badminton"].includes(e.sport)
         ? "athlete"
@@ -793,7 +796,19 @@ export function sportsEntities(events: SportEvent[]): SportsEntity[] {
     }
     for (const team of e.detail?.lineups || [])
       for (const p of team.players)
-        add({ kind: "athlete", name: p.name, sport: e.sport });
+        add({
+          kind: "athlete",
+          name: p.name,
+          sport: e.sport,
+          image: p.imageUrl,
+          ...(p.id ? { id: p.id } : {}),
+          ...(e.source?.provider.match(/^ESPN:([a-z]+)\/([a-z0-9._-]+)$/)
+            ? {
+                providerSport: e.source.provider.split(":")[1]!.split("/")[0],
+                league: e.source.provider.split("/")[1],
+              }
+            : {}),
+        });
     for (const goal of e.detail?.goals || [])
       if (goal.player)
         add({ kind: "athlete", name: goal.player, sport: e.sport });
@@ -817,7 +832,7 @@ export function formationLines(
     starters.length !== 11
   )
     return null;
-  const groups: Array<typeof starters> = Array.from({ length: 5 }, () => []);
+  const groups: Array<typeof starters> = Array.from({ length: 6 }, () => []);
   for (const p of starters) {
     const pos = p.position || "";
     const group =
@@ -825,17 +840,38 @@ export function formationLines(
         ? 0
         : /^(CD|CB|LB|RB)(-|$)/.test(pos)
           ? 1
-          : /^(DM|CM|LM|RM|M)(-|$)/.test(pos)
+          : /^(DM)(-|$)/.test(pos)
             ? 2
-            : /^(AM)(-|$)/.test(pos)
+            : /^(CM|LM|RM|M)(-|$)/.test(pos)
               ? 3
-              : /^(F|LF|RF|CF|ST|LW|RW)(-|$)/.test(pos)
+              : /^(AM)(-|$)/.test(pos)
                 ? 4
-                : -1;
+                : /^(F|LF|RF|CF|ST|LW|RW)(-|$)/.test(pos)
+                  ? 5
+                  : -1;
     if (group < 0) return null;
     groups[group]!.push(p);
   }
-  const lines = groups.filter((g) => g.length);
+  if (
+    groups[0]!.length !== 1 ||
+    groups[1]!.length !== formation[0] ||
+    groups[5]!.length !== formation.at(-1)
+  )
+    return null;
+  // Providers can distinguish defensive/central/attacking midfield roles
+  // within one formation line (for example the five in a 3-5-2).
+  // Merge adjacent role groups only when they fit the reported formation.
+  const roles = groups.filter((g) => g.length);
+  const lines: Array<typeof starters> = [];
+  let cursor = 0;
+  for (const size of [1, ...formation]) {
+    const line: typeof starters = [];
+    while (line.length < size && cursor < roles.length)
+      line.push(...roles[cursor++]!);
+    if (line.length !== size) return null;
+    lines.push(line);
+  }
+  if (cursor !== roles.length) return null;
   if (lines.map((g) => g.length).join("-") !== [1, ...formation].join("-"))
     return null;
   const lateral = (position = "") =>

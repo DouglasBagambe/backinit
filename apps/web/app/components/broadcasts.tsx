@@ -86,7 +86,7 @@ function State({ item }: { item: Broadcast }) {
   );
 }
 /** Small editorial entry point; the full catalogue remains in Watch. */
-export function HomeBroadcasts() {
+export function HomeBroadcasts({ intro = true }: { intro?: boolean } = {}) {
   const { feed } = useBroadcasts();
   const now = useNow();
   const time = now || Date.now();
@@ -98,21 +98,23 @@ export function HomeBroadcasts() {
     .slice(0, 3);
   return (
     <section className="home-spotlight" aria-label="Your matchday">
-      <div className="home-intro">
-        <div>
-          <span className="eyebrow">EVERY MOMENT MATTERS</span>
-          <h1>
-            Make time for
-            <br />
-            the big moments.
-          </h1>
-          <p>Find your next game. Follow the action. Get back in it.</p>
+      {intro && (
+        <div className="home-intro">
+          <div>
+            <span className="eyebrow">EVERY MOMENT MATTERS</span>
+            <h1>
+              Make time for
+              <br />
+              the big moments.
+            </h1>
+            <p>Find your next game. Follow the action. Get back in it.</p>
+          </div>
+          <Link className="home-watch-cta" href="/watch">
+            <Play size={18} fill="currentColor" />
+            Explore Watch
+          </Link>
         </div>
-        <Link className="home-watch-cta" href="/watch">
-          <Play size={18} fill="currentColor" />
-          Explore Watch
-        </Link>
-      </div>
+      )}
       <nav className="home-shortcuts" aria-label="Explore BackInIt">
         <Link href="/watch?range=live">
           <Radio size={16} />
@@ -202,7 +204,10 @@ export function BroadcastDirectory({
           ),
         );
         if (!c.signal.aborted) {
-          setMatchEvents(body.data.map((entry) => entry.event));
+          setMatchEvents([
+            ...body.data.map((entry) => entry.event),
+            ...body.statusEvents,
+          ]);
           setWatchableIds(
             body.data
               .filter((entry) =>
