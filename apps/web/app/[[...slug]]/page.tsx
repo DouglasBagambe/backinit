@@ -88,7 +88,7 @@ async function PageContent({
       ["match", "watch"].includes(slug[0] || "") &&
       slug.length === 2 &&
       (feed.data.some((e) => e.id === slug[1]) ||
-        (slug[0] === "watch" && /^ppv-\d+$/.test(slug[1] || "")))
+        (slug[0] === "watch" && /^(?:ppv|matchora)-\d+$/.test(slug[1] || "")))
     ) &&
     !(
       slug[0] === "sport" &&
