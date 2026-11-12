@@ -69,3 +69,11 @@ References checked: https://developer.mozilla.org/en-US/docs/Web/Security/Defens
 - Advertising file SHA256 unchanged: `56a9d7c2defb5494e80db29a5e33016f37e90d0c5241dea4cd5454bdf49eb7a8`.
 - Initial real runtime feed: 117 merged entries / 255 sources (107 PPV IDs, 10 additional unique StreamFree IDs; other matches merged). Counts are a point-in-time observation, not guaranteed coverage. Following restart, upstream refreshes were intermittent: an independent PPV request returned 200 while StreamFree timed out. No successful decoded playback claim.
 - Local web preview serves `/watch` on port 3000; local data API on 4101. Automatic browser-tab access to its existing internal error page was rejected, so owner must refresh the tab. No browser security workaround attempted.
+
+## Catalogue outage repair
+
+Follow-up screenshot showed an empty local catalogue. Direct curl and Node requests confirmed intermittent DNS/connect timeouts before provider data reached the app. No DNS settings, provider blocks or cookie code were changed. Provider requests subsequently recovered: both APIs returned 200, and local API plus web proxy returned 117 entries with a new timestamp and `stale:false`.
+
+Added an atomic file snapshot (`BROADCAST_CACHE_PATH`, default `.data/broadcast-catalogue.json`) to retain a validated successful aggregate across process restarts. Restored data is always marked stale and refreshed in the background; snapshots expire after six hours. Original timestamps are preserved. Invalid, oversized and expired snapshots are rejected. Storage failures do not stop the live catalogue. This survives process restarts only where the host retains that filesystem; ephemeral deployments need a persistent cache path/shared store for cross-deployment retention.
+
+Recovery verification: 16 targeted tests passed (snapshot/restart, offline refresh, original timestamp, corrupted/expired file rejection, storage errors, provider isolation and PPV parsing), and API build passed. Real refreshed catalogue was verified through both port 4101 and the frontend `/api/broadcasts` endpoint. The formerly available in-app browser controller is unavailable this turn, so visual refresh remains unverified; owner can refresh the open Watch page.
