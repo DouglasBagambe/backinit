@@ -1,3 +1,4 @@
+import { isBroadcastId } from "@backinit/domain";
 import { Suspense } from "react";
 import { RouteLoading } from "../components/route-loading";
 import { demoEnabled } from "../lib/edition";
@@ -88,7 +89,7 @@ async function PageContent({
       ["match", "watch"].includes(slug[0] || "") &&
       slug.length === 2 &&
       (feed.data.some((e) => e.id === slug[1]) ||
-        (slug[0] === "watch" && /^ppv-\d+$/.test(slug[1] || "")))
+        (slug[0] === "watch" && isBroadcastId(slug[1] || "")))
     ) &&
     !(
       slug[0] === "sport" &&

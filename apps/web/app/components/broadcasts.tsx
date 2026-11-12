@@ -2,6 +2,7 @@
 import { EntitySuggestions } from "./entity-suggestions";
 import {
   eventTitle,
+  broadcastCollection,
   watchFeedSchema,
   matchBroadcastEvent,
   sportKey,
@@ -276,6 +277,20 @@ export function BroadcastDirectory({
   const [category, setCategory] = useState("All sports");
   const [range, setRange] = useState("Today");
   const [chosenDate, setChosenDate] = useState("");
+  const collection = params.get("competition") || "";
+  const collections = [
+    ...new Set(
+      catalogue
+        .filter(
+          (b) =>
+            category === "All sports" ||
+            sportKey(category) === sportKey(b.category),
+        )
+        .map(broadcastCollection),
+    ),
+  ]
+    .filter(Boolean)
+    .sort();
   const [sort, setSort] = useState("Recommended");
   const [page, setPage] = useState(1);
   const now = useNow();
@@ -327,7 +342,7 @@ export function BroadcastDirectory({
   }, [requested, channels]);
   useEffect(() => {
     setPage(1);
-  }, [query, category, range, chosenDate, channels, sort]);
+  }, [query, category, range, chosenDate, channels, sort, collection]);
   const time = now || Date.now();
   const today = localDay(new Date(time).toISOString(), zone);
   const nextDay = new Date(`${today}T12:00:00Z`);
@@ -350,7 +365,7 @@ export function BroadcastDirectory({
     if (range === "Live now")
       return official
         ? official.status === "live"
-        : b.start <= time && b.end >= time;
+        : broadcastState(b, time) === "Live";
     if (range === "This week") {
       const end = new Date(`${today}T12:00:00Z`);
       end.setUTCDate(end.getUTCDate() + ((7 - end.getUTCDay()) % 7));
@@ -363,6 +378,7 @@ export function BroadcastDirectory({
     .filter(
       (b) =>
         inPeriod(b) &&
+        (!collection || broadcastCollection(b) === collection) &&
         (category === "All sports" ||
           sportKey(category) === sportKey(b.category)) &&
         `${b.title} ${b.competition}`
@@ -546,6 +562,7 @@ export function BroadcastDirectory({
                     onChange={(e) => {
                       setCategory(e.target.value);
                       updateFilter({
+                        competition: "",
                         sport:
                           e.target.value === "All sports" ? "" : e.target.value,
                       });
@@ -566,6 +583,25 @@ export function BroadcastDirectory({
                       ))}
                   </select>
                 </label>
+                {collections.length > 1 && (
+                  <label className="broadcast-collection-filter">
+                    Competition / promotion
+                    <select
+                      aria-label="Competition or promotion"
+                      value={collection}
+                      onChange={(e) =>
+                        updateFilter({ competition: e.target.value })
+                      }
+                    >
+                      <option value="">All competitions</option>
+                      {collections.map((value) => (
+                        <option key={value} value={value}>
+                          {value}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 {!channels && (
                   <details className="broadcast-more-filters">
                     <summary>More filters</summary>
@@ -879,7 +915,12 @@ export function Multiview() {
   useEffect(() => {
     const values = (params.get("streams") || "")
       .split(",")
-      .map((id) => (/^ppv-\d+$/.test(id) ? id : ""))
+      .map((id, index, all) =>
+        /^(?:ppv-\d+|ext-[a-z0-9-]{1,120})$/.test(id) &&
+        all.indexOf(id) === index
+          ? id
+          : "",
+      )
       .slice(0, 4);
     setIds(values);
     const n = Number(params.get("n"));
@@ -890,6 +931,8 @@ export function Multiview() {
     setIds(nextIds);
     setCount(n);
     setFocus(main);
+    setCopied(false);
+    if (chooser !== null && chooser >= n) setChooser(null);
     const p = new URLSearchParams({
       n: String(n),
       layout: main ? "focus" : "equal",
@@ -899,9 +942,15 @@ export function Multiview() {
   }
   useEffect(() => {
     if (chooser !== null) {
-      dialog.current?.showModal();
+      if (!dialog.current?.open) dialog.current?.showModal();
     } else dialog.current?.close();
   }, [chooser]);
+  // Keep iframe nodes in a stable DOM order: moving a frame can reload it even
+  // when React keeps its component. Grid order changes the layout instead.
+  const tiles = Array.from({ length: count }, (_, index) => ({
+    index,
+    key: ids[index] || `zzz-empty-${index}`,
+  })).sort((a, b) => a.key.localeCompare(b.key));
   return (
     <section className="multiview">
       <div className="section-heading">
@@ -953,12 +1002,15 @@ export function Multiview() {
       <div
         className={`multiview-grid multiview-${count}${focus ? " multiview-focus" : ""}`}
       >
-        {Array.from({ length: count }, (_, index) => {
+        {tiles.map(({ index, key }) => {
           const item = feed.data.find((b) => b.id === ids[index]);
           return (
             <article
-              className="multiview-tile"
-              key={`${index}-${ids[index] || "empty"}`}
+              className={`multiview-tile${index === 0 ? " is-main" : ""}`}
+              key={key}
+              data-slot={index}
+              aria-label={`Stream ${index + 1}${item ? `: ${item.title}` : ""}`}
+              style={{ order: index }}
             >
               {item ? (
                 <>

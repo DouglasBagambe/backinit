@@ -3,7 +3,8 @@ import { useState, useEffect, useRef } from "react";
 import { Play, X, RefreshCw, Maximize2 } from "lucide-react";
 import { prioritizePlayback } from "../lib/playback-priority";
 import { type Broadcast } from "../lib/broadcast-types";
-import { PlayerBrand } from "./player-brand";
+import { SourcePicker } from "./source-picker";
+import { BrandMark } from "./brand";
 export function BroadcastPlayer({
   item,
   compact = false,
@@ -38,7 +39,7 @@ export function BroadcastPlayer({
     if (!playing) return;
     const t = setTimeout(() => setSlow(true), 15000);
     return () => clearTimeout(t);
-  }, [source, playing, attempt]);
+  }, [source, choice?.url, playing, attempt]);
   return (
     <div
       className={`broadcast-player${compact ? " broadcast-player-compact" : ""}`}
@@ -48,7 +49,13 @@ export function BroadcastPlayer({
         <span className="broadcast-badge">
           {item.channel ? "24/7" : "Stream"}
         </span>
-        <PlayerBrand />
+        <span className="broadcast-player-brand">
+          <BrandMark />
+          <span>
+            back<span className="brand-accent">in</span>it
+            <span className="brand-accent">.</span>
+          </span>
+        </span>
       </div>
       <div className="broadcast-screen">
         {playing && choice && !failed ? (
@@ -89,61 +96,52 @@ export function BroadcastPlayer({
         )}
       </div>
       <div className="broadcast-player-controls">
-        {item.sources.length > 1 && (
-          <label>
-            <span className="sr-only">Stream for {item.title}</span>
-            <select
-              aria-label={`Stream for ${item.title}`}
-              value={choice?.id}
-              onChange={(e) => {
-                setSource(e.target.value);
-                try {
-                  sessionStorage.setItem(
-                    `backinit-source:${item.id}`,
-                    e.target.value,
-                  );
-                } catch {}
-                prioritizePlayback();
-                setPlaying(true);
-              }}
-            >
-              {item.sources.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.label}
-                </option>
-              ))}
-            </select>
-          </label>
+        {item.sources.length > 0 && (
+          <SourcePicker
+            sources={item.sources}
+            selected={choice?.id}
+            title={item.title}
+            onChange={(id) => {
+              setSource(id);
+              try {
+                sessionStorage.setItem(`backinit-source:${item.id}`, id);
+              } catch {}
+              prioritizePlayback();
+              setPlaying(true);
+            }}
+          />
         )}
-        <button
-          title="Reload stream"
-          aria-label={`Reload ${item.title}`}
-          onClick={() => {
-            prioritizePlayback();
-            retry((n) => n + 1);
-            setPlaying(true);
-          }}
-        >
-          <RefreshCw size={16} />
-        </button>
-        {playing && (
+        <div className="broadcast-player-actions">
           <button
-            title="Stop stream"
-            aria-label={`Stop ${item.title}`}
-            onClick={() => setPlaying(false)}
+            title="Reload stream"
+            aria-label={`Reload ${item.title}`}
+            onClick={() => {
+              prioritizePlayback();
+              retry((n) => n + 1);
+              setPlaying(true);
+            }}
           >
-            <X size={16} />
+            <RefreshCw size={16} />
           </button>
-        )}
-        <button
-          title="Fullscreen"
-          aria-label={`Fullscreen ${item.title}`}
-          onClick={() => {
-            void root.current?.requestFullscreen?.().catch(() => {});
-          }}
-        >
-          <Maximize2 size={16} />
-        </button>
+          {playing && (
+            <button
+              title="Stop stream"
+              aria-label={`Stop ${item.title}`}
+              onClick={() => setPlaying(false)}
+            >
+              <X size={16} />
+            </button>
+          )}
+          <button
+            title="Fullscreen"
+            aria-label={`Fullscreen ${item.title}`}
+            onClick={() => {
+              void root.current?.requestFullscreen?.().catch(() => {});
+            }}
+          >
+            <Maximize2 size={16} />
+          </button>
+        </div>
       </div>
       {slow && !loaded && playing && (
         <p role="status" className="broadcast-status">

@@ -1,4 +1,5 @@
 "use client";
+import { isBroadcastId } from "@backinit/domain";
 import { publicData, eventsUrl } from "../lib/public-data-client";
 import { HomeOverview } from "./home-overview";
 import { SportsSearch } from "./sports-search";
@@ -765,7 +766,8 @@ export function Experience({
                 </button>
               </p>
             )}
-          {route.startsWith("watch/ppv-") ? (
+          {route.startsWith("watch/") &&
+          isBroadcastId(route.split("/")[1] || "") ? (
             <BroadcastViewing id={route.split("/")[1]!} />
           ) : route === "multiview" ? (
             <Multiview />

@@ -1,3 +1,4 @@
+import { isBroadcastId } from "@backinit/domain";
 import { apiUrl } from "../../../../lib/api-url";
 import { eventSchema } from "@backinit/domain";
 export async function GET(
@@ -5,8 +6,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  if (!/^ppv-\d+$/.test(id))
-    return Response.json({ data: null }, { status: 400 });
+  if (!isBroadcastId(id)) return Response.json({ data: null }, { status: 400 });
   try {
     const response = await fetch(apiUrl(`/broadcasts/${id}/event`), {
       next: { revalidate: 30 },

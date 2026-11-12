@@ -652,6 +652,7 @@ export const broadcastSchema = z.object({
   end: z.number(),
   channel: z.boolean(),
   viewers: z.number().nullable(),
+  live: z.boolean().optional(),
   pageUrl: z.string().url(),
   sources: z.array(
     z.object({ id: z.string(), label: z.string(), url: z.string().url() }),
@@ -673,9 +674,11 @@ export function broadcastState(b: Broadcast, now = Date.now()) {
       ? "24/7"
       : now < b.start
         ? "Upcoming"
-        : now <= b.end
-          ? "Live"
-          : "Ended";
+        : b.live === false
+          ? "Awaiting stream"
+          : now <= b.end
+            ? "Live"
+            : "Ended";
 }
 
 const aliases: Record<string, string> = {
@@ -889,4 +892,27 @@ export function formationLines(
       [...line].sort((a, b) => lateral(a.position) - lateral(b.position)),
     )
     .reverse();
+}
+
+/** Stable directory IDs; score-provider IDs continue through the match router. */
+export function isBroadcastId(value: string): boolean {
+  return /^(?:ppv-\d+|ext-[a-z0-9-]{1,120})$/.test(value);
+}
+
+/** Group only explicitly named promotions/series; never infer absent coverage. */
+export function broadcastCollection(
+  item: Pick<Broadcast, "category" | "competition" | "title">,
+): string {
+  const text = `${item.competition} ${item.title}`;
+  for (const [pattern, label] of [
+    [/\b(?:WWE|WWF|Smackdown|Monday Night Raw|NXT)\b/i, "WWE"],
+    [/\b(?:AEW|All Elite Wrestling)\b/i, "AEW"],
+    [/\b(?:TNA|Impact Wrestling)\b/i, "TNA / Impact"],
+    [/\b(?:NJPW|New Japan)\b/i, "NJPW"],
+    [/\b(?:ROH|Ring of Honor)\b/i, "ROH"],
+    [/\bMoto\s?GP\b/i, "MotoGP"],
+    [/\b(?:Formula (?:One|1)|F1)\b/i, "Formula 1"],
+  ] as const)
+    if (pattern.test(text)) return label;
+  return item.competition;
 }
