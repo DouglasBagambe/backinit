@@ -879,7 +879,7 @@ export function Multiview() {
   useEffect(() => {
     const values = (params.get("streams") || "")
       .split(",")
-      .map((id) => (/^ppv-\d+$/.test(id) ? id : ""))
+      .map((id) => (/^(?:ppv|matchora)-\d+$/.test(id) ? id : ""))
       .slice(0, 4);
     setIds(values);
     const n = Number(params.get("n"));
