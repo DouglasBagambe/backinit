@@ -107,9 +107,9 @@ export function BroadcastPlayer({
                 setPlaying(true);
               }}
             >
-              {item.sources.map((s) => (
+              {item.sources.map((s, index) => (
                 <option key={s.id} value={s.id}>
-                  {s.label}
+                  Stream {index + 1}
                 </option>
               ))}
             </select>
