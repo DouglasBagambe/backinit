@@ -5,7 +5,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  if (!/^ppv-\d+$/.test(id))
+  if (!/^(?:ppv|matchora)-\d+$/.test(id))
     return Response.json({ data: null }, { status: 400 });
   try {
     const response = await fetch(apiUrl(`/broadcasts/${id}/event`), {
