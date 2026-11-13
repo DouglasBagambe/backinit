@@ -16,8 +16,8 @@ export function useBroadcasts() {
   useEffect(() => {
     const c = new AbortController();
     let busy = false;
-    const load = async () => {
-      if (busy || document.hidden) return;
+    const load = async (initial = false) => {
+      if (busy || (!initial && document.hidden)) return;
       busy = true;
       try {
         const next = broadcastFeedSchema.parse(
@@ -41,13 +41,16 @@ export function useBroadcasts() {
         if (!c.signal.aborted) setLoading(false);
       }
     };
-    void load();
-    const timer = setInterval(load, 60000);
-    document.addEventListener("visibilitychange", load);
+    void load(true);
+    const refresh = () => {
+      void load();
+    };
+    const timer = setInterval(refresh, 60000);
+    document.addEventListener("visibilitychange", refresh);
     return () => {
       c.abort();
       clearInterval(timer);
-      document.removeEventListener("visibilitychange", load);
+      document.removeEventListener("visibilitychange", refresh);
     };
   }, [attempt]);
   return { feed, loading, retry: () => retry((x) => x + 1) };

@@ -173,6 +173,7 @@ export function parsePpv(raw: unknown): Broadcast[] {
   return [...unique.values()];
 }
 export class PpvCatalogue {
+  readonly idPrefix = "ppv-";
   private snapshot: BroadcastFeed | null = null;
   private pending: Promise<BroadcastFeed> | null = null;
   private retryAt = 0;

@@ -17,7 +17,23 @@ it("validates official channel identity and distinguishes highlights from comple
   expect(videoCategory("France v USA | Full Basketball Game")).toBe(
     "Full game",
   );
+  expect(videoCategory("Classic PPV Full Event")).toBe("Full event");
+  expect(videoCategory("Top 10 moments from Collision")).toBe("Highlights");
   expect(videoCategory("LIVE - an archived game")).toBe("Official video");
+  expect(officialChannels.map((channel) => channel.name)).toEqual(
+    expect.arrayContaining([
+      "All Elite Wrestling",
+      "TNA Wrestling",
+      "NJPW WORLD Official",
+      "Wimbledon",
+      "US Open Tennis Championships",
+      "Roland-Garros",
+      "ATP Tour",
+      "WTA",
+      "ONE Championship",
+      "PFL MMA",
+    ]),
+  );
 });
 
 afterEach(() => vi.unstubAllEnvs());

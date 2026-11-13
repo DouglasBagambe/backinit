@@ -1,4 +1,5 @@
 "use client";
+import { isBroadcastId } from "@backinit/domain";
 import { publicData, eventsUrl } from "../lib/public-data-client";
 import { HomeOverview } from "./home-overview";
 import { SportsSearch } from "./sports-search";
@@ -497,6 +498,26 @@ export function Experience({
     ? sports.find((s) => sportUrl(s) === "/" + route)
     : undefined;
   const isHome = route === "";
+  const navigationSports = [
+    ...sports,
+    "Boxing",
+    "Esports",
+    "Golf",
+    "Horse Racing",
+    "Motorsport",
+    "Snooker",
+    "Darts",
+    "Volleyball",
+    "Cycling",
+  ];
+  function watchSportHref(sport?: string) {
+    const next = new URLSearchParams(
+      route === "watch" ? searchParams.toString() : "",
+    );
+    next.delete("competition");
+    sport ? next.set("sport", sport) : next.delete("sport");
+    return `/watch${next.size ? `?${next}` : ""}`;
+  }
   const match =
     route.startsWith("match/") || route.startsWith("watch/")
       ? events.find((e) => e.id === route.split("/")[1])
@@ -652,7 +673,9 @@ export function Experience({
       <div className="sports-strip">
         <nav className="sports-nav" aria-label="Sports">
           <Link
-            href={isHome || route.startsWith("watch") ? "/watch" : "/scores"}
+            href={
+              isHome || route.startsWith("watch") ? watchSportHref() : "/scores"
+            }
             className={
               !activeSport && !(route === "watch" && searchParams.get("sport"))
                 ? "chosen"
@@ -662,7 +685,7 @@ export function Experience({
             <SportMark name="All sports" />
             All sports
           </Link>
-          {sports.map((s) => (
+          {navigationSports.map((s) => (
             <Link
               className={
                 activeSport === s ||
@@ -672,8 +695,10 @@ export function Experience({
               }
               href={
                 isHome || route.startsWith("watch")
-                  ? `/watch?sport=${encodeURIComponent(s)}`
-                  : sportUrl(s)
+                  ? watchSportHref(s)
+                  : !sports.includes(s as (typeof sports)[number])
+                    ? watchSportHref(s)
+                    : sportUrl(s as (typeof sports)[number])
               }
               key={s}
             >
@@ -691,7 +716,11 @@ export function Experience({
           </summary>
           <nav className="sports-picker-grid" aria-label="Choose sport">
             <Link
-              href={isHome || route.startsWith("watch") ? "/watch" : "/scores"}
+              href={
+                isHome || route.startsWith("watch")
+                  ? watchSportHref()
+                  : "/scores"
+              }
               onClick={(e) =>
                 e.currentTarget.closest("details")?.removeAttribute("open")
               }
@@ -699,13 +728,15 @@ export function Experience({
               <SportMark name="All sports" />
               All sports
             </Link>
-            {sports.map((s) => (
+            {navigationSports.map((s) => (
               <Link
                 key={s}
                 href={
                   isHome || route.startsWith("watch")
-                    ? `/watch?sport=${encodeURIComponent(s)}`
-                    : sportUrl(s)
+                    ? watchSportHref(s)
+                    : !sports.includes(s as (typeof sports)[number])
+                      ? watchSportHref(s)
+                      : sportUrl(s as (typeof sports)[number])
                 }
                 onClick={(e) =>
                   e.currentTarget.closest("details")?.removeAttribute("open")
@@ -765,7 +796,8 @@ export function Experience({
                 </button>
               </p>
             )}
-          {route.startsWith("watch/ppv-") ? (
+          {route.startsWith("watch/") &&
+          isBroadcastId(route.split("/")[1] || "") ? (
             <BroadcastViewing id={route.split("/")[1]!} />
           ) : route === "multiview" ? (
             <Multiview />

@@ -1,7 +1,11 @@
 "use client";
+import { FilterSelect } from "./filter-select";
+import { BroadcastArtwork, ChannelRegion } from "./broadcast-artwork";
 import { EntitySuggestions } from "./entity-suggestions";
 import {
   eventTitle,
+  broadcastCollection,
+  feedSchema,
   watchFeedSchema,
   matchBroadcastEvent,
   sportKey,
@@ -58,7 +62,12 @@ function useNow() {
 function StartTime({ item }: { item: Broadcast }) {
   const now = useNow();
   const { zone } = useViewingZone();
-  if (item.channel) return <>24/7 channel</>;
+  if (item.channel)
+    return (
+      <span className="channel-continuous">
+        <span>Live</span> 24/7 channel
+      </span>
+    );
   return (
     <time dateTime={new Date(item.start).toISOString()}>
       {now
@@ -81,7 +90,15 @@ function State({ item }: { item: Broadcast }) {
     <span
       className={`broadcast-badge ${now && broadcastState(item, now) === "Live" ? "is-live" : ""}`}
     >
-      {now ? broadcastState(item, now) : item.channel ? "24/7" : "Scheduled"}
+      {item.channel ? (
+        <>
+          <span className="channel-live-label">Live</span> 24/7
+        </>
+      ) : now ? (
+        broadcastState(item, now)
+      ) : (
+        "Scheduled"
+      )}
     </span>
   );
 }
@@ -197,19 +214,32 @@ export function BroadcastDirectory({
       if (busy) return;
       busy = true;
       try {
-        const body = watchFeedSchema.parse(
-          await publicData.read(
-            `/api/watch${requestedDate ? `?date=${encodeURIComponent(requestedDate)}` : ""}`,
-            c.signal,
-          ),
-        );
+        const [watchBody, scheduleBody] = await Promise.all([
+          publicData
+            .read(
+              `/api/watch${requestedDate ? `?date=${encodeURIComponent(requestedDate)}` : ""}`,
+              c.signal,
+            )
+            .then((value) => watchFeedSchema.parse(value)),
+          publicData
+            .read(
+              `/api/events${requestedDate ? `?date=${encodeURIComponent(requestedDate)}` : ""}`,
+              c.signal,
+            )
+            .then((value) => feedSchema.parse(value))
+            .catch(() => null),
+        ]);
         if (!c.signal.aborted) {
-          setMatchEvents([
-            ...body.data.map((entry) => entry.event),
-            ...body.statusEvents,
-          ]);
+          const events = new Map<string, SportEvent>();
+          for (const event of [
+            ...(scheduleBody?.data || []),
+            ...watchBody.data.map((entry) => entry.event),
+            ...watchBody.statusEvents,
+          ])
+            events.set(event.id, event);
+          setMatchEvents([...events.values()]);
           setWatchableIds(
-            body.data
+            watchBody.data
               .filter((entry) =>
                 entry.sources.some(
                   (source) => (source.presentation || "live") === "live",
@@ -276,6 +306,20 @@ export function BroadcastDirectory({
   const [category, setCategory] = useState("All sports");
   const [range, setRange] = useState("Today");
   const [chosenDate, setChosenDate] = useState("");
+  const collection = params.get("competition") || "";
+  const collections = [
+    ...new Set(
+      catalogue
+        .filter(
+          (b) =>
+            category === "All sports" ||
+            sportKey(category) === sportKey(b.category),
+        )
+        .map(broadcastCollection),
+    ),
+  ]
+    .filter(Boolean)
+    .sort();
   const [sort, setSort] = useState("Recommended");
   const [page, setPage] = useState(1);
   const now = useNow();
@@ -327,7 +371,7 @@ export function BroadcastDirectory({
   }, [requested, channels]);
   useEffect(() => {
     setPage(1);
-  }, [query, category, range, chosenDate, channels, sort]);
+  }, [query, category, range, chosenDate, channels, sort, collection]);
   const time = now || Date.now();
   const today = localDay(new Date(time).toISOString(), zone);
   const nextDay = new Date(`${today}T12:00:00Z`);
@@ -350,10 +394,10 @@ export function BroadcastDirectory({
     if (range === "Live now")
       return official
         ? official.status === "live"
-        : b.start <= time && b.end >= time;
+        : broadcastState(b, time) === "Live";
     if (range === "This week") {
       const end = new Date(`${today}T12:00:00Z`);
-      end.setUTCDate(end.getUTCDate() + ((7 - end.getUTCDay()) % 7));
+      end.setUTCDate(end.getUTCDate() + 7);
       return day >= today && day <= end.toISOString().slice(0, 10);
     }
     if (range === "Next 48 hours") return b.start <= time + 2 * 86400000;
@@ -363,6 +407,7 @@ export function BroadcastDirectory({
     .filter(
       (b) =>
         inPeriod(b) &&
+        (!collection || broadcastCollection(b) === collection) &&
         (category === "All sports" ||
           sportKey(category) === sportKey(b.category)) &&
         `${b.title} ${b.competition}`
@@ -376,6 +421,20 @@ export function BroadcastDirectory({
           ? a.start - b.start
           : compareBroadcasts(a, b, time),
     );
+  const relatedChannels =
+    !channels && category !== "All sports"
+      ? catalogue
+          .filter(
+            (b) =>
+              b.channel &&
+              sportKey(category) === sportKey(b.category) &&
+              `${b.title} ${b.competition}`
+                .toLowerCase()
+                .includes(query.toLowerCase()),
+          )
+          .sort((a, b) => a.title.localeCompare(b.title))
+          .slice(0, 4)
+      : [];
   const pageCount = Math.max(1, Math.ceil(entries.length / 12));
   const current = Math.min(page, pageCount);
   const visible = entries.slice(
@@ -392,21 +451,7 @@ export function BroadcastDirectory({
       key={item.id}
     >
       <div className="broadcast-poster">
-        {item.poster ? (
-          <img
-            src={item.poster}
-            alt=""
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <span className="broadcast-poster-fallback">
-            <>
-              <Radio size={30} />
-              <strong>{item.title}</strong>
-            </>
-          </span>
-        )}
+        <BroadcastArtwork item={item} event={officialFor(item)} />
         {officialFor(item) ? (
           <span
             className={`broadcast-badge ${officialFor(item)?.status === "live" ? "is-live" : ""}`}
@@ -425,6 +470,7 @@ export function BroadcastDirectory({
           <span className="broadcast-big-match">Big match</span>
         )}
         <h3>{item.title}</h3>
+        {item.channel && <ChannelRegion name={item.title} />}
         <StartTime item={item} />
         {!item.sources.length && (
           <span className="broadcast-sources">
@@ -539,33 +585,39 @@ export function BroadcastDirectory({
                     }
                   />
                 </label>
-                <label>
-                  Sport
-                  <select
-                    value={category}
-                    onChange={(e) => {
-                      setCategory(e.target.value);
-                      updateFilter({
-                        sport:
-                          e.target.value === "All sports" ? "" : e.target.value,
-                      });
-                    }}
-                  >
-                    {[
-                      "All sports",
-                      ...(category !== "All sports" ? [category] : []),
-                      ...new Set(
-                        catalogue
-                          .filter((b) => b.channel === channels)
-                          .map((b) => b.category),
-                      ),
-                    ]
-                      .filter((c, i, all) => all.indexOf(c) === i)
-                      .map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
-                  </select>
-                </label>
+                <FilterSelect
+                  label="Sport"
+                  value={category}
+                  options={[
+                    "All sports",
+                    ...(category !== "All sports" ? [category] : []),
+                    ...new Set(
+                      catalogue
+                        .filter((b) => b.channel === channels)
+                        .map((b) => b.category),
+                    ),
+                  ]
+                    .filter((c, i, all) => all.indexOf(c) === i)
+                    .map((c) => ({ value: c, label: c }))}
+                  onChange={(value) => {
+                    setCategory(value);
+                    updateFilter({
+                      competition: "",
+                      sport: value === "All sports" ? "" : value,
+                    });
+                  }}
+                />
+                {collections.length > 1 && (
+                  <FilterSelect
+                    label="Competition or promotion"
+                    value={collection}
+                    options={[
+                      { value: "", label: "All competitions" },
+                      ...collections.map((c) => ({ value: c, label: c })),
+                    ]}
+                    onChange={(value) => updateFilter({ competition: value })}
+                  />
+                )}
                 {!channels && (
                   <details className="broadcast-more-filters">
                     <summary>More filters</summary>
@@ -581,16 +633,15 @@ export function BroadcastDirectory({
                           }}
                         />
                       </label>
-                      <label>
-                        Order
-                        <select
-                          value={sort}
-                          onChange={(e) => setSort(e.target.value)}
-                        >
-                          <option>Recommended</option>
-                          <option>Kickoff time</option>
-                        </select>
-                      </label>
+                      <FilterSelect
+                        label="Order"
+                        value={sort}
+                        options={["Recommended", "Kickoff time"].map((c) => ({
+                          value: c,
+                          label: c,
+                        }))}
+                        onChange={setSort}
+                      />
                     </div>
                   </details>
                 )}
@@ -601,7 +652,14 @@ export function BroadcastDirectory({
               />
               <div className="broadcast-results-meta">
                 <span>
-                  {entries.length} {channels ? "sports channels" : "matches"}
+                  {entries.length}{" "}
+                  {channels
+                    ? entries.length === 1
+                      ? "sports channel"
+                      : "sports channels"
+                    : entries.length === 1
+                      ? "match"
+                      : "matches"}
                   {category !== "All sports" ? ` · ${category}` : ""}
                 </span>
                 <span>{channels ? "Live sports networks" : zone}</span>
@@ -631,6 +689,22 @@ export function BroadcastDirectory({
             <p className="broadcast-notice" role="status">
               {feed.message} <button onClick={retry}>Retry</button>
             </p>
+          )}
+          {relatedChannels.length > 0 && (
+            <>
+              <div className="broadcast-section-heading">
+                <div>
+                  <h2>Live {category} channels</h2>
+                  <p>Continuous channels available while you browse matches.</p>
+                </div>
+                <Link href={`${root}?view=channels&sport=${encodeURIComponent(category)}`}>
+                  All {category} channels →
+                </Link>
+              </div>
+              <div className="broadcast-grid broadcast-channel-suggestions">
+                {relatedChannels.map(renderCard)}
+              </div>
+            </>
           )}
           {featured && visible.length > 0 && (
             <div className="broadcast-section-heading">
@@ -879,7 +953,12 @@ export function Multiview() {
   useEffect(() => {
     const values = (params.get("streams") || "")
       .split(",")
-      .map((id) => (/^ppv-\d+$/.test(id) ? id : ""))
+      .map((id, index, all) =>
+        /^(?:ppv-\d+|ext-[a-z0-9-]{1,120})$/.test(id) &&
+        all.indexOf(id) === index
+          ? id
+          : "",
+      )
       .slice(0, 4);
     setIds(values);
     const n = Number(params.get("n"));
@@ -890,6 +969,8 @@ export function Multiview() {
     setIds(nextIds);
     setCount(n);
     setFocus(main);
+    setCopied(false);
+    if (chooser !== null && chooser >= n) setChooser(null);
     const p = new URLSearchParams({
       n: String(n),
       layout: main ? "focus" : "equal",
@@ -899,9 +980,15 @@ export function Multiview() {
   }
   useEffect(() => {
     if (chooser !== null) {
-      dialog.current?.showModal();
+      if (!dialog.current?.open) dialog.current?.showModal();
     } else dialog.current?.close();
   }, [chooser]);
+  // Keep iframe nodes in a stable DOM order: moving a frame can reload it even
+  // when React keeps its component. Grid order changes the layout instead.
+  const tiles = Array.from({ length: count }, (_, index) => ({
+    index,
+    key: ids[index] || `zzz-empty-${index}`,
+  })).sort((a, b) => a.key.localeCompare(b.key));
   return (
     <section className="multiview">
       <div className="section-heading">
@@ -953,12 +1040,15 @@ export function Multiview() {
       <div
         className={`multiview-grid multiview-${count}${focus ? " multiview-focus" : ""}`}
       >
-        {Array.from({ length: count }, (_, index) => {
+        {tiles.map(({ index, key }) => {
           const item = feed.data.find((b) => b.id === ids[index]);
           return (
             <article
-              className="multiview-tile"
-              key={`${index}-${ids[index] || "empty"}`}
+              className={`multiview-tile${index === 0 ? " is-main" : ""}`}
+              key={key}
+              data-slot={index}
+              aria-label={`Stream ${index + 1}${item ? `: ${item.title}` : ""}`}
+              style={{ order: index }}
             >
               {item ? (
                 <>

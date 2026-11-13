@@ -37,6 +37,11 @@ test.beforeEach(async ({ page, baseURL }) => {
       json: { data: items, updatedAt: new Date().toISOString(), stale: false },
     }),
   );
+  await page.route("**/api/events*", (r) =>
+    r.fulfill({
+      json: { data: [], source: "test", edition: "real", coverage: [] },
+    }),
+  );
   await page.route("https://taifood-blog.asia/**", (r) =>
     r.fulfill({
       contentType: "text/html",
@@ -73,10 +78,11 @@ test("all upcoming broadcasts are searchable, open source choices and preserve p
     "sandbox",
     /.*/,
   );
-  await expect(page.locator(".broadcast-player .player-brand")).toBeVisible();
+  await expect(page.locator(".broadcast-player-brand")).toBeVisible();
   await page
-    .getByLabel("Stream for Match 2", { exact: true })
-    .selectOption("sd-1");
+    .getByRole("button", { name: /STREAM SOURCE.*for Match 2$/i })
+    .click();
+  await page.getByRole("option", { name: /SD/ }).click();
   await expect(page.locator(".broadcast-screen iframe")).toHaveAttribute(
     "src",
     items[1]!.sources[1]!.url,
@@ -126,7 +132,7 @@ test("multiview adds, focuses, removes and restores independent streams on mobil
   await page.getByRole("button", { name: "Focus", exact: true }).click();
   await page.getByRole("button", { name: "Make main", exact: true }).click();
   await expect(
-    page.locator(".multiview-tile").first().getByRole("heading"),
+    page.locator(".multiview-tile.is-main").getByRole("heading"),
   ).toHaveText("Match 2");
   await page.getByRole("button", { name: "Play Match 2", exact: true }).click();
   await page.getByRole("button", { name: "Play Match 1", exact: true }).click();
@@ -137,7 +143,7 @@ test("multiview adds, focuses, removes and restores independent streams on mobil
   await expect(page.locator(".broadcast-screen iframe")).toHaveCount(1);
   await page.reload();
   await expect(
-    page.locator(".multiview-tile").first().getByRole("heading"),
+    page.locator(".multiview-tile.is-main").getByRole("heading"),
   ).toHaveText("Match 2");
   await expect(page.locator(".broadcast-screen iframe")).toHaveCount(0);
   await page.setViewportSize({ width: 360, height: 800 });
@@ -157,17 +163,15 @@ test("multiview adds, focuses, removes and restores independent streams on mobil
   ).toEqual([]);
   await page.goto("/multiview?n=3&streams=ppv-1,,ppv-3");
   await expect(
-    page.locator(".multiview-tile").nth(2).getByRole("heading"),
+    page.locator('.multiview-tile[data-slot="2"]').getByRole("heading"),
   ).toHaveText("Match 3");
   await expect(
     page
-      .locator(".multiview-tile")
-      .nth(1)
+      .locator('.multiview-tile[data-slot="1"]')
       .getByRole("button", { name: "Add stream", exact: true }),
   ).toBeVisible();
   await page
-    .locator(".multiview-tile")
-    .nth(1)
+    .locator('.multiview-tile[data-slot="1"]')
     .getByRole("button", { name: "Add stream", exact: true })
     .click();
   const chooserAudit = await new AxeBuilder({ page }).analyze();
@@ -220,7 +224,11 @@ test("Watch presents imported upcoming games first instead of a contradictory em
     }),
   );
   await page.goto("/watch?sport=Football&range=upcoming");
-  await expect(page.locator(".broadcast-card")).toHaveCount(4);
+  await expect(page.getByText("4 matches · Football")).toBeVisible();
+  await expect(page.locator(".broadcast-card")).toHaveCount(5);
+  await expect(
+    page.locator(".broadcast-channel-suggestions .broadcast-card"),
+  ).toHaveCount(1);
   await expect(
     page.getByRole("heading", { name: "No streams available", exact: true }),
   ).toHaveCount(0);
@@ -231,6 +239,76 @@ test("Watch presents imported upcoming games first instead of a contradictory em
     .getByRole("textbox", { name: "Search broadcasts" })
     .fill("Match 2");
   await expect(page.locator(".broadcast-card")).toHaveCount(1);
+});
+
+test("Watch loads the whole seven-day schedule and offers matching continuous channels", async ({
+  page,
+}) => {
+  const tennisChannel = {
+    ...items[4]!,
+    id: "ppv-tennis-channel",
+    title: "Sky Sports Tennis",
+    category: "Tennis",
+  };
+  const tennisEvent = {
+    id: "tennis-week-1",
+    externalId: "tennis-week-1",
+    sport: "Tennis",
+    competition: "WTA Finals",
+    kind: "score",
+    home: "Player One",
+    away: "Player Two",
+    start: "2026-11-07T15:00:00.000Z",
+    status: "upcoming",
+    homeScore: null,
+    awayScore: null,
+    clock: "Scheduled",
+    provenance: "provider",
+    source: {
+      provider: "test",
+      url: "https://example.com/tennis",
+      license: "test fixture",
+      fetchedAt: "2026-11-02T12:00:00.000Z",
+      stale: false,
+    },
+  };
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({
+      json: {
+        data: [tennisChannel],
+        updatedAt: new Date(now).toISOString(),
+        stale: false,
+      },
+    }),
+  );
+  await page.route("**/api/watch*", (r) =>
+    r.fulfill({
+      json: {
+        data: [],
+        statusEvents: [],
+        coverage: [],
+        generatedAt: new Date(now).toISOString(),
+      },
+    }),
+  );
+  await page.route("**/api/events*", (r) =>
+    r.fulfill({
+      json: {
+        data: [tennisEvent],
+        source: "test",
+        edition: "real",
+        coverage: [],
+      },
+    }),
+  );
+  await page.goto("/watch?sport=Tennis&range=week");
+  await expect(page.getByText("1 match · Tennis")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Live Tennis channels" }),
+  ).toBeVisible();
+  await expect(page.locator(".broadcast-channel-suggestions .broadcast-card"))
+    .toHaveCount(1);
+  await expect(page.getByText("Player One vs Player Two")).toBeVisible();
 });
 
 test("Watch separates sports channels, recognizes marquee games and keeps discovery paginated", async ({
@@ -301,9 +379,8 @@ test("Watch separates sports channels, recognizes marquee games and keeps discov
   await expect(pages).toContainText("Page 2 of 2");
   await expect(page.locator(".broadcast-card")).toHaveCount(5);
   await page.locator(".broadcast-more-filters > summary").click();
-  await page
-    .getByRole("combobox", { name: "Order", exact: true })
-    .selectOption("Kickoff time");
+  await page.getByRole("button", { name: /^Order Recommended/ }).click();
+  await page.getByRole("option", { name: "Kickoff time", exact: true }).click();
   await page.locator(".broadcast-more-filters > summary").click();
   await page.getByRole("button", { name: "Tomorrow", exact: true }).click();
   await expect(page.locator(".broadcast-card")).toHaveCount(1);
@@ -477,4 +554,184 @@ test("a matched real fixture shows one compact tracker beside or below the strea
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
   ).toBe(true);
+});
+
+test("playing Multiview frames survive focus changes and removing another tile", async ({
+  page,
+}) => {
+  let loads = 0;
+  await page.route("https://taifood-blog.asia/**", (r) => {
+    loads++;
+    return r.fulfill({ contentType: "text/html", body: "Player fixture" });
+  });
+  await page.goto("/multiview?n=3&streams=ppv-1,ppv-2,ppv-3");
+  for (const n of [1, 2, 3])
+    await page
+      .getByRole("button", { name: `Play Match ${n}`, exact: true })
+      .click();
+  await expect(page.locator(".broadcast-screen iframe")).toHaveCount(3);
+  await expect.poll(() => loads).toBe(3);
+  await page.getByRole("button", { name: "Focus", exact: true }).click();
+  await page
+    .getByRole("button", { name: "Make main", exact: true })
+    .first()
+    .click();
+  await expect(
+    page.locator(".multiview-tile.is-main").getByRole("heading"),
+  ).toHaveText("Match 2");
+  await expect(page.locator(".broadcast-screen iframe")).toHaveCount(3);
+  expect(loads).toBe(3);
+  await page
+    .getByRole("button", { name: "Remove stream 3", exact: true })
+    .click();
+  await expect(page.locator(".broadcast-screen iframe")).toHaveCount(2);
+  expect(loads).toBe(3);
+});
+test("source menu is keyboard accessible and keeps choices outside the provider frame", async ({
+  page,
+}) => {
+  await page.goto("/watch/ppv-1");
+  const picker = page.getByRole("button", {
+    name: /STREAM SOURCE.*for Match 1$/i,
+  });
+  await picker.focus();
+  await picker.press("ArrowDown");
+  await expect(picker).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("option", { name: /HD/ }).press("ArrowDown");
+  await page.getByRole("option", { name: /SD/ }).press("Enter");
+  await expect(page.locator(".broadcast-screen iframe")).toHaveAttribute(
+    "src",
+    items[0]!.sources[1]!.url,
+  );
+  await picker.click();
+  await picker.press("Escape");
+  await expect(picker).toHaveAttribute("aria-expanded", "false");
+  const audit = await new AxeBuilder({ page }).analyze();
+  expect(
+    audit.violations.filter(
+      (v) => v.impact === "serious" || v.impact === "critical",
+    ),
+  ).toEqual([]);
+  await page.screenshot({
+    path: "artifacts/player-toolbar-light.png",
+    fullPage: true,
+  });
+});
+
+test("external broadcasts keep all 130 sources searchable on narrow screens and filter by promotion", async ({
+  page,
+}) => {
+  const expanded = {
+    ...items[0]!,
+    id: "ext-streamfree-test",
+    title: "AEW Dynamite",
+    category: "Wrestling",
+    competition: "AEW",
+    sources: Array.from({ length: 130 }, (_, i) => ({
+      id: `source-${i}`,
+      label: `Stream ${i + 1}`,
+      url: `https://taifood-blog.asia/embed/source-${i}`,
+    })),
+  };
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({
+      json: {
+        data: [expanded, ...items],
+        updatedAt: new Date().toISOString(),
+        stale: false,
+      },
+    }),
+  );
+  await page.goto("/watch?range=all");
+  await page.getByRole("button", { name: /^Competition or promotion/ }).click();
+  await page.getByRole("option", { name: "AEW", exact: true }).click();
+  await expect(page.locator(".broadcast-card")).toHaveCount(1);
+  await page.locator(".broadcast-card").click();
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page
+    .getByRole("button", { name: /STREAM SOURCE.*for AEW Dynamite$/i })
+    .click();
+  await page
+    .getByRole("textbox", { name: "Search stream sources" })
+    .fill("Stream 130");
+  await page.getByRole("option", { name: /Stream 130/ }).click();
+  await expect(page.locator(".broadcast-screen iframe")).toHaveAttribute(
+    "src",
+    expanded.sources[129]!.url,
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "artifacts/player-toolbar-mobile.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.screenshot({
+    path: "artifacts/player-toolbar-dark.png",
+    fullPage: true,
+  });
+  await page.goto("/multiview?n=2&streams=ext-streamfree-test,ppv-2");
+  await expect(
+    page.getByRole("button", { name: "Play AEW Dynamite", exact: true }),
+  ).toBeVisible();
+});
+
+test("channel artwork, country labels, long names and esports navigation stay usable", async ({
+  page,
+}) => {
+  const channels = [
+    {
+      ...items[0]!,
+      id: "ext-daddy-test",
+      title: "Sky Sports Tennis UK",
+      channel: true,
+      category: "Tennis",
+    },
+    {
+      ...items[1]!,
+      id: "ext-daddy-long",
+      title: "An unusually long specialist sports channel name Serbia",
+      channel: true,
+      category: "Sports",
+    },
+  ];
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({
+      json: {
+        data: channels,
+        updatedAt: new Date().toISOString(),
+        stale: false,
+      },
+    }),
+  );
+  await page.goto("/watch?view=channels");
+  await expect(page.locator(".channel-monogram")).toHaveCount(2);
+  await expect(
+    page.locator(".channel-region").filter({ hasText: "United Kingdom" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "artifacts/channel-identities-mobile.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.screenshot({
+    path: "artifacts/channel-identities-dark.png",
+    fullPage: true,
+  });
+  await page
+    .locator(".sports-nav")
+    .getByRole("link", { name: "Esports", exact: true })
+    .click();
+  await expect(page).toHaveURL(/sport=Esports/);
 });

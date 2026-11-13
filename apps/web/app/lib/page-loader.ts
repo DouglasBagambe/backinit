@@ -1,3 +1,4 @@
+import { isBroadcastId } from "@backinit/domain";
 import { loadEvents, loadEvent } from "./feed";
 import { loadNews } from "./news";
 import { sports } from "@backinit/domain";
@@ -9,7 +10,8 @@ export async function loadPageData(
   requestedEdition?: "real" | "demo",
 ) {
   const parts = route.split("/");
-  const ppv = route.startsWith("watch/ppv-");
+  const ppv =
+    route.startsWith("watch/") && isBroadcastId(route.split("/")[1] || "");
   const detail =
     !ppv && ["match", "watch"].includes(parts[0] || "") && parts.length === 2;
   const [snapshot, news] = await Promise.all([

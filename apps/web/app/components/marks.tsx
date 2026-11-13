@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Globe2 } from "lucide-react";
+import { Globe2, Gamepad2 } from "lucide-react";
 const sportPhotos: Record<string, string> = {
   Football: "/sports/football.webp",
   Basketball: "/sports/basketball.webp",
@@ -75,6 +75,7 @@ export function SportMark({ name }: { name: string }) {
         ))}
       </span>
     );
+  if (name === "Esports") return <Gamepad2 size={23} aria-hidden="true" />;
   const normalized =
     name === "WWE Vault" ? "WWE" : name === "FORMULA 1" ? "Formula 1" : name;
   const photo = sportPhotos[normalized];
