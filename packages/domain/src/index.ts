@@ -487,6 +487,7 @@ export const streamSourceSchema = z
           "Full match",
           "Full fight",
           "Full game",
+          "Full event",
           "Highlights",
           "Official video",
         ]),

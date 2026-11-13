@@ -37,6 +37,11 @@ test.beforeEach(async ({ page, baseURL }) => {
       json: { data: items, updatedAt: new Date().toISOString(), stale: false },
     }),
   );
+  await page.route("**/api/events*", (r) =>
+    r.fulfill({
+      json: { data: [], source: "test", edition: "real", coverage: [] },
+    }),
+  );
   await page.route("https://taifood-blog.asia/**", (r) =>
     r.fulfill({
       contentType: "text/html",
@@ -219,7 +224,11 @@ test("Watch presents imported upcoming games first instead of a contradictory em
     }),
   );
   await page.goto("/watch?sport=Football&range=upcoming");
-  await expect(page.locator(".broadcast-card")).toHaveCount(4);
+  await expect(page.getByText("4 matches · Football")).toBeVisible();
+  await expect(page.locator(".broadcast-card")).toHaveCount(5);
+  await expect(
+    page.locator(".broadcast-channel-suggestions .broadcast-card"),
+  ).toHaveCount(1);
   await expect(
     page.getByRole("heading", { name: "No streams available", exact: true }),
   ).toHaveCount(0);
@@ -230,6 +239,76 @@ test("Watch presents imported upcoming games first instead of a contradictory em
     .getByRole("textbox", { name: "Search broadcasts" })
     .fill("Match 2");
   await expect(page.locator(".broadcast-card")).toHaveCount(1);
+});
+
+test("Watch loads the whole seven-day schedule and offers matching continuous channels", async ({
+  page,
+}) => {
+  const tennisChannel = {
+    ...items[4]!,
+    id: "ppv-tennis-channel",
+    title: "Sky Sports Tennis",
+    category: "Tennis",
+  };
+  const tennisEvent = {
+    id: "tennis-week-1",
+    externalId: "tennis-week-1",
+    sport: "Tennis",
+    competition: "WTA Finals",
+    kind: "score",
+    home: "Player One",
+    away: "Player Two",
+    start: "2026-11-07T15:00:00.000Z",
+    status: "upcoming",
+    homeScore: null,
+    awayScore: null,
+    clock: "Scheduled",
+    provenance: "provider",
+    source: {
+      provider: "test",
+      url: "https://example.com/tennis",
+      license: "test fixture",
+      fetchedAt: "2026-11-02T12:00:00.000Z",
+      stale: false,
+    },
+  };
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({
+      json: {
+        data: [tennisChannel],
+        updatedAt: new Date(now).toISOString(),
+        stale: false,
+      },
+    }),
+  );
+  await page.route("**/api/watch*", (r) =>
+    r.fulfill({
+      json: {
+        data: [],
+        statusEvents: [],
+        coverage: [],
+        generatedAt: new Date(now).toISOString(),
+      },
+    }),
+  );
+  await page.route("**/api/events*", (r) =>
+    r.fulfill({
+      json: {
+        data: [tennisEvent],
+        source: "test",
+        edition: "real",
+        coverage: [],
+      },
+    }),
+  );
+  await page.goto("/watch?sport=Tennis&range=week");
+  await expect(page.getByText("1 match · Tennis")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Live Tennis channels" }),
+  ).toBeVisible();
+  await expect(page.locator(".broadcast-channel-suggestions .broadcast-card"))
+    .toHaveCount(1);
+  await expect(page.getByText("Player One vs Player Two")).toBeVisible();
 });
 
 test("Watch separates sports channels, recognizes marquee games and keeps discovery paginated", async ({

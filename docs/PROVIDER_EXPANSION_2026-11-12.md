@@ -44,6 +44,8 @@ References checked: https://developer.mozilla.org/en-US/docs/Web/Security/Defens
 - Automatic artwork matching uses the public IPTV-org channel/logo metadata catalogue. It excludes NSFW entries, prefers current colored and horizontal artwork, matches normalized channel names plus country suffixes, and keeps a branded fallback when no trustworthy match exists. New metadata is refreshed every 24 hours rather than requiring a manual logo map.
 - Watch now has polished searchable Sport, Competition/promotion and Order menus; the duplicate specialist-filter row was removed. Wrestling, boxing, esports, motorsport and other supported sports remain in the main sports navigation and the data-driven Sport menu.
 - Channel cards show explicit country labels when the channel name supplies one, wrap long names, use consistent card heights, and label continuous channels as `Live 24/7`. Match cards use real team/player imagery from the event feed when available.
+- Watch's rolling seven-day view now loads the full event schedule rather than filtering a single-day response. When a selected sport has continuous channels, those playable options appear above its match/tracker schedule instead of leaving the user at an empty screen.
+- Official replay/highlight discovery now covers WWE, WWE Vault, AEW, TNA, NJPW, Wimbledon, US Open, Roland-Garros, ATP, WTA, UFC, ONE Championship and PFL, alongside the existing basketball, cricket, football and Formula 1 publishers. Only videos whose current official metadata matches the expected publisher are admitted.
 
 ## Provider readiness and blocked candidates
 
@@ -68,10 +70,11 @@ References checked: https://developer.mozilla.org/en-US/docs/Web/Security/Defens
 
 - Production build and all four package type checks passed.
 - Current provider/artwork/snapshot regression set: 26 passed. A broader run passed 187 and skipped 8; four account/notification cases timed out under concurrent host load, then all 9 affected cases passed when rerun alone.
-- Watch/Multiview browser suite: 11 passed. Includes keyboard accessibility scans, mobile overflow, channel artwork/fallback behavior, 130-source selection, promotion filtering, external-ID navigation and preservation of playing frame requests during focus/removal. Browser embed fixtures validate BackInIt behavior, not provider video decoding.
+- Watch/Multiview browser suite: 12 passed. Includes rolling seven-day schedule loading, matching continuous-channel suggestions, keyboard accessibility scans, mobile overflow, channel artwork/fallback behavior, 130-source selection, promotion filtering, external-ID navigation and preservation of playing frame requests during focus/removal. Browser embed fixtures validate BackInIt behavior, not provider video decoding.
 - Inspected generated light/mobile, dark desktop and Multiview screenshots under `artifacts/`.
 - Advertising file SHA256 unchanged: `56a9d7c2defb5494e80db29a5e33016f37e90d0c5241dea4cd5454bdf49eb7a8`.
 - Latest local runtime feed: 500 merged entries, including 403 channels and 391 newly discovered DaddyLive channel entries. Automatic artwork matched 193 of the newly discovered channels, including SuperSport Rugby, SuperSport Tennis, Fight Network and Sky Sports F1 UK. Counts are a point-in-time observation and HTTP/embed discovery is not a successful decoded-playback claim.
+- Latest official video refresh returned 80 verified entries: 25 wrestling and 21 Tennis, with the remainder across MMA, basketball, cricket, football and Formula 1. A current Tennis seven-day browser check rendered 75 scheduled matches plus four continuous Tennis channel options. Counts change with publisher feeds and do not imply every scheduled match has a dedicated stream.
 - Local web preview serves `/watch` on port 3000; local data API on 4101. Automatic browser-tab access to its existing internal error page was rejected, so owner must refresh the tab. No browser security workaround attempted.
 
 ## Catalogue outage repair

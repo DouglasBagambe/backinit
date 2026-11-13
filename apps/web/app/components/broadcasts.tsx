@@ -5,6 +5,7 @@ import { EntitySuggestions } from "./entity-suggestions";
 import {
   eventTitle,
   broadcastCollection,
+  feedSchema,
   watchFeedSchema,
   matchBroadcastEvent,
   sportKey,
@@ -213,19 +214,32 @@ export function BroadcastDirectory({
       if (busy) return;
       busy = true;
       try {
-        const body = watchFeedSchema.parse(
-          await publicData.read(
-            `/api/watch${requestedDate ? `?date=${encodeURIComponent(requestedDate)}` : ""}`,
-            c.signal,
-          ),
-        );
+        const [watchBody, scheduleBody] = await Promise.all([
+          publicData
+            .read(
+              `/api/watch${requestedDate ? `?date=${encodeURIComponent(requestedDate)}` : ""}`,
+              c.signal,
+            )
+            .then((value) => watchFeedSchema.parse(value)),
+          publicData
+            .read(
+              `/api/events${requestedDate ? `?date=${encodeURIComponent(requestedDate)}` : ""}`,
+              c.signal,
+            )
+            .then((value) => feedSchema.parse(value))
+            .catch(() => null),
+        ]);
         if (!c.signal.aborted) {
-          setMatchEvents([
-            ...body.data.map((entry) => entry.event),
-            ...body.statusEvents,
-          ]);
+          const events = new Map<string, SportEvent>();
+          for (const event of [
+            ...(scheduleBody?.data || []),
+            ...watchBody.data.map((entry) => entry.event),
+            ...watchBody.statusEvents,
+          ])
+            events.set(event.id, event);
+          setMatchEvents([...events.values()]);
           setWatchableIds(
-            body.data
+            watchBody.data
               .filter((entry) =>
                 entry.sources.some(
                   (source) => (source.presentation || "live") === "live",
@@ -383,7 +397,7 @@ export function BroadcastDirectory({
         : broadcastState(b, time) === "Live";
     if (range === "This week") {
       const end = new Date(`${today}T12:00:00Z`);
-      end.setUTCDate(end.getUTCDate() + ((7 - end.getUTCDay()) % 7));
+      end.setUTCDate(end.getUTCDate() + 7);
       return day >= today && day <= end.toISOString().slice(0, 10);
     }
     if (range === "Next 48 hours") return b.start <= time + 2 * 86400000;
@@ -407,6 +421,20 @@ export function BroadcastDirectory({
           ? a.start - b.start
           : compareBroadcasts(a, b, time),
     );
+  const relatedChannels =
+    !channels && category !== "All sports"
+      ? catalogue
+          .filter(
+            (b) =>
+              b.channel &&
+              sportKey(category) === sportKey(b.category) &&
+              `${b.title} ${b.competition}`
+                .toLowerCase()
+                .includes(query.toLowerCase()),
+          )
+          .sort((a, b) => a.title.localeCompare(b.title))
+          .slice(0, 4)
+      : [];
   const pageCount = Math.max(1, Math.ceil(entries.length / 12));
   const current = Math.min(page, pageCount);
   const visible = entries.slice(
@@ -624,7 +652,14 @@ export function BroadcastDirectory({
               />
               <div className="broadcast-results-meta">
                 <span>
-                  {entries.length} {channels ? "sports channels" : "matches"}
+                  {entries.length}{" "}
+                  {channels
+                    ? entries.length === 1
+                      ? "sports channel"
+                      : "sports channels"
+                    : entries.length === 1
+                      ? "match"
+                      : "matches"}
                   {category !== "All sports" ? ` · ${category}` : ""}
                 </span>
                 <span>{channels ? "Live sports networks" : zone}</span>
@@ -654,6 +689,22 @@ export function BroadcastDirectory({
             <p className="broadcast-notice" role="status">
               {feed.message} <button onClick={retry}>Retry</button>
             </p>
+          )}
+          {relatedChannels.length > 0 && (
+            <>
+              <div className="broadcast-section-heading">
+                <div>
+                  <h2>Live {category} channels</h2>
+                  <p>Continuous channels available while you browse matches.</p>
+                </div>
+                <Link href={`${root}?view=channels&sport=${encodeURIComponent(category)}`}>
+                  All {category} channels →
+                </Link>
+              </div>
+              <div className="broadcast-grid broadcast-channel-suggestions">
+                {relatedChannels.map(renderCard)}
+              </div>
+            </>
           )}
           {featured && visible.length > 0 && (
             <div className="broadcast-section-heading">

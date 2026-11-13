@@ -38,6 +38,44 @@ export const officialChannels: Array<{
     archive: ["6I06-ITW88k"],
   },
   {
+    name: "Wimbledon",
+    id: "UCNa8NxMgSm7m4Ii9d4QGk1Q",
+    sport: "Tennis",
+  },
+  {
+    name: "US Open Tennis Championships",
+    id: "UCXbboag48Qlr78zzz6SkzkQ",
+    sport: "Tennis",
+  },
+  {
+    name: "Roland-Garros",
+    id: "UCF3K1Jf8hjFW8qliei8fQ3A",
+    sport: "Tennis",
+  },
+  { name: "ATP Tour", id: "UCY_5h5zaSwN7Or4kIJDYNXA", sport: "Tennis" },
+  { name: "WTA", id: "UCaBIVVpHjq6j3tSyxwTE-8Q", sport: "Tennis" },
+  {
+    name: "All Elite Wrestling",
+    id: "UCFN4JkGP_bVhAdBsoV9xftA",
+    sport: "WWE",
+  },
+  {
+    name: "TNA Wrestling",
+    id: "UCOp8wkVqdrWbFYHjDv946QQ",
+    sport: "WWE",
+  },
+  {
+    name: "NJPW WORLD Official",
+    id: "UCP-4lLGDIhD9fetRqtnUyuA",
+    sport: "WWE",
+  },
+  {
+    name: "ONE Championship",
+    id: "UCiormkBf3jm6mfb7k0yPbKA",
+    sport: "MMA",
+  },
+  { name: "PFL MMA", id: "UCPrONRG9hO1f-OrxW-WH-xg", sport: "MMA" },
+  {
     name: "ICC",
     id: "UCt2JXOLNxqry7B_4rRZME3Q",
     sport: "Cricket",
@@ -94,9 +132,10 @@ export function parseChannel(raw: unknown, expected: string) {
 export function videoCategory(
   title: string,
 ): NonNullable<StreamSource["catalog"]>["category"] {
-  if (/highlight/i.test(title)) return "Highlights";
+  if (/highlight|top 10|\bmoments?\b/i.test(title)) return "Highlights";
   if (/full fight|free fight/i.test(title)) return "Full fight";
   if (/full basketball game|full game/i.test(title)) return "Full game";
+  if (/full event/i.test(title)) return "Full event";
   if (/full match/i.test(title)) return "Full match";
   return "Official video"; // Never infer live status from a title.
 }
@@ -155,7 +194,7 @@ export class OfficialVideoCatalog {
           const selected = (feed?.value || [])
             .filter(
               (v) =>
-                /full match|full fight|free fight|full basketball game|full game|highlights|recap/i.test(
+                /full match|full event|full fight|free fight|full basketball game|full game|highlights|recap|top 10|\bmoments?\b|title match/i.test(
                   v.title,
                 ) && !/#shorts|2k2\d|video game/i.test(v.title),
             )
