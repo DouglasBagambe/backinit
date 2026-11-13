@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { isAdFreeHost } from "../lib/ad-host";
 
 type Preference = "accepted" | "declined" | null;
 const storageKey = "backinit-ad-preference-v3";
@@ -27,8 +28,15 @@ export function AdvertisingProvider({
 }) {
   const [preference, setPreference] = useState<Preference>(null);
   const [ready, setReady] = useState(false);
+  const [adFree, setAdFree] = useState(false);
   useEffect(() => {
     const read = () => {
+      const hostIsAdFree = isAdFreeHost(window.location.hostname);
+      setAdFree(hostIsAdFree);
+      if (hostIsAdFree) {
+        setReady(true);
+        return;
+      }
       try {
         const value = localStorage.getItem(storageKey);
         setPreference(
@@ -56,7 +64,12 @@ export function AdvertisingProvider({
   }
   return (
     <Advertising.Provider
-      value={{ enabled: enabled && ready, nativeEnabled, preference, choose }}
+      value={{
+        enabled: enabled && ready && !adFree,
+        nativeEnabled: nativeEnabled && !adFree,
+        preference,
+        choose,
+      }}
     >
       {children}
     </Advertising.Provider>
