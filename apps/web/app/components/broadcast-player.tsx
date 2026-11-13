@@ -47,7 +47,13 @@ export function BroadcastPlayer({
     >
       <div className="broadcast-player-rim">
         <span className="broadcast-badge">
-          {item.channel ? "24/7" : "Stream"}
+          {item.channel ? (
+            <>
+              <span className="channel-live-label">Live</span> 24/7
+            </>
+          ) : (
+            "Stream"
+          )}
         </span>
         <span className="broadcast-player-brand">
           <BrandMark />

@@ -83,3 +83,34 @@ it("persists a successful refresh and keeps serving if snapshot storage is unava
   expect((await store.feed()).data).toEqual(value.data);
   expect(saved).toBe(true);
 });
+
+it("a cold failing provider cannot erase saved entries when a different provider succeeds", async () => {
+  const prior = feed();
+  const current = {
+    ...feed(),
+    data: [
+      {
+        ...feed().data[0]!,
+        id: "ext-daddy-2",
+        title: "Channel",
+        channel: true,
+      },
+    ],
+  };
+  const store = new BroadcastCatalogue(
+    [
+      {
+        idPrefix: "ppv-",
+        feed: async () => ({ data: [], updatedAt: null, stale: true }),
+      },
+      { idPrefix: "ext-daddy-", feed: async () => current },
+    ],
+    { read: async () => prior, write: async () => {} },
+  );
+  await store.feed();
+  await new Promise((r) => setImmediate(r));
+  const result = await store.feed();
+  expect(result.data.map((b) => b.id)).toContain("ppv-1");
+  expect(result.data.map((b) => b.id)).toContain("ext-daddy-2");
+  expect(result.stale).toBe(true);
+});

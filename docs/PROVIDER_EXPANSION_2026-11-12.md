@@ -11,8 +11,8 @@ Scope: supplement PPV rather than replace it. Keep the current site design and i
 | Strmfree | https://strmfree.pk | Public JSON adapter implemented; runtime catalogue refresh succeeded; decoded playback remains unverified |
 | Tim Streams | https://tim-streams.com | Sports-only channel adapter implemented; Node requests time out locally, so disabled by default pending runtime/playback verification |
 | Pitsport | https://pitsport.st | Listed on Streamed closure page; integration not verified |
-| DaddyLive directory | https://daddylive.pk | Directory confirmed; does not itself establish independent streams |
-| DaddyLive mirrors | https://dlhd.pk ; https://dlhd.st ; https://dlstreams.st ; https://thedaddy.pk ; https://dlive.sx | Listed in screenshot and current directory; deduplicate across mirrors, live playback not verified |
+| DaddyLive directory | https://daddylive.pk | Public sports directory adapter implemented through the current `thedaddy.li` redirect. It follows each published channel page to that page's supplied player URL; decoded playback remains unverified. |
+| DaddyLive mirrors | https://dlhd.pk ; https://dlhd.st ; https://dlstreams.st ; https://thedaddy.pk ; https://dlive.sx | Listed in screenshot and current directory. The adapter uses one canonical public directory so mirror aliases do not inflate the catalogue. |
 | VIPBox | https://vipbox1.com | Sports categories confirmed; embeds/permissions/playback not verified |
 | Wrestling | https://watchwrestling.ae ; https://watchwrestlingtv.se ; https://watchwrestling.tf ; https://watchwrestlinghub.com | Extracted from four screenshots; not yet verified as independent stream providers |
 
@@ -40,12 +40,16 @@ References checked: https://developer.mozilla.org/en-US/docs/Web/Security/Defens
 - New player source menu with search above eight sources, selected state, keyboard navigation, Escape/outside dismissal, fullscreen top layer and mobile sizing. Clearer BackInIt branding and larger controls. Theatre screen height is bounded.
 - Multiview uses stable iframe positions in the DOM and CSS visual ordering to avoid reloading playing frames when making another stream main. Empty share-URL slots remain empty; duplicate IDs are not instantiated twice. Slot labels identify each stream.
 - Competition/promotion filter derives available groups from actual catalogue entries, including explicitly named WWE, AEW, TNA/Impact, NJPW, ROH, MotoGP and Formula 1. This does not manufacture missing coverage.
+- DaddyLive public channel discovery walks every published sports row with four bounded workers and no source-count cap. It admits only the exact HTTPS player path supplied by the public channel page, rejects credentials, unexpected hosts and unrelated entertainment, and saves each recovered channel so a long crawl survives restarts.
+- Automatic artwork matching uses the public IPTV-org channel/logo metadata catalogue. It excludes NSFW entries, prefers current colored and horizontal artwork, matches normalized channel names plus country suffixes, and keeps a branded fallback when no trustworthy match exists. New metadata is refreshed every 24 hours rather than requiring a manual logo map.
+- Watch now has polished searchable Sport, Competition/promotion and Order menus; the duplicate specialist-filter row was removed. Wrestling, boxing, esports, motorsport and other supported sports remain in the main sports navigation and the data-driven Sport menu.
+- Channel cards show explicit country labels when the channel name supplies one, wrap long names, use consistent card heights, and label continuous channels as `Live 24/7`. Match cards use real team/player imagery from the event feed when available.
 
 ## Provider readiness and blocked candidates
 
 - StreamFree docs: https://strmfree.pk/api ; feed: https://strmfree.pk/api/v1/streams . Live runtime returned catalogue entries and distinct sources. Full audio/video/popup behavior still requires real browser playback inspection; iframe loading alone is not proof.
 - Tim Streams: its public frontend calls `/api/channels` and `/api/live-upcoming`. Read-only channel data had 225 entries, 140 categorized Sports; entertainment and VIP rows/sources are excluded. Current event feed was null, so event field mappings are not guessed. Local Node fetch repeatedly timed out even though a separate HTTP read succeeded. `TIM_STREAMS_ENABLED=true` is an explicit opt-in only after runtime and playback validation. No imported Tim coverage is claimed by default.
-- DaddyLive redirects to https://thedaddy.li/ . Webmaster integration describes assigned partner domains; API requires a key. No guessed embed routes or partner provisioning bypass.
+- DaddyLive redirects to https://thedaddy.li/ . Its separate webmaster API still requires partner provisioning and is not used. The local adapter only reads the public directory and follows the exact iframe URLs already published by each public channel page; it does not guess routes or bypass partner provisioning.
 - Wrestling: sampled `.ae` episode, `.se` episode and `.hub` schedule returned 403; `.tf` episode hostname failed resolution during follow-up. No access-denied pages are embedded or bypassed. Their homepages are not stream URLs.
 - VIPBox: public category directory found, supported catalogue/embed API not established. Pitsport: frontend shell found, supported API not established. Both remain unintegrated.
 - Replacement research: https://matchora.to/developers and https://api.esportex.site/api document public APIs, but actual API calls returned 403 locally. Leave out rather than circumvent. Other candidates were unavailable; no replacement coverage is claimed.
@@ -63,11 +67,11 @@ References checked: https://developer.mozilla.org/en-US/docs/Web/Security/Defens
 ## Verification record
 
 - Production build and all four package type checks passed.
-- Full unit suite: 180 passed, 8 skipped (database-backed optional coverage remains skipped).
-- Watch/Multiview browser suite: 10 passed. Includes keyboard accessibility scans, mobile overflow, 130-source selection, promotion filtering, external-ID navigation and preservation of playing frame requests during focus/removal. Browser embed fixtures validate BackInIt behavior, not provider video decoding.
+- Current provider/artwork/snapshot regression set: 26 passed. A broader run passed 187 and skipped 8; four account/notification cases timed out under concurrent host load, then all 9 affected cases passed when rerun alone.
+- Watch/Multiview browser suite: 11 passed. Includes keyboard accessibility scans, mobile overflow, channel artwork/fallback behavior, 130-source selection, promotion filtering, external-ID navigation and preservation of playing frame requests during focus/removal. Browser embed fixtures validate BackInIt behavior, not provider video decoding.
 - Inspected generated light/mobile, dark desktop and Multiview screenshots under `artifacts/`.
 - Advertising file SHA256 unchanged: `56a9d7c2defb5494e80db29a5e33016f37e90d0c5241dea4cd5454bdf49eb7a8`.
-- Initial real runtime feed: 117 merged entries / 255 sources (107 PPV IDs, 10 additional unique StreamFree IDs; other matches merged). Counts are a point-in-time observation, not guaranteed coverage. Following restart, upstream refreshes were intermittent: an independent PPV request returned 200 while StreamFree timed out. No successful decoded playback claim.
+- Latest local runtime feed: 500 merged entries, including 403 channels and 391 newly discovered DaddyLive channel entries. Automatic artwork matched 193 of the newly discovered channels, including SuperSport Rugby, SuperSport Tennis, Fight Network and Sky Sports F1 UK. Counts are a point-in-time observation and HTTP/embed discovery is not a successful decoded-playback claim.
 - Local web preview serves `/watch` on port 3000; local data API on 4101. Automatic browser-tab access to its existing internal error page was rejected, so owner must refresh the tab. No browser security workaround attempted.
 
 ## Catalogue outage repair
@@ -76,4 +80,4 @@ Follow-up screenshot showed an empty local catalogue. Direct curl and Node reque
 
 Added an atomic file snapshot (`BROADCAST_CACHE_PATH`, default `.data/broadcast-catalogue.json`) to retain a validated successful aggregate across process restarts. Restored data is always marked stale and refreshed in the background; snapshots expire after six hours. Original timestamps are preserved. Invalid, oversized and expired snapshots are rejected. Storage failures do not stop the live catalogue. This survives process restarts only where the host retains that filesystem; ephemeral deployments need a persistent cache path/shared store for cross-deployment retention.
 
-Recovery verification: 16 targeted tests passed (snapshot/restart, offline refresh, original timestamp, corrupted/expired file rejection, storage errors, provider isolation and PPV parsing), and API build passed. Real refreshed catalogue was verified through both port 4101 and the frontend `/api/broadcasts` endpoint. The formerly available in-app browser controller is unavailable this turn, so visual refresh remains unverified; owner can refresh the open Watch page.
+Recovery verification covers snapshot/restart, offline refresh, original timestamp, corrupted/expired file rejection, storage errors, provider isolation and PPV parsing. API and web production builds passed. The real refreshed catalogue was verified through both port 4101 and the frontend `/api/broadcasts` endpoint, and the current Watch page was captured from the running local preview for visual review.

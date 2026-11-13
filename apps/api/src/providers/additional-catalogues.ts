@@ -58,9 +58,12 @@ export function parseStreamfree(raw: unknown): Broadcast[] {
     const s = result.data,
       category = categories[s.category.toLowerCase()];
     if (!category) return [];
-    const channel = ["skyf1", "skysportstennis"].includes(
-      s.stream_key.toLowerCase(),
-    );
+    const channel = [
+      "skyf1",
+      "skysportstennis",
+      "willow",
+      "skysportscricket",
+    ].includes(s.stream_key.toLowerCase());
     const urls = new Set<string>();
     let live = false;
     const sources = s.sources.flatMap((candidate) => {
@@ -168,6 +171,13 @@ export function parseTimChannels(raw: unknown): Broadcast[] {
 
 /** Per-provider cache: an outage never replaces a healthy provider's data. */
 export class AdditionalCatalogue {
+  get idPrefix() {
+    return this.name === "StreamFree"
+      ? "ext-streamfree-"
+      : this.name === "Tim Streams"
+        ? "ext-tim-"
+        : undefined;
+  }
   private snapshot: BroadcastFeed | null = null;
   private pending: Promise<BroadcastFeed> | null = null;
   private checkedAt = -Infinity;

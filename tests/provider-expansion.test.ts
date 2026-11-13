@@ -204,3 +204,13 @@ it("does not label an inactive provider source live just because kickoff passed"
   })[0]!;
   expect(broadcastState(active, active.start + 60000)).toBe("Live");
 });
+
+it("places the published cricket channel keys in channels, not stale match schedules", () => {
+  for (const key of ["willow", "skysportscricket"]) {
+    expect(
+      parseStreamfree({
+        streams: [{ ...raw.streams[0], category: "cricket", stream_key: key }],
+      })[0],
+    ).toMatchObject({ channel: true, start: 0, end: 0 });
+  }
+});

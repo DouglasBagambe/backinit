@@ -4,6 +4,7 @@ import {
   type BroadcastFeed,
 } from "../../../../packages/domain/src/index.js";
 import { ppvCatalogue } from "./ppv-catalogue.js";
+import { daddyCatalogue } from "./daddy-catalogue.js";
 import { additionalCatalogues } from "./additional-catalogues.js";
 import {
   FileBroadcastSnapshot,
@@ -56,10 +57,10 @@ export class BroadcastCatalogue {
   private pending: Promise<BroadcastFeed> | null = null;
   private checkedAt = -Infinity;
   constructor(
-    private providers: { feed(): Promise<BroadcastFeed> }[] = [
-      ppvCatalogue,
-      ...additionalCatalogues,
-    ],
+    private providers: {
+      readonly idPrefix?: string;
+      feed(): Promise<BroadcastFeed>;
+    }[] = [ppvCatalogue, ...additionalCatalogues, daddyCatalogue],
     private snapshot?: BroadcastSnapshot,
   ) {}
   async feed(): Promise<BroadcastFeed> {
@@ -104,13 +105,28 @@ export class BroadcastCatalogue {
       r.status === "fulfilled" ? [r.value] : [],
     );
     const dated = feeds.filter((f) => f.updatedAt);
-    const data = mergeBroadcasts(feeds.map((f) => f.data));
+    const retained = results.flatMap((result, index) => {
+      const prefix = this.providers[index]?.idPrefix;
+      const unavailable =
+        result.status === "rejected" ||
+        (result.value.stale && !result.value.data.length);
+      return prefix && unavailable
+        ? (this.saved?.data || []).filter((b) => b.id.startsWith(prefix))
+        : [];
+    });
+    const data = mergeBroadcasts([retained, ...feeds.map((f) => f.data)]);
     const partial =
       results.some((r) => r.status === "rejected") ||
       feeds.some((f) => f.stale);
     const feed: BroadcastFeed = {
       data,
-      updatedAt: dated.map((f) => f.updatedAt!).sort()[0] || null,
+      updatedAt:
+        [
+          ...dated.map((f) => f.updatedAt!),
+          ...(retained.length && this.saved?.updatedAt
+            ? [this.saved.updatedAt]
+            : []),
+        ].sort()[0] || null,
       stale: partial,
       ...(partial
         ? {

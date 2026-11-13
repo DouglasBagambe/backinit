@@ -1,4 +1,6 @@
 "use client";
+import { FilterSelect } from "./filter-select";
+import { BroadcastArtwork, ChannelRegion } from "./broadcast-artwork";
 import { EntitySuggestions } from "./entity-suggestions";
 import {
   eventTitle,
@@ -59,7 +61,12 @@ function useNow() {
 function StartTime({ item }: { item: Broadcast }) {
   const now = useNow();
   const { zone } = useViewingZone();
-  if (item.channel) return <>24/7 channel</>;
+  if (item.channel)
+    return (
+      <span className="channel-continuous">
+        <span>Live</span> 24/7 channel
+      </span>
+    );
   return (
     <time dateTime={new Date(item.start).toISOString()}>
       {now
@@ -82,7 +89,15 @@ function State({ item }: { item: Broadcast }) {
     <span
       className={`broadcast-badge ${now && broadcastState(item, now) === "Live" ? "is-live" : ""}`}
     >
-      {now ? broadcastState(item, now) : item.channel ? "24/7" : "Scheduled"}
+      {item.channel ? (
+        <>
+          <span className="channel-live-label">Live</span> 24/7
+        </>
+      ) : now ? (
+        broadcastState(item, now)
+      ) : (
+        "Scheduled"
+      )}
     </span>
   );
 }
@@ -408,21 +423,7 @@ export function BroadcastDirectory({
       key={item.id}
     >
       <div className="broadcast-poster">
-        {item.poster ? (
-          <img
-            src={item.poster}
-            alt=""
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
-        ) : (
-          <span className="broadcast-poster-fallback">
-            <>
-              <Radio size={30} />
-              <strong>{item.title}</strong>
-            </>
-          </span>
-        )}
+        <BroadcastArtwork item={item} event={officialFor(item)} />
         {officialFor(item) ? (
           <span
             className={`broadcast-badge ${officialFor(item)?.status === "live" ? "is-live" : ""}`}
@@ -441,6 +442,7 @@ export function BroadcastDirectory({
           <span className="broadcast-big-match">Big match</span>
         )}
         <h3>{item.title}</h3>
+        {item.channel && <ChannelRegion name={item.title} />}
         <StartTime item={item} />
         {!item.sources.length && (
           <span className="broadcast-sources">
@@ -555,52 +557,38 @@ export function BroadcastDirectory({
                     }
                   />
                 </label>
-                <label>
-                  Sport
-                  <select
-                    value={category}
-                    onChange={(e) => {
-                      setCategory(e.target.value);
-                      updateFilter({
-                        competition: "",
-                        sport:
-                          e.target.value === "All sports" ? "" : e.target.value,
-                      });
-                    }}
-                  >
-                    {[
-                      "All sports",
-                      ...(category !== "All sports" ? [category] : []),
-                      ...new Set(
-                        catalogue
-                          .filter((b) => b.channel === channels)
-                          .map((b) => b.category),
-                      ),
-                    ]
-                      .filter((c, i, all) => all.indexOf(c) === i)
-                      .map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
-                  </select>
-                </label>
+                <FilterSelect
+                  label="Sport"
+                  value={category}
+                  options={[
+                    "All sports",
+                    ...(category !== "All sports" ? [category] : []),
+                    ...new Set(
+                      catalogue
+                        .filter((b) => b.channel === channels)
+                        .map((b) => b.category),
+                    ),
+                  ]
+                    .filter((c, i, all) => all.indexOf(c) === i)
+                    .map((c) => ({ value: c, label: c }))}
+                  onChange={(value) => {
+                    setCategory(value);
+                    updateFilter({
+                      competition: "",
+                      sport: value === "All sports" ? "" : value,
+                    });
+                  }}
+                />
                 {collections.length > 1 && (
-                  <label className="broadcast-collection-filter">
-                    Competition / promotion
-                    <select
-                      aria-label="Competition or promotion"
-                      value={collection}
-                      onChange={(e) =>
-                        updateFilter({ competition: e.target.value })
-                      }
-                    >
-                      <option value="">All competitions</option>
-                      {collections.map((value) => (
-                        <option key={value} value={value}>
-                          {value}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <FilterSelect
+                    label="Competition or promotion"
+                    value={collection}
+                    options={[
+                      { value: "", label: "All competitions" },
+                      ...collections.map((c) => ({ value: c, label: c })),
+                    ]}
+                    onChange={(value) => updateFilter({ competition: value })}
+                  />
                 )}
                 {!channels && (
                   <details className="broadcast-more-filters">
@@ -617,16 +605,15 @@ export function BroadcastDirectory({
                           }}
                         />
                       </label>
-                      <label>
-                        Order
-                        <select
-                          value={sort}
-                          onChange={(e) => setSort(e.target.value)}
-                        >
-                          <option>Recommended</option>
-                          <option>Kickoff time</option>
-                        </select>
-                      </label>
+                      <FilterSelect
+                        label="Order"
+                        value={sort}
+                        options={["Recommended", "Kickoff time"].map((c) => ({
+                          value: c,
+                          label: c,
+                        }))}
+                        onChange={setSort}
+                      />
                     </div>
                   </details>
                 )}

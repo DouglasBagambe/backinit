@@ -300,9 +300,8 @@ test("Watch separates sports channels, recognizes marquee games and keeps discov
   await expect(pages).toContainText("Page 2 of 2");
   await expect(page.locator(".broadcast-card")).toHaveCount(5);
   await page.locator(".broadcast-more-filters > summary").click();
-  await page
-    .getByRole("combobox", { name: "Order", exact: true })
-    .selectOption("Kickoff time");
+  await page.getByRole("button", { name: /^Order Recommended/ }).click();
+  await page.getByRole("option", { name: "Kickoff time", exact: true }).click();
   await page.locator(".broadcast-more-filters > summary").click();
   await page.getByRole("button", { name: "Tomorrow", exact: true }).click();
   await expect(page.locator(".broadcast-card")).toHaveCount(1);
@@ -565,7 +564,8 @@ test("external broadcasts keep all 130 sources searchable on narrow screens and 
     }),
   );
   await page.goto("/watch?range=all");
-  await page.getByLabel("Competition or promotion").selectOption("AEW");
+  await page.getByRole("button", { name: /^Competition or promotion/ }).click();
+  await page.getByRole("option", { name: "AEW", exact: true }).click();
   await expect(page.locator(".broadcast-card")).toHaveCount(1);
   await page.locator(".broadcast-card").click();
   await page.setViewportSize({ width: 360, height: 800 });
@@ -599,4 +599,60 @@ test("external broadcasts keep all 130 sources searchable on narrow screens and 
   await expect(
     page.getByRole("button", { name: "Play AEW Dynamite", exact: true }),
   ).toBeVisible();
+});
+
+test("channel artwork, country labels, long names and esports navigation stay usable", async ({
+  page,
+}) => {
+  const channels = [
+    {
+      ...items[0]!,
+      id: "ext-daddy-test",
+      title: "Sky Sports Tennis UK",
+      channel: true,
+      category: "Tennis",
+    },
+    {
+      ...items[1]!,
+      id: "ext-daddy-long",
+      title: "An unusually long specialist sports channel name Serbia",
+      channel: true,
+      category: "Sports",
+    },
+  ];
+  await page.route("**/api/broadcasts", (r) =>
+    r.fulfill({
+      json: {
+        data: channels,
+        updatedAt: new Date().toISOString(),
+        stale: false,
+      },
+    }),
+  );
+  await page.goto("/watch?view=channels");
+  await expect(page.locator(".channel-monogram")).toHaveCount(2);
+  await expect(
+    page.locator(".channel-region").filter({ hasText: "United Kingdom" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
+  await page.screenshot({
+    path: "artifacts/channel-identities-mobile.png",
+    fullPage: true,
+  });
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.screenshot({
+    path: "artifacts/channel-identities-dark.png",
+    fullPage: true,
+  });
+  await page
+    .locator(".sports-nav")
+    .getByRole("link", { name: "Esports", exact: true })
+    .click();
+  await expect(page).toHaveURL(/sport=Esports/);
 });
