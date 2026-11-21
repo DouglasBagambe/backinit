@@ -4,7 +4,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   const television = process.env.EXPO_TV === "1";
   return {
     ...config,
-    name: television ? "BackInIt TV" : "BackInIt",
+    name: television ? "backinit TV" : "backinit",
     slug: television ? "backinit-tv" : "backinit-mobile",
     scheme: "backinit",
     version: "1.0.0",

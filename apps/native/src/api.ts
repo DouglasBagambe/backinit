@@ -6,10 +6,13 @@ const base = String(
 ).replace(/\/$/, "");
 
 async function get<T>(path: string): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12_000);
   const response = await fetch(`${base}${path}`, {
     headers: { Accept: "application/json" },
-  });
-  if (!response.ok) throw new Error(`BackInIt service returned ${response.status}`);
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeout));
+  if (!response.ok) throw new Error(`backinit service returned ${response.status}`);
   return response.json() as Promise<T>;
 }
 

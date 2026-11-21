@@ -81,11 +81,11 @@ export default function App() {
               )}
               {section === "live" && (
                 <Collection
-                  eyebrow="HAPPENING NOW"
-                  title="Live sport"
-                  description="Matches and broadcasts currently in progress."
-                  items={live}
-                  empty="There are no verified live matches at this moment. Pull down to refresh."
+                  eyebrow="NOW & NEXT"
+                  title="Live & upcoming"
+                  description="Every available event, ordered from live now into what starts next."
+                  items={matches}
+                  empty="No verified events are available right now. Pull down to refresh."
                   savedSet={savedSet}
                   onPlay={playBroadcast}
                   onSave={toggleSaved}
@@ -95,7 +95,7 @@ export default function App() {
                 <>
                   <PageIntro
                     eyebrow={section === "saved" ? "YOUR LINEUP" : "ALWAYS ON"}
-                    title={section === "saved" ? "My sport" : "Sports channels"}
+                    title={section === "saved" ? "Saved" : "Sports channels"}
                     description={section === "saved" ? "The channels you saved, ready on every visit." : `${channels.length} live sports networks across football, tennis, motorsport, combat sports and more.`}
                   />
                   <Search value={query} onChange={setQuery} />
@@ -180,20 +180,19 @@ function Home({
   return (
     <>
       {hero && <Hero item={hero} onPlay={onPlay} onSave={onSave} saved={savedSet.has(hero.id)} />}
-      <View style={styles.statsRow}>
-        <Stat value={String(channels.length)} label="live channels" />
-        <Stat value={String(matches.length)} label="matches" />
-        <Stat value={String(sports)} label="sports" />
+      <View style={styles.catalogueSummary}>
+        <Text style={styles.catalogueSummaryLead}>Everything playing now and next</Text>
+        <Text style={styles.catalogueSummaryMeta}>{matches.length} events · {channels.length} live channels · {sports} sports</Text>
       </View>
+      <Rail title="Live & upcoming" action="Open live" onAction={() => onSection("live")}>
+        {matches.slice(0, 16).map((item) => <BroadcastCard key={item.id} item={item} saved={savedSet.has(item.id)} onPlay={onPlay} onSave={onSave} />)}
+      </Rail>
       <Rail title="Live sports channels" action="See all" onAction={() => onSection("channels")}>
         {channels.slice(0, 14).map((item) => <BroadcastCard key={item.id} item={item} saved={savedSet.has(item.id)} onPlay={onPlay} onSave={onSave} />)}
       </Rail>
-      <Rail title="Full matches & highlights" action="Browse replays" onAction={() => onSection("replays")}>
+      {videos.length > 0 && <Rail title="Full matches & highlights" action="Browse replays" onAction={() => onSection("replays")}>
         {videos.slice(0, 14).map((item) => <ReplayCard key={item.id} item={item} onPlay={onPlayVideo} />)}
-      </Rail>
-      <Rail title="More live choices">
-        {matches.slice(0, 14).map((item) => <BroadcastCard key={item.id} item={item} saved={savedSet.has(item.id)} onPlay={onPlay} onSave={onSave} />)}
-      </Rail>
+      </Rail>}
     </>
   );
 }
@@ -249,9 +248,9 @@ function ReplayCollection({ items, onPlay }: { items: Video[]; onPlay: (item: Vi
     <>
       <PageIntro eyebrow="ON YOUR TIME" title="Replays & highlights" description={`${items.length} official full matches, fights, races and highlights.`} />
       <Search value={query} onChange={setQuery} placeholder="Search players, teams, events…" />
-      <View style={styles.grid}>
+      {filtered.length > 0 ? <View style={styles.grid}>
         {filtered.map((item) => <ReplayCard key={item.id} item={item} onPlay={onPlay} fullWidth={!isTV} />)}
-      </View>
+      </View> : <Empty message={items.length ? "No replays match that search." : "The replay service is temporarily unavailable. Live events and channels are still ready to watch."} />}
     </>
   );
 }
@@ -271,10 +270,6 @@ function PageIntro({ eyebrow, title, description }: { eyebrow: string; title: st
 
 function Search({ value, onChange, placeholder = "Search channels and sports…" }: { value: string; onChange: (value: string) => void; placeholder?: string }) {
   return <View style={styles.search}><Ionicons name="search" size={20} color={colors.muted} /><TextInput value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={colors.muted} style={styles.searchInput} /></View>;
-}
-
-function Stat({ value, label }: { value: string; label: string }) {
-  return <View style={styles.stat}><Text style={styles.statValue}>{value}</Text><Text style={styles.statLabel}>{label}</Text></View>;
 }
 
 function Empty({ message }: { message: string }) {
@@ -297,22 +292,21 @@ const styles = StyleSheet.create({
   profile: { width: isTV ? 44 : 42, height: isTV ? 44 : 42, borderRadius: 30, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel, alignItems: "center", justifyContent: "center", marginLeft: "auto" },
   scroll: { flex: 1 },
   content: { paddingBottom: isTV ? 70 : 28 },
-  hero: { minHeight: isTV ? 390 : 445, justifyContent: "flex-end", backgroundColor: colors.panel },
+  hero: { minHeight: isTV ? 315 : 410, justifyContent: "flex-end", backgroundColor: colors.panel },
   heroImage: { resizeMode: "cover", opacity: 0.74 },
   heroFallback: { position: "absolute", inset: 0, alignItems: "center", justifyContent: "center", opacity: 0.18 },
-  heroCopy: { maxWidth: isTV ? 650 : 620, paddingHorizontal: isTV ? 34 : 22, paddingBottom: isTV ? 30 : 34, gap: isTV ? 10 : 10 },
+  heroCopy: { maxWidth: isTV ? 720 : 620, paddingHorizontal: isTV ? 34 : 22, paddingBottom: isTV ? 24 : 30, gap: isTV ? 10 : 10 },
   heroLive: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "rgba(1,17,13,.82)", borderRadius: radii.pill, paddingHorizontal: 12, paddingVertical: 7 },
   heroLiveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.danger },
   heroLiveText: { color: colors.ink, fontSize: 11, fontWeight: "900", letterSpacing: 1 },
   heroEyebrow: { color: colors.mint, fontSize: isTV ? 14 : 13, fontWeight: "900", textTransform: "uppercase", letterSpacing: 1.5 },
-  heroTitle: { color: colors.ink, fontSize: isTV ? 44 : 38, lineHeight: isTV ? 48 : 42, fontWeight: "900", letterSpacing: -1.8 },
+  heroTitle: { color: colors.ink, fontSize: isTV ? 38 : 36, lineHeight: isTV ? 42 : 40, fontWeight: "900", letterSpacing: -1.8 },
   heroDescription: { color: colors.muted, fontSize: isTV ? 16 : 15, lineHeight: isTV ? 23 : 22, maxWidth: 650 },
   heroActions: { flexDirection: "row", gap: 12, marginTop: 7 },
-  statsRow: { flexDirection: "row", gap: isTV ? 14 : 10, paddingHorizontal: isTV ? 28 : 18, marginTop: isTV ? 16 : 16, zIndex: 2 },
-  stat: { flex: 1, maxWidth: 230, padding: isTV ? 17 : 16, borderRadius: radii.md, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.panel },
-  statValue: { color: colors.lime, fontSize: isTV ? 26 : 23, fontWeight: "900" },
-  statLabel: { color: colors.muted, fontSize: isTV ? 14 : 12, fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
-  rail: { marginTop: isTV ? 34 : 32 },
+  catalogueSummary: { paddingHorizontal: isTV ? 28 : 18, paddingTop: isTV ? 22 : 20, gap: 4 },
+  catalogueSummaryLead: { color: colors.ink, fontSize: isTV ? 22 : 18, fontWeight: "900" },
+  catalogueSummaryMeta: { color: colors.muted, fontSize: isTV ? 15 : 13, fontWeight: "700" },
+  rail: { marginTop: isTV ? 22 : 26 },
   railHeader: { paddingHorizontal: isTV ? 28 : 18, marginBottom: 16, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   railTitle: { color: colors.ink, fontSize: isTV ? 24 : 21, fontWeight: "900", letterSpacing: -0.6 },
   railAction: { color: colors.mint, fontSize: isTV ? 17 : 14, fontWeight: "800" },

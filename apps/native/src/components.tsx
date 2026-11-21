@@ -20,7 +20,7 @@ import type { Broadcast, Source, Video } from "./types";
 
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
-    <View style={styles.brand} accessibilityLabel="BackInIt">
+    <View style={styles.brand} accessibilityLabel="backinit">
       <View style={[styles.brandBall, compact && { width: 30, height: 30 }]}>
         <BrandMark size={compact ? 30 : 40} />
       </View>
@@ -31,7 +31,7 @@ export function Brand({ compact = false }: { compact?: boolean }) {
 
 export function BrandMark({ size }: { size: number }) {
   return (
-    <Svg width={size} height={size * 0.64} viewBox="0 0 100 64" accessibilityLabel="BackInIt mark">
+    <Svg width={size} height={size * 0.64} viewBox="0 0 100 64" accessibilityLabel="backinit mark">
       <Defs>
         <Mask id="backinit-ball">
           <Circle cx="50" cy="32" r="25" fill="#fff" />

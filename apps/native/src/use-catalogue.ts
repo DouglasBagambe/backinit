@@ -36,14 +36,23 @@ export function useCatalogue() {
   }, []);
 
   useEffect(() => {
-    void Promise.all([
-      AsyncStorage.getItem(catalogueKey).then((value) => {
-        if (value) setCatalogue(JSON.parse(value) as Catalogue);
-      }).finally(refresh),
-      AsyncStorage.getItem(savedKey).then((value) => {
-        if (value) setSaved(JSON.parse(value) as string[]);
-      }),
-    ]);
+    let active = true;
+    void AsyncStorage.getItem(catalogueKey)
+      .then((value) => {
+        if (!active || !value) return;
+        setCatalogue(JSON.parse(value) as Catalogue);
+        setLoading(false);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (active) void refresh();
+      });
+    void AsyncStorage.getItem(savedKey).then((value) => {
+      if (active && value) setSaved(JSON.parse(value) as string[]);
+    });
+    return () => {
+      active = false;
+    };
   }, [refresh]);
 
   const toggleSaved = useCallback((id: string) => {
