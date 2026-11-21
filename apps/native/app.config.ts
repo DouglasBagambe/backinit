@@ -13,6 +13,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     icon: "./assets/icon.png",
     plugins: [
       ["@react-native-tvos/config-tv", { isTV: television }],
+      ["expo-navigation-bar", { enforceContrast: false, style: "light" }],
+      "./plugins/with-backinit-android-theme.cjs",
       [
         "expo-splash-screen",
         {
