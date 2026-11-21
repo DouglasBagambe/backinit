@@ -105,12 +105,18 @@ importers:
       expo-linear-gradient:
         specifier: ~58.0.4
         version: 58.0.4(expo@58.0.26)(react-native-tvos@0.87.1-1)(react@19.3.0)
+      expo-navigation-bar:
+        specifier: ~58.0.4
+        version: 58.0.4(expo@58.0.26)(react-native-tvos@0.87.1-1)(react@19.3.0)
       expo-splash-screen:
         specifier: ~58.0.14
         version: 58.0.14(expo@58.0.26)(typescript@6.0.3)
       expo-status-bar:
         specifier: ~58.0.5
         version: 58.0.5(expo@58.0.26)(react-native-tvos@0.87.1-1)(react@19.3.0)
+      expo-system-ui:
+        specifier: ~58.0.7
+        version: 58.0.7(expo@58.0.26)(react-native-tvos@0.87.1-1)
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -2329,6 +2335,13 @@ packages:
   expo-modules-macros@0.33.0:
     resolution: {integrity: sha512-ddrT2jbYPYmiHmzcYOixRemFUUK9qQEb5pOBWgoFoW0gj3sGld1CZX0GwblUXeZMyEX65S9vc1bEhIAGVDRA9w==}
 
+  expo-navigation-bar@58.0.4:
+    resolution: {integrity: sha512-XO1Ljy9MlmVLYlmIGUNHxTCcHN8TjlbYQnf+jqjoxpbPxDCXDCSaX0+F7rKh0G4CUehKsfoebbMO/VIy87qSqg==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
+      react-native: '*'
+
   expo-server@58.1.0:
     resolution: {integrity: sha512-jo7I6uHnP5OQYKx3+7lbpdVVnOEwFj2ryDkQdauUQSwgh2HuMUkiFXWUIVe01ts6DLRoff5U0Tv+uNb3CMq/kw==}
     engines: {node: ^22.13.0 || ^24.3.0 || ^26.0.0 || >=27.0.0}
@@ -2344,6 +2357,16 @@ packages:
       expo: '*'
       react: '*'
       react-native: '*'
+
+  expo-system-ui@58.0.7:
+    resolution: {integrity: sha512-XxrMY93bT8MpZUlc6uRKzkeUoXhBi/Eq8j3qx2pjk0ARCV+0Ed1eqzmgxuAoKZ+10cyOZVSke5Hhi78NVFReuQ==}
+    peerDependencies:
+      expo: '*'
+      react-native: '*'
+      react-native-web: '*'
+    peerDependenciesMeta:
+      react-native-web:
+        optional: true
 
   expo@58.0.26:
     resolution: {integrity: sha512-6i4kqt5lbcQdxmtnkkJ3JR5sn+A3L+xO45duLhh2rndvrek/chX/GTysTYozl4oL3+txKD53pDlJd75XRYf9Ow==}
@@ -6058,6 +6081,15 @@ snapshots:
       '@expo/modules-macros-win32-arm64': 0.33.0
       '@expo/modules-macros-win32-x64': 0.33.0
 
+  expo-navigation-bar@58.0.4(expo@58.0.26)(react-native-tvos@0.87.1-1)(react@19.3.0):
+    dependencies:
+      debug: 4.4.3
+      expo: 58.0.26(@babel/core@7.29.13)(@expo/dom-webview@58.0.2)(react-dom@19.3.1(react@19.3.0))(react-native-tvos@0.87.1-1)(react-native-webview@14.0.1(react-native-tvos@0.87.1-1)(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
+      react: 19.3.0
+      react-native: react-native-tvos@0.87.1-1(@babel/core@7.29.13)(@types/react@19.3.0)(react-native-tvos@0.87.1-1)(react@19.3.0)
+    transitivePeerDependencies:
+      - supports-color
+
   expo-server@58.1.0: {}
 
   expo-splash-screen@58.0.14(expo@58.0.26)(typescript@6.0.3):
@@ -6075,6 +6107,15 @@ snapshots:
       expo: 58.0.26(@babel/core@7.29.13)(@expo/dom-webview@58.0.2)(react-dom@19.3.1(react@19.3.0))(react-native-tvos@0.87.1-1)(react-native-webview@14.0.1(react-native-tvos@0.87.1-1)(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
       react: 19.3.0
       react-native: react-native-tvos@0.87.1-1(@babel/core@7.29.13)(@types/react@19.3.0)(react-native-tvos@0.87.1-1)(react@19.3.0)
+
+  expo-system-ui@58.0.7(expo@58.0.26)(react-native-tvos@0.87.1-1):
+    dependencies:
+      '@react-native/normalize-colors': 0.88.1
+      debug: 4.4.3
+      expo: 58.0.26(@babel/core@7.29.13)(@expo/dom-webview@58.0.2)(react-dom@19.3.1(react@19.3.0))(react-native-tvos@0.87.1-1)(react-native-webview@14.0.1(react-native-tvos@0.87.1-1)(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
+      react-native: react-native-tvos@0.87.1-1(@babel/core@7.29.13)(@types/react@19.3.0)(react-native-tvos@0.87.1-1)(react@19.3.0)
+    transitivePeerDependencies:
+      - supports-color
 
   expo@58.0.26(@babel/core@7.29.13)(@expo/dom-webview@58.0.2)(react-dom@19.3.1(react@19.3.0))(react-native-tvos@0.87.1-1)(react-native-webview@14.0.1(react-native-tvos@0.87.1-1)(react@19.3.0))(react@19.3.0)(typescript@6.0.3):
     dependencies:

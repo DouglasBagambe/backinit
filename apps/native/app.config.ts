@@ -7,7 +7,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: television ? "backinit TV" : "backinit",
     slug: television ? "backinit-tv" : "backinit-mobile",
     scheme: "backinit",
-    version: "1.0.0",
+    version: "1.0.1",
     orientation: television ? "landscape" : "portrait",
     userInterfaceStyle: "dark",
     icon: "./assets/icon.png",
@@ -25,7 +25,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ],
     android: {
       package: television ? "live.backinit.tv" : "live.backinit.mobile",
-      versionCode: 1,
+      versionCode: 2,
       adaptiveIcon: {
         foregroundImage: "./assets/android-icon-foreground.png",
         backgroundColor: "#031b15",
@@ -43,7 +43,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ],
     },
     extra: {
-      apiBaseUrl: process.env.EXPO_PUBLIC_API_URL || "https://db.backinit.live/api",
+      apiBaseUrl:
+        process.env.EXPO_PUBLIC_API_URL || "https://backinit.live/api",
       television,
     },
   };

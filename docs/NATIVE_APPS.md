@@ -14,7 +14,7 @@ pnpm --filter @backinit/native start:mobile
 pnpm --filter @backinit/native start:tv
 ```
 
-Set `EXPO_PUBLIC_API_URL` to use another backend. The production default is `https://db.backinit.live/api`.
+Set `EXPO_PUBLIC_API_URL` to use another backend. The production default is `https://backinit.live/api`; the native client automatically tries the active service and `https://db.backinit.live/api` when required.
 
 ## Android builds
 
