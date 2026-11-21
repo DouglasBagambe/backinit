@@ -8,6 +8,9 @@ dist/
 playwright-report/
 test-results*/
 artifacts/
+apps/native/android/
+apps/native/ios/
+apps/native/.expo/
 .DS_Store
 
 .data/

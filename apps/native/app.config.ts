@@ -1,0 +1,50 @@
+import type { ExpoConfig, ConfigContext } from "expo/config";
+
+export default ({ config }: ConfigContext): ExpoConfig => {
+  const television = process.env.EXPO_TV === "1";
+  return {
+    ...config,
+    name: television ? "BackInIt TV" : "BackInIt",
+    slug: television ? "backinit-tv" : "backinit-mobile",
+    scheme: "backinit",
+    version: "1.0.0",
+    orientation: television ? "landscape" : "portrait",
+    userInterfaceStyle: "dark",
+    icon: "./assets/icon.png",
+    plugins: [
+      ["@react-native-tvos/config-tv", { isTV: television }],
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/splash-icon.png",
+          imageWidth: 220,
+          resizeMode: "contain",
+          backgroundColor: "#031b15",
+        },
+      ],
+    ],
+    android: {
+      package: television ? "live.backinit.tv" : "live.backinit.mobile",
+      versionCode: 1,
+      adaptiveIcon: {
+        foregroundImage: "./assets/android-icon-foreground.png",
+        backgroundColor: "#031b15",
+      },
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            { scheme: "https", host: "backinit.live", pathPrefix: "/watch" },
+            { scheme: "https", host: "db.backinit.live", pathPrefix: "/watch" },
+          ],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+      ],
+    },
+    extra: {
+      apiBaseUrl: process.env.EXPO_PUBLIC_API_URL || "https://db.backinit.live/api",
+      television,
+    },
+  };
+};

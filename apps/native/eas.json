@@ -1,0 +1,23 @@
+{
+  "cli": { "version": ">= 16.20.0" },
+  "build": {
+    "mobile-apk": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": { "EXPO_TV": "0" }
+    },
+    "tv-apk": {
+      "distribution": "internal",
+      "android": { "buildType": "apk" },
+      "env": { "EXPO_TV": "1" }
+    },
+    "mobile-store": {
+      "android": { "buildType": "app-bundle" },
+      "env": { "EXPO_TV": "0" }
+    },
+    "tv-store": {
+      "android": { "buildType": "app-bundle" },
+      "env": { "EXPO_TV": "1" }
+    }
+  }
+}
