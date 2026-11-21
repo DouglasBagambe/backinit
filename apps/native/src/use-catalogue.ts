@@ -4,6 +4,7 @@ import { loadCatalogue } from "./api";
 import type { Catalogue } from "./types";
 
 const savedKey = "backinit-native-saved-v1";
+const catalogueKey = "backinit-native-catalogue-v1";
 const empty: Catalogue = { broadcasts: [], videos: [] };
 
 export function useCatalogue() {
@@ -16,7 +17,15 @@ export function useCatalogue() {
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      setCatalogue(await loadCatalogue());
+      const next = await loadCatalogue();
+      setCatalogue((current) => {
+        const merged = {
+          broadcasts: next.broadcasts.length ? next.broadcasts : current.broadcasts,
+          videos: next.videos.length ? next.videos : current.videos,
+        };
+        void AsyncStorage.setItem(catalogueKey, JSON.stringify(merged));
+        return merged;
+      });
       setError(null);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Could not refresh sport");
@@ -28,7 +37,9 @@ export function useCatalogue() {
 
   useEffect(() => {
     void Promise.all([
-      refresh(),
+      AsyncStorage.getItem(catalogueKey).then((value) => {
+        if (value) setCatalogue(JSON.parse(value) as Catalogue);
+      }).finally(refresh),
       AsyncStorage.getItem(savedKey).then((value) => {
         if (value) setSaved(JSON.parse(value) as string[]);
       }),
