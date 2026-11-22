@@ -61,3 +61,11 @@ A loaded iframe is not proof of sustained video playback. WebView UI/navigation 
 - Fixed callback-ref detachment clearing player identity during ordinary rerenders, which had broken repeated native mute changes.
 - Both 1.0.4 universal APKs pass signature verification. TV installed as an update over the earlier build. Focused audio controller tests cover supported native output, unsupported fallback, rapid changes and unavailable native views.
 - Settings displays the installed native version instead of a hardcoded version. Website advertising and cookie code are unchanged.
+
+## Release 1.0.5 immersive theater
+
+- Theater removes the app header, control-row space, corner radius and safe-area padding. Video WebViews cover the TV's full 1920×1080 display.
+- While idle, backinit controls are absent. A remote direction/select/play-pause event or a screen tap reveals an overlay; it hides after four seconds without interaction. Focus and interaction restart the timer.
+- Release APK tested on Android TV API 36: PFL replay plays in theater, a remote direction reveals controls, remote navigation/Select toggles native output mute, controls disappear again, and both remote-selected Exit theater and Back restore the regular player.
+- Theater keeps the same WebView mounted instead of reloading the stream. Android phone theater additionally requests hidden system navigation; phone release verification is separate from the TV checks above.
+- Typecheck and all 12 focused native tests pass. Full CI passed for implementation commit e146e62.
