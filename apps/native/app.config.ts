@@ -9,7 +9,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme: "backinit",
     version: "1.0.3",
     orientation: television ? "landscape" : "portrait",
-    userInterfaceStyle: "dark",
+    userInterfaceStyle: "automatic",
     icon: "./assets/icon.png",
     plugins: [
       ["@react-native-tvos/config-tv", { isTV: television }],
