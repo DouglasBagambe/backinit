@@ -50,7 +50,9 @@ test("Watch times out a stalled request and recovers on Retry without overlappin
   await alert
     .getByRole("button", { name: "Retry match updates", exact: true })
     .click();
-  await expect(page.locator(".broadcast-card")).toHaveCount(1);
+  await expect(
+    page.locator(".broadcast-card", { hasText: "Liverpool" }),
+  ).toHaveCount(1);
   await expect(alert).toHaveCount(0);
   expect(requests).toBe(2);
 });
@@ -505,17 +507,20 @@ test("Watch keeps live tracker coverage across midnight and distinguishes actual
     }),
   );
   await page.goto("/watch");
-  await expect(page.locator(".broadcast-grid")).toContainText(event.title);
+  const catalogue = page.getByRole("region", { name: "Broadcast catalogue" });
+  await expect(catalogue).toContainText(event.title);
   await page.getByRole("button", { name: "Live now", exact: true }).click();
-  await expect(page.locator(".broadcast-grid")).toContainText(event.title);
-  await expect(page.locator(".broadcast-card")).toHaveCount(3);
-  await expect(page.locator(".broadcast-grid")).toContainText(
+  await expect(catalogue).toContainText(event.title);
+  await expect(
+    catalogue.locator(".broadcast-card").filter({ hasText: "Test contract only" }),
+  ).toHaveCount(3);
+  await expect(catalogue).toContainText(
     "Watch stream & tracker",
   );
-  await expect(page.locator(".broadcast-grid")).toContainText(
+  await expect(catalogue).toContainText(
     "Unstreamed event",
   );
-  await expect(page.locator(".broadcast-grid")).toContainText(
+  await expect(catalogue).toContainText(
     "Replay only event",
   );
 });

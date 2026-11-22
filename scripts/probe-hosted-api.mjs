@@ -5,7 +5,8 @@ import { resolve } from "node:path";
 import assert from "node:assert/strict";
 import { chromium } from "@playwright/test";
 const root = resolve(import.meta.dirname, "..");
-const api = process.env.PROBE_API_URL || "https://backinit-api.onrender.com";
+const api =
+  process.env.PROBE_API_URL || "https://backinit-api-pgaq.onrender.com";
 const web = "http://127.0.0.1:3501";
 const checks = [];
 async function get(base, path, expected = 200) {

@@ -1,6 +1,6 @@
 # Public frontend with a Render API
 
-The founder authorized hosting NestJS in Dyson's Render workspace on 28 October 2026. The backend is now `https://backinit-api.onrender.com`. See [Render operation](RENDER.md) for its intentionally limited data-only mode.
+The NestJS backend currently runs at `https://backinit-api-pgaq.onrender.com`. See [Render operation](RENDER.md) for its intentionally limited data-only mode. Render service URLs must be copied from the active service record; an older unsuffixed hostname is no longer valid.
 
 `vercel.json` now builds only the `web` service in `apps/web`; it no longer attempts to run SQLite-backed NestJS in an ephemeral Vercel Function. Import the repository root. The existing Services catch-all still sends every public path, including `/api/*`, to Next.js. Services is currently beta.
 
@@ -8,7 +8,7 @@ The checked-in, non-secret deployment environment selects:
 
 ```text
 API_BACKEND=external
-API_URL=https://backinit-api.onrender.com
+API_URL=https://backinit-api-pgaq.onrender.com
 ALLOW_DEMO_MODE=false
 SPORTS_DATA_MODE=real
 ```
