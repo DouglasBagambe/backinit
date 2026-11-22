@@ -20,6 +20,7 @@ This is a verified-fixes record, not a claim that every third-party stream or de
 Release 1.0.3 / Android version code 4 built and installed over 1.0.2 on the Android TV API 36 emulator.
 
 Observed:
+
 - Remote navigation from Home into Live works.
 - Settings opens, Light mode updates the app, and survives force-stop/relaunch.
 - Live and Channels display four cards across the 1920×1080 emulator.
@@ -28,11 +29,12 @@ Observed:
 - The exact PFL “Most Dominant Performances” replay from the report loads and plays; error 153 no longer appears.
 
 Source failure still observed:
+
 - NFL Network / Stream 3 (`dembed.st`) now recognizes that it is embedded but returns “Not allowed to stream. Contact admin.” This is an upstream access denial, not successful playback.
 
 ## Playback limits to retain in future audits
 
-A loaded iframe is not proof of sustained video playback. WebView UI/navigation blocking cannot guarantee removal of ads inserted into the video feed. Generic cross-origin iframe media cannot be controlled through parent-document DOM access; provider APIs are required for reliable per-stream audio control. YouTube receives mute/unmute API messages. Other providers need individual validation or supported player integration before universal audio-control claims are made.
+A loaded iframe is not proof of sustained video playback. WebView UI/navigation blocking cannot guarantee removal of ads inserted into the video feed. Generic cross-origin iframe media cannot be controlled through parent-document DOM access. Release 1.0.4 adds Android WebView output muting where the installed WebView supports MUTE_AUDIO; older engines retain provider-specific fallback. YouTube receives mute/unmute API messages. Other providers need individual validation or supported player integration before universal audio-control claims are made.
 
 ## Follow-up release checks
 
@@ -50,3 +52,12 @@ A loaded iframe is not proof of sustained video playback. WebView UI/navigation 
 - Earlier NFL Network Stream 3 returned an upstream access denial. Alternative source availability remains provider-dependent.
 - Universal provider mute and complete removal of ads inside third-party video feeds are not verified or guaranteed by these fixes.
 - Emulator checks do not certify every physical Android phone or TCL model. Long-session stability and simultaneous multi-video decoding remain separate from layout/lifecycle checks.
+
+## Release 1.0.4 output-audio verification
+
+- Added an Expo plugin and native Android module using AndroidX WebViewCompat.setAudioMuted. This mutes the complete WebView output, including nested frames, independently for each player. Unsupported WebView engines retain the existing provider fallback.
+- Repeated changes on the final TV release were verified against native readback on API 36 / WebView 143: first tile alone audible, second tile alone audible, all four muted, first tile alone audible again, then all muted again. Every player reported the expected native mute flag. The emulator runs without host audio; these are native state checks, not listening tests.
+- Switching sources and reloading retained mute. Expanding/restoring the wall retained its selection; exiting removed all WebViews from the UI hierarchy. These checks do not certify four simultaneous decoded video feeds.
+- Fixed callback-ref detachment clearing player identity during ordinary rerenders, which had broken repeated native mute changes.
+- Both 1.0.4 universal APKs pass signature verification. TV installed as an update over the earlier build. Focused audio controller tests cover supported native output, unsupported fallback, rapid changes and unavailable native views.
+- Settings displays the installed native version instead of a hardcoded version. Website advertising and cookie code are unchanged.

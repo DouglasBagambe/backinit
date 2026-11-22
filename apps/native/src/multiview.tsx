@@ -15,7 +15,7 @@ import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Brand, BrandMark, FocusButton } from "./components";
 import { nativePlayerDocument } from "./player-embed";
-import { playerAudioScript } from "./player-audio";
+import { setPlayerAudio } from "./native-player-audio";
 import { playerHardeningScript } from "./player-hardening";
 import { isPlayerNavigationAllowed } from "./player-navigation";
 import { radii, type ThemeColors } from "./theme";
@@ -196,23 +196,30 @@ function MultiviewWall({
   const [audible, setAudible] = useState<string | null>(initial[0]?.id || null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const refs = useRef<Record<string, WebViewHandle | null>>({});
+  const nativeTags = useRef<Record<string, number | null>>({});
   const [wallSize, setWallSize] = useState({ width: 0, height: 0 });
 
   const shown = initial;
   useEffect(() => {
-    initial.forEach((item) =>
-      refs.current[item.id]?.injectJavaScript(
-        playerAudioScript(audible !== item.id),
-      ),
+    initial.forEach(
+      (item) =>
+        void setPlayerAudio(
+          refs.current[item.id],
+          nativeTags.current[item.id],
+          audible !== item.id,
+        ),
     );
   }, [audible, initial]);
   const setAudio = (id: string) => {
     const next = audible === id ? null : id;
     setAudible(next);
-    initial.forEach((item) =>
-      refs.current[item.id]?.injectJavaScript(
-        playerAudioScript(next !== item.id),
-      ),
+    initial.forEach(
+      (item) =>
+        void setPlayerAudio(
+          refs.current[item.id],
+          nativeTags.current[item.id],
+          next !== item.id,
+        ),
     );
   };
   const remove = (id: string) => {
@@ -296,6 +303,14 @@ function MultiviewWall({
                   ref={(ref: WebViewHandle | null) => {
                     refs.current[item.id] = ref;
                   }}
+                  onLoadStart={(event: { nativeEvent: { target: number } }) => {
+                    nativeTags.current[item.id] = event.nativeEvent.target;
+                    void setPlayerAudio(
+                      refs.current[item.id],
+                      nativeTags.current[item.id],
+                      muted,
+                    );
+                  }}
                   source={nativePlayerDocument(source.url)}
                   style={styles.tileWebview}
                   javaScriptEnabled
@@ -319,8 +334,10 @@ function MultiviewWall({
                     isPlayerNavigationAllowed(source.url, request.url)
                   }
                   onLoadEnd={() =>
-                    refs.current[item.id]?.injectJavaScript(
-                      playerAudioScript(muted),
+                    void setPlayerAudio(
+                      refs.current[item.id],
+                      nativeTags.current[item.id],
+                      muted,
                     )
                   }
                 />

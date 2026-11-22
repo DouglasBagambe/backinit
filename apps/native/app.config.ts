@@ -7,7 +7,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     name: television ? "backinit TV" : "backinit",
     slug: television ? "backinit-tv" : "backinit-mobile",
     scheme: "backinit",
-    version: "1.0.3",
+    version: "1.0.4",
     orientation: television ? "landscape" : "portrait",
     userInterfaceStyle: "automatic",
     icon: "./assets/icon.png",
@@ -15,6 +15,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       ["@react-native-tvos/config-tv", { isTV: television }],
       ["expo-navigation-bar", { enforceContrast: false, style: "light" }],
       "./plugins/with-backinit-android-theme.cjs",
+      "./plugins/with-backinit-player-audio.cjs",
       [
         "expo-splash-screen",
         {
@@ -27,7 +28,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ],
     android: {
       package: television ? "live.backinit.tv" : "live.backinit.mobile",
-      versionCode: 4,
+      versionCode: 5,
       adaptiveIcon: {
         foregroundImage: "./assets/android-icon-foreground.png",
         backgroundColor: "#031b15",

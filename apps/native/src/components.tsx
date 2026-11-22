@@ -21,7 +21,7 @@ import { useTheme } from "./appearance";
 import type { Broadcast, Source, Video } from "./types";
 import { isPlayerNavigationAllowed } from "./player-navigation";
 import { nativePlayerDocument } from "./player-embed";
-import { playerAudioScript } from "./player-audio";
+import { setPlayerAudio } from "./native-player-audio";
 import { playerHardeningScript } from "./player-hardening";
 
 // react-native-webview's published FunctionComponent type omits its imperative
@@ -323,6 +323,7 @@ export function Player({
   const webview = useRef<{ injectJavaScript: (script: string) => void } | null>(
     null,
   );
+  const nativeTag = useRef<number | null>(null);
   const active = sources[index];
   useEffect(() => {
     setIndex(0);
@@ -332,7 +333,7 @@ export function Player({
   }, [title, visible]);
   useEffect(() => {
     if (!visible) return;
-    webview.current?.injectJavaScript(playerAudioScript(muted));
+    void setPlayerAudio(webview.current, nativeTag.current, muted);
   }, [muted, index, reloadKey, visible]);
   useEffect(() => {
     if (!visible || state !== "loading") return;
@@ -393,9 +394,17 @@ export function Player({
                   request.url === "https://backinit.live/" ||
                   isPlayerNavigationAllowed(active.url, request.url)
                 }
-                onLoadStart={() => setState("loading")}
+                onLoadStart={(event: { nativeEvent: { target: number } }) => {
+                  nativeTag.current = event.nativeEvent.target;
+                  void setPlayerAudio(
+                    webview.current,
+                    nativeTag.current,
+                    muted,
+                  );
+                  setState("loading");
+                }}
                 onLoadEnd={() =>
-                  webview.current?.injectJavaScript(playerAudioScript(muted))
+                  void setPlayerAudio(webview.current, nativeTag.current, muted)
                 }
                 injectedJavaScript={`setTimeout(function(){try{window.ReactNativeWebView.postMessage(String((document.documentElement&&document.documentElement.innerHTML||'').length))}catch(e){}},1200);true;`}
                 onMessage={(event: { nativeEvent: { data: string } }) =>
