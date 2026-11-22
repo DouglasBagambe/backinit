@@ -33,3 +33,20 @@ Source failure still observed:
 ## Playback limits to retain in future audits
 
 A loaded iframe is not proof of sustained video playback. WebView UI/navigation blocking cannot guarantee removal of ads inserted into the video feed. Generic cross-origin iframe media cannot be controlled through parent-document DOM access; provider APIs are required for reliable per-stream audio control. YouTube receives mute/unmute API messages. Other providers need individual validation or supported player integration before universal audio-control claims are made.
+
+## Follow-up release checks
+
+- Fixed a stale mute-state closure: provider DOM changes now read the current mute choice. Repeated unmute no longer resets the user's media volume. Two executable regression tests reproduce mute/unmute followed by a provider DOM mutation.
+- Mobile 1.0.3 installed over 1.0.1 on the Android 9/API 28 emulator and loaded 469 catalogue entries (402 channels, 67 events). Settings, Light appearance, restart persistence and channel browsing were inspected.
+- Mobile Multiview opens two stacked tiles, expands/restores a tile while retaining two WebViews, retains the all-muted UI state, and releases the WebViews on exit.
+- Final TV build displays two side-by-side tiles and four tiles in a 2×2 grid at 1920×1080. Expanding a tile retains all four WebViews. This verifies the wall layout and lifecycle, not four simultaneous decoded videos.
+- Both universal APKs contain arm64-v8a, armeabi-v7a, x86 and x86_64 libraries, require Android 7/API 24 or later, and pass APK signature verification.
+- Full CI for code commit `bd0e807` passed (typecheck, unit suite, builds and browser checks). The focused native suite passed five files/eight tests.
+- The API 36 TV emulator had boot/graphics failures during concurrent compilation. It was restarted with host graphics before final TV checks; these failed emulator sessions are not app performance passes.
+
+### Remaining release limits
+
+- The tested live provider frames initially remain black, then show provider Play controls. This must not be counted as decoded live playback.
+- Earlier NFL Network Stream 3 returned an upstream access denial. Alternative source availability remains provider-dependent.
+- Universal provider mute and complete removal of ads inside third-party video feeds are not verified or guaranteed by these fixes.
+- Emulator checks do not certify every physical Android phone or TCL model. Long-session stability and simultaneous multi-video decoding remain separate from layout/lifecycle checks.
