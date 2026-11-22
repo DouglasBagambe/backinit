@@ -1,4 +1,5 @@
 import { Modal, Platform, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Brand, FocusButton } from "./components";
 import { useTheme, type AppearanceChoice } from "./appearance";
 
@@ -10,11 +11,17 @@ export function Settings({
   onClose: () => void;
 }) {
   const { colors, choice, setChoice } = useTheme();
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} animationType="fade" onRequestClose={onClose}>
       <ScrollView
         style={{ flex: 1, backgroundColor: colors.canvasDeep }}
-        contentContainerStyle={{ padding: Platform.isTV ? 40 : 24, gap: 24 }}
+        contentContainerStyle={{
+          padding: Platform.isTV ? 40 : 24,
+          paddingTop: (Platform.isTV ? 40 : 24) + insets.top,
+          paddingBottom: (Platform.isTV ? 40 : 24) + insets.bottom,
+          gap: 24,
+        }}
       >
         <View
           style={{

@@ -346,7 +346,12 @@ export function Player({
       onRequestClose={onClose}
       supportedOrientations={["portrait", "landscape"]}
     >
-      <View style={[styles.playerPage, { paddingBottom: insets.bottom }]}>
+      <View
+        style={[
+          styles.playerPage,
+          { paddingTop: insets.top, paddingBottom: insets.bottom },
+        ]}
+      >
         {!theater && (
           <View style={styles.playerHeader}>
             <Brand compact />
