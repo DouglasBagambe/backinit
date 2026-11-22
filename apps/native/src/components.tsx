@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import {
   Image,
   ImageBackground,
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -18,6 +19,12 @@ import Svg, { Circle, Defs, G, Mask, Path } from "react-native-svg";
 import { colors, radii } from "./theme";
 import type { Broadcast, Source, Video } from "./types";
 import { isPlayerNavigationAllowed } from "./player-navigation";
+import { playerAudioScript } from "./player-audio";
+import { playerHardeningScript } from "./player-hardening";
+
+// react-native-webview's published FunctionComponent type omits its imperative
+// ref even though the native component exposes injectJavaScript at runtime.
+const ControllableWebView = WebView as any;
 
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
@@ -258,11 +265,22 @@ export function Player({
   const [index, setIndex] = useState(0);
   const [reloadKey, setReloadKey] = useState(0);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  const [muted, setMuted] = useState(false);
+  const [theater, setTheater] = useState(false);
+  const webview = useRef<{ injectJavaScript: (script: string) => void } | null>(
+    null,
+  );
   const active = sources[index];
   useEffect(() => {
     setIndex(0);
     setState("loading");
+    setMuted(false);
+    setTheater(false);
   }, [title, visible]);
+  useEffect(() => {
+    if (!visible) return;
+    webview.current?.injectJavaScript(playerAudioScript(muted));
+  }, [muted, index, reloadKey, visible]);
   useEffect(() => {
     if (!visible || state !== "loading") return;
     const timeout = setTimeout(() => setState("error"), 12000);
@@ -276,19 +294,21 @@ export function Player({
       supportedOrientations={["portrait", "landscape"]}
     >
       <View style={[styles.playerPage, { paddingBottom: insets.bottom }]}>
-        <View style={styles.playerHeader}>
-          <Brand compact />
-          <Text style={styles.playerTitle} numberOfLines={1}>
-            {title}
-          </Text>
-          <FocusButton icon="close" onPress={onClose}>
-            Close
-          </FocusButton>
-        </View>
-        <View style={styles.playerFrame}>
+        {!theater && (
+          <View style={styles.playerHeader}>
+            <Brand compact />
+            <Text style={styles.playerTitle} numberOfLines={1}>
+              {title}
+            </Text>
+          </View>
+        )}
+        <View
+          style={[styles.playerFrame, theater && styles.playerFrameTheater]}
+        >
           {active ? (
             <>
-              <WebView
+              <ControllableWebView
+                ref={webview}
                 key={`${active.url}-${reloadKey}`}
                 source={{ uri: active.url }}
                 style={styles.webview}
@@ -301,12 +321,21 @@ export function Player({
                 thirdPartyCookiesEnabled
                 sharedCookiesEnabled
                 mixedContentMode="compatibility"
-                onShouldStartLoadWithRequest={(request) =>
+                androidLayerType="hardware"
+                cacheEnabled
+                setBuiltInZoomControls={false}
+                allowsBackForwardNavigationGestures={false}
+                injectedJavaScriptBeforeContentLoaded={playerHardeningScript}
+                onOpenWindow={() => undefined}
+                onShouldStartLoadWithRequest={(request: { url: string }) =>
                   isPlayerNavigationAllowed(active.url, request.url)
                 }
                 onLoadStart={() => setState("loading")}
+                onLoadEnd={() =>
+                  webview.current?.injectJavaScript(playerAudioScript(muted))
+                }
                 injectedJavaScript={`setTimeout(function(){try{window.ReactNativeWebView.postMessage(String((document.documentElement&&document.documentElement.innerHTML||'').length))}catch(e){}},1200);true;`}
-                onMessage={(event) =>
+                onMessage={(event: { nativeEvent: { data: string } }) =>
                   setState(
                     Number(event.nativeEvent.data) > 100 ? "ready" : "error",
                   )
@@ -348,7 +377,11 @@ export function Player({
           )}
         </View>
         {sources.length > 0 && (
-          <View style={styles.sourceBar}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sourceBar}
+          >
             {sources.map((source, sourceIndex) => (
               <FocusButton
                 key={source.id}
@@ -359,6 +392,24 @@ export function Player({
               </FocusButton>
             ))}
             <FocusButton
+              icon={muted ? "volume-mute" : "volume-high"}
+              selected={muted}
+              onPress={() => setMuted((value) => !value)}
+              accessibilityLabel={muted ? "Unmute stream" : "Mute stream"}
+            >
+              {muted ? "Unmute" : "Mute"}
+            </FocusButton>
+            <FocusButton
+              icon={theater ? "contract" : "expand"}
+              selected={theater}
+              onPress={() => setTheater((value) => !value)}
+              accessibilityLabel={
+                theater ? "Exit theater view" : "Theater view"
+              }
+            >
+              {theater ? "Exit theater" : "Theater"}
+            </FocusButton>
+            <FocusButton
               icon="refresh"
               onPress={() => {
                 setState("loading");
@@ -367,7 +418,10 @@ export function Player({
             >
               Reload
             </FocusButton>
-          </View>
+            <FocusButton icon="close" onPress={onClose}>
+              Close
+            </FocusButton>
+          </ScrollView>
         )}
       </View>
     </Modal>
@@ -390,8 +444,8 @@ const styles = StyleSheet.create({
   },
   brandAccent: { color: colors.mint },
   focusButton: {
-    minHeight: Platform.isTV ? 48 : 44,
-    paddingHorizontal: Platform.isTV ? 18 : 16,
+    minHeight: Platform.isTV ? 44 : 44,
+    paddingHorizontal: Platform.isTV ? 15 : 16,
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.line,
@@ -408,11 +462,15 @@ const styles = StyleSheet.create({
   focusButtonFocused: {
     backgroundColor: colors.lime,
     borderColor: colors.ink,
-    transform: [{ scale: 1.06 }],
+    transform: [{ scale: 1.035 }],
+    shadowColor: colors.lime,
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 10,
   },
   focusButtonText: {
     color: colors.ink,
-    fontSize: Platform.isTV ? 17 : 14,
+    fontSize: Platform.isTV ? 15 : 14,
     fontWeight: "800",
   },
   focusButtonTextActive: { color: colors.canvasDeep },
@@ -427,7 +485,7 @@ const styles = StyleSheet.create({
   },
   cardFocused: {
     borderColor: colors.lime,
-    transform: [{ scale: 1.045 }],
+    transform: [{ scale: 1.025 }],
     shadowColor: colors.mint,
     shadowOpacity: 0.45,
     shadowRadius: 22,
@@ -474,21 +532,21 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  cardCopy: { padding: Platform.isTV ? 17 : 14, gap: 6 },
+  cardCopy: { padding: Platform.isTV ? 14 : 14, gap: 5 },
   cardMeta: {
     color: colors.mint,
-    fontSize: Platform.isTV ? 14 : 11,
+    fontSize: Platform.isTV ? 12 : 11,
     fontWeight: "700",
   },
   cardTitle: {
     color: colors.ink,
-    fontSize: Platform.isTV ? 21 : 16,
-    lineHeight: Platform.isTV ? 27 : 21,
+    fontSize: Platform.isTV ? 18 : 16,
+    lineHeight: Platform.isTV ? 23 : 21,
     fontWeight: "900",
   },
   cardSources: {
     color: colors.muted,
-    fontSize: Platform.isTV ? 14 : 12,
+    fontSize: Platform.isTV ? 12 : 12,
     fontWeight: "700",
   },
   replayCard: {
@@ -532,6 +590,10 @@ const styles = StyleSheet.create({
     borderRadius: Platform.isTV ? radii.lg : 0,
     overflow: "hidden",
     backgroundColor: "#000",
+  },
+  playerFrameTheater: {
+    margin: 0,
+    borderRadius: 0,
   },
   webview: { flex: 1, backgroundColor: "#000" },
   playerStatus: {

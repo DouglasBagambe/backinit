@@ -32,4 +32,5 @@ export type Catalogue = {
   videos: Video[];
 };
 
-export type Section = "home" | "live" | "channels" | "replays" | "saved";
+export type Section =
+  "home" | "live" | "channels" | "multiview" | "replays" | "saved";

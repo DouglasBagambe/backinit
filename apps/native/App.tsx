@@ -27,6 +27,7 @@ import {
 import { colors, radii } from "./src/theme";
 import type { Broadcast, Section, Video } from "./src/types";
 import { useCatalogue } from "./src/use-catalogue";
+import { Multiview } from "./src/multiview";
 
 const isTV = Platform.isTV;
 const sections: {
@@ -37,6 +38,7 @@ const sections: {
   { key: "home", label: "Discover", icon: "compass-outline" },
   { key: "live", label: "Live now", icon: "radio-outline" },
   { key: "channels", label: "Channels", icon: "tv-outline" },
+  { key: "multiview", label: "Multiview", icon: "grid-outline" },
   { key: "replays", label: "Replays", icon: "play-circle-outline" },
   { key: "saved", label: "My sport", icon: "bookmark-outline" },
 ];
@@ -118,83 +120,104 @@ export default function App() {
       >
         <StatusBar style="light" />
         {!isTV && <NavigationBar.NavigationBar style="dark" />}
-        <Header section={section} setSection={setSection} />
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing && !loading}
-              onRefresh={refresh}
-              tintColor={colors.mint}
-              colors={[colors.mintStrong]}
-              progressBackgroundColor={colors.panel}
-            />
-          }
-        >
-          {loading ? (
-            <Loading />
-          ) : (
-            <>
-              {error && <ErrorBanner message={error} onRetry={refresh} />}
-              {section === "home" && (
-                <Home
-                  hero={hero}
-                  channels={channels}
-                  matches={matches}
-                  videos={catalogue.videos}
-                  savedSet={savedSet}
-                  onPlay={playBroadcast}
-                  onPlayVideo={playVideo}
-                  onSave={toggleSaved}
-                  onSection={setSection}
+        {!player && (
+          <>
+            <Header section={section} setSection={setSection} />
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.content}
+              showsVerticalScrollIndicator={false}
+              removeClippedSubviews
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing && !loading}
+                  onRefresh={refresh}
+                  tintColor={colors.mint}
+                  colors={[colors.mintStrong]}
+                  progressBackgroundColor={colors.panel}
                 />
-              )}
-              {section === "live" && (
-                <Collection
-                  eyebrow="NOW & NEXT"
-                  title="Live & upcoming"
-                  description="Every available event, ordered from live now into what starts next."
-                  items={matches}
-                  empty="No verified events are available right now. Pull down to refresh."
-                  savedSet={savedSet}
-                  onPlay={playBroadcast}
-                  onSave={toggleSaved}
-                />
-              )}
-              {(section === "channels" || section === "saved") && (
+              }
+            >
+              {loading ? (
+                <Loading />
+              ) : (
                 <>
-                  <PageIntro
-                    eyebrow={section === "saved" ? "YOUR LINEUP" : "ALWAYS ON"}
-                    title={section === "saved" ? "Saved" : "Sports channels"}
-                    description={
-                      section === "saved"
-                        ? "The channels you saved, ready on every visit."
-                        : `${channels.length} live sports networks across football, tennis, motorsport, combat sports and more.`
-                    }
-                  />
-                  <Search value={query} onChange={setQuery} />
-                  <Grid
-                    items={filteredChannels}
-                    savedSet={savedSet}
-                    onPlay={playBroadcast}
-                    onSave={toggleSaved}
-                    empty={
-                      section === "saved"
-                        ? "Save channels and they will appear here."
-                        : "No channels match that search."
-                    }
-                  />
+                  {error && <ErrorBanner message={error} onRetry={refresh} />}
+                  {section === "home" && (
+                    <Home
+                      hero={hero}
+                      channels={channels}
+                      matches={matches}
+                      videos={catalogue.videos}
+                      savedSet={savedSet}
+                      onPlay={playBroadcast}
+                      onPlayVideo={playVideo}
+                      onSave={toggleSaved}
+                      onSection={setSection}
+                    />
+                  )}
+                  {section === "live" && (
+                    <Collection
+                      eyebrow="NOW & NEXT"
+                      title="Live & upcoming"
+                      description="Every available event, ordered from live now into what starts next."
+                      items={matches}
+                      empty="No verified events are available right now. Pull down to refresh."
+                      savedSet={savedSet}
+                      onPlay={playBroadcast}
+                      onSave={toggleSaved}
+                    />
+                  )}
+                  {(section === "channels" || section === "saved") && (
+                    <>
+                      <PageIntro
+                        eyebrow={
+                          section === "saved" ? "YOUR LINEUP" : "ALWAYS ON"
+                        }
+                        title={
+                          section === "saved" ? "Saved" : "Sports channels"
+                        }
+                        description={
+                          section === "saved"
+                            ? "The channels you saved, ready on every visit."
+                            : `${channels.length} live sports networks across football, tennis, motorsport, combat sports and more.`
+                        }
+                      />
+                      <Search value={query} onChange={setQuery} />
+                      <Grid
+                        items={filteredChannels}
+                        savedSet={savedSet}
+                        onPlay={playBroadcast}
+                        onSave={toggleSaved}
+                        empty={
+                          section === "saved"
+                            ? "Save channels and they will appear here."
+                            : "No channels match that search."
+                        }
+                      />
+                    </>
+                  )}
+                  {section === "replays" && (
+                    <ReplayCollection
+                      items={catalogue.videos}
+                      onPlay={playVideo}
+                    />
+                  )}
+                  {section === "multiview" && (
+                    <Multiview
+                      broadcasts={[
+                        ...live,
+                        ...matches.filter((item) => !live.includes(item)),
+                        ...channels,
+                      ]}
+                    />
+                  )}
                 </>
               )}
-              {section === "replays" && (
-                <ReplayCollection items={catalogue.videos} onPlay={playVideo} />
-              )}
-            </>
-          )}
-        </ScrollView>
-        {!isTV && <MobileNav section={section} onChange={setSection} />}
+            </ScrollView>
+            {!isTV && <MobileNav section={section} onChange={setSection} />}
+          </>
+        )}
         <Player
           title={player?.title || ""}
           sources={player?.sources || []}
@@ -515,6 +538,8 @@ function ReplayCollection({
   onPlay: (item: Video) => void;
 }) {
   const [query, setQuery] = useState("");
+  const batch = isTV ? 36 : 18;
+  const [limit, setLimit] = useState(batch);
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     return term
@@ -525,6 +550,8 @@ function ReplayCollection({
         )
       : items;
   }, [items, query]);
+  useEffect(() => setLimit(batch), [query, items.length, batch]);
+  const visible = filtered.slice(0, limit);
   return (
     <>
       <PageIntro
@@ -539,7 +566,7 @@ function ReplayCollection({
       />
       {filtered.length > 0 ? (
         <View style={styles.grid}>
-          {filtered.map((item) => (
+          {visible.map((item) => (
             <ReplayCard
               key={item.id}
               item={item}
@@ -547,6 +574,11 @@ function ReplayCollection({
               fullWidth={!isTV}
             />
           ))}
+          {visible.length < filtered.length && (
+            <FocusButton onPress={() => setLimit((value) => value + batch)}>
+              Show more · {filtered.length - visible.length} remaining
+            </FocusButton>
+          )}
         </View>
       ) : (
         <Empty
@@ -574,10 +606,14 @@ function Grid({
   onSave: (id: string) => void;
   empty: string;
 }) {
+  const batch = isTV ? 48 : 24;
+  const [limit, setLimit] = useState(batch);
+  useEffect(() => setLimit(batch), [items, batch]);
   if (!items.length) return <Empty message={empty} />;
+  const visible = items.slice(0, limit);
   return (
     <View style={styles.grid}>
-      {items.map((item) => (
+      {visible.map((item) => (
         <BroadcastCard
           key={item.id}
           item={item}
@@ -587,6 +623,11 @@ function Grid({
           fullWidth={!isTV}
         />
       ))}
+      {visible.length < items.length && (
+        <FocusButton onPress={() => setLimit((value) => value + batch)}>
+          Show more · {items.length - visible.length} remaining
+        </FocusButton>
+      )}
     </View>
   );
 }
@@ -799,9 +840,9 @@ const styles = StyleSheet.create({
   },
   railContent: { paddingHorizontal: isTV ? 28 : 18, paddingBottom: 18 },
   pageIntro: {
-    paddingHorizontal: isTV ? 58 : 20,
-    paddingTop: isTV ? 58 : 34,
-    paddingBottom: isTV ? 32 : 24,
+    paddingHorizontal: isTV ? 40 : 20,
+    paddingTop: isTV ? 36 : 34,
+    paddingBottom: isTV ? 24 : 24,
     maxWidth: isTV ? 980 : undefined,
   },
   eyebrow: {
@@ -812,20 +853,20 @@ const styles = StyleSheet.create({
   },
   pageTitle: {
     color: colors.ink,
-    fontSize: isTV ? 48 : 34,
+    fontSize: isTV ? 36 : 34,
     fontWeight: "900",
     letterSpacing: -1.5,
     marginTop: 7,
   },
   pageDescription: {
     color: colors.muted,
-    fontSize: isTV ? 18 : 15,
-    lineHeight: isTV ? 27 : 23,
+    fontSize: isTV ? 16 : 15,
+    lineHeight: isTV ? 23 : 23,
     marginTop: 8,
   },
   search: {
-    marginHorizontal: isTV ? 58 : 20,
-    minHeight: isTV ? 58 : 52,
+    marginHorizontal: isTV ? 40 : 20,
+    minHeight: isTV ? 50 : 52,
     borderRadius: radii.pill,
     borderWidth: 1,
     borderColor: colors.line,
@@ -839,14 +880,14 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     color: colors.ink,
-    fontSize: isTV ? 17 : 15,
+    fontSize: isTV ? 15 : 15,
     fontWeight: "600",
   },
   grid: {
-    paddingHorizontal: isTV ? 58 : 20,
+    paddingHorizontal: isTV ? 40 : 20,
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: isTV ? 24 : 16,
+    gap: isTV ? 18 : 16,
     paddingBottom: 34,
   },
   mobileNav: {
