@@ -14,10 +14,12 @@ import {
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Brand, BrandMark, FocusButton } from "./components";
+import { nativePlayerDocument } from "./player-embed";
 import { playerAudioScript } from "./player-audio";
 import { playerHardeningScript } from "./player-hardening";
 import { isPlayerNavigationAllowed } from "./player-navigation";
-import { colors, radii } from "./theme";
+import { radii, type ThemeColors } from "./theme";
+import { useTheme } from "./appearance";
 import type { Broadcast } from "./types";
 
 const isTV = Platform.isTV;
@@ -26,6 +28,8 @@ const ControllableWebView = WebView as any;
 type WebViewHandle = { injectJavaScript: (script: string) => void };
 
 export function Multiview({ broadcasts }: { broadcasts: Broadcast[] }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const playable = useMemo(() => {
     const seen = new Set<string>();
     return broadcasts.filter((item) => {
@@ -159,12 +163,14 @@ export function Multiview({ broadcasts }: { broadcasts: Broadcast[] }) {
           );
         })}
       </View>
-      <MultiviewWall
-        visible={wallOpen}
-        initial={selected}
-        onClose={() => setWallOpen(false)}
-        onChange={setSelected}
-      />
+      {wallOpen && (
+        <MultiviewWall
+          visible={wallOpen}
+          initial={selected}
+          onClose={() => setWallOpen(false)}
+          onChange={setSelected}
+        />
+      )}
     </>
   );
 }
@@ -180,6 +186,8 @@ function MultiviewWall({
   onClose: () => void;
   onChange: (items: Broadcast[]) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [sourceIndexes, setSourceIndexes] = useState<Record<string, number>>(
     {},
@@ -188,12 +196,16 @@ function MultiviewWall({
   const [audible, setAudible] = useState<string | null>(initial[0]?.id || null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const refs = useRef<Record<string, WebViewHandle | null>>({});
+  const [wallSize, setWallSize] = useState({ width: 0, height: 0 });
+
+  const shown = initial;
   useEffect(() => {
-    if (visible && !audible && initial.length) setAudible(initial[0]!.id);
-  }, [audible, initial, visible]);
-  const shown = expanded
-    ? initial.filter((item) => item.id === expanded)
-    : initial;
+    initial.forEach((item) =>
+      refs.current[item.id]?.injectJavaScript(
+        playerAudioScript(audible !== item.id),
+      ),
+    );
+  }, [audible, initial]);
   const setAudio = (id: string) => {
     const next = audible === id ? null : id;
     setAudible(next);
@@ -228,8 +240,7 @@ function MultiviewWall({
           <View style={styles.wallHeading}>
             <Text style={styles.wallTitle}>Multiview</Text>
             <Text style={styles.wallMeta}>
-              {initial.length} live views ·{" "}
-              {audible ? "one audio feed" : "muted"}
+              {initial.length} views · {audible ? "one audio feed" : "muted"}
             </Text>
           </View>
           <FocusButton icon="close" onPress={onClose}>
@@ -237,7 +248,18 @@ function MultiviewWall({
           </FocusButton>
         </View>
         <View
-          style={[styles.wallGrid, shown.length === 1 && styles.wallGridSingle]}
+          onLayout={(event) => {
+            const { width, height } = event.nativeEvent.layout;
+            setWallSize((current) =>
+              current.width === width && current.height === height
+                ? current
+                : { width, height },
+            );
+          }}
+          style={[
+            styles.wallGrid,
+            (expanded !== null || shown.length === 1) && styles.wallGridSingle,
+          ]}
         >
           {shown.map((item) => {
             const index = Math.min(
@@ -249,13 +271,32 @@ function MultiviewWall({
             return (
               <View
                 key={`${item.id}-${reloads[item.id] || 0}`}
-                style={[styles.tile, shown.length === 1 && styles.tileSingle]}
+                style={[
+                  styles.tile,
+                  wallSize.width > 0 && {
+                    width:
+                      expanded === item.id || shown.length === 1 || !isTV
+                        ? wallSize.width
+                        : (wallSize.width - 2) / 2,
+                    height:
+                      expanded === item.id ||
+                      shown.length === 1 ||
+                      (isTV && shown.length === 2)
+                        ? wallSize.height
+                        : (wallSize.height - 2) / 2,
+                  },
+                  (expanded === item.id || shown.length === 1) &&
+                    styles.tileSingle,
+                  expanded !== null &&
+                    expanded !== item.id &&
+                    styles.tileHidden,
+                ]}
               >
                 <ControllableWebView
                   ref={(ref: WebViewHandle | null) => {
                     refs.current[item.id] = ref;
                   }}
-                  source={{ uri: source.url }}
+                  source={nativePlayerDocument(source.url)}
                   style={styles.tileWebview}
                   javaScriptEnabled
                   domStorageEnabled
@@ -269,7 +310,12 @@ function MultiviewWall({
                   allowsBackForwardNavigationGestures={false}
                   injectedJavaScriptBeforeContentLoaded={playerHardeningScript}
                   onOpenWindow={() => undefined}
-                  onShouldStartLoadWithRequest={(request: { url: string }) =>
+                  onShouldStartLoadWithRequest={(request: {
+                    url: string;
+                    isTopFrame?: boolean;
+                  }) =>
+                    request.isTopFrame === false ||
+                    request.url === "https://backinit.live/" ||
                     isPlayerNavigationAllowed(source.url, request.url)
                   }
                   onLoadEnd={() =>
@@ -281,7 +327,13 @@ function MultiviewWall({
                 <View style={styles.tileTop} pointerEvents="none">
                   <View style={styles.liveBadge}>
                     <View style={styles.liveDot} />
-                    <Text style={styles.liveText}>LIVE</Text>
+                    <Text style={styles.liveText}>
+                      {item.channel ||
+                      item.live ||
+                      (item.start <= Date.now() && item.end >= Date.now())
+                        ? "LIVE"
+                        : "UPCOMING"}
+                    </Text>
                   </View>
                   <Text style={styles.tileTitle} numberOfLines={1}>
                     {item.title}
@@ -347,197 +399,203 @@ function MultiviewWall({
   );
 }
 
-const styles = StyleSheet.create({
-  intro: { padding: isTV ? 28 : 20, paddingBottom: 16, gap: 6 },
-  eyebrow: {
-    color: colors.mint,
-    fontWeight: "900",
-    fontSize: 11,
-    letterSpacing: 1.6,
-  },
-  title: {
-    color: colors.ink,
-    fontSize: isTV ? 36 : 30,
-    fontWeight: "900",
-    letterSpacing: -1,
-  },
-  description: {
-    color: colors.muted,
-    maxWidth: 760,
-    fontSize: isTV ? 15 : 14,
-    lineHeight: isTV ? 22 : 21,
-  },
-  builder: {
-    marginHorizontal: isTV ? 28 : 18,
-    padding: isTV ? 20 : 16,
-    backgroundColor: colors.panel,
-    borderColor: colors.line,
-    borderWidth: 1,
-    borderRadius: radii.lg,
-    gap: 16,
-  },
-  builderHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
-  },
-  builderTitle: {
-    color: colors.ink,
-    fontSize: isTV ? 22 : 19,
-    fontWeight: "900",
-  },
-  builderMeta: {
-    color: colors.muted,
-    fontSize: 12,
-    fontWeight: "700",
-    marginTop: 3,
-  },
-  slots: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  slot: {
-    width: isTV ? "49%" : "100%",
-    height: isTV ? 72 : 64,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.canvasDeep,
-    borderColor: colors.line,
-    borderWidth: 1,
-    borderRadius: radii.md,
-    overflow: "hidden",
-  },
-  slotImage: { width: 104, height: isTV ? 72 : 64, resizeMode: "cover" },
-  slotMark: {
-    width: 76,
-    height: isTV ? 72 : 64,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.panelRaised,
-  },
-  slotCopy: { flex: 1, paddingHorizontal: 12, gap: 3 },
-  slotNumber: {
-    color: colors.mint,
-    fontSize: 9,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-  slotTitle: { color: colors.ink, fontSize: 14, fontWeight: "800" },
-  remove: {
-    width: 42,
-    height: 42,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 6,
-    borderRadius: 21,
-    backgroundColor: colors.panel,
-  },
-  search: {
-    marginHorizontal: isTV ? 28 : 18,
-    marginTop: 22,
-    height: 54,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingHorizontal: 16,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-  },
-  searchInput: { flex: 1, color: colors.ink, fontSize: 15 },
-  pickerHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginHorizontal: isTV ? 28 : 18,
-    marginTop: 18,
-    marginBottom: 10,
-  },
-  pickerTitle: { color: colors.ink, fontSize: 19, fontWeight: "900" },
-  pickerGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    paddingHorizontal: isTV ? 28 : 18,
-  },
-  pickButton: {
-    width: isTV ? "32%" : "100%",
-    justifyContent: "flex-start",
-    paddingHorizontal: 14,
-  },
-  wall: { flex: 1, backgroundColor: "#000" },
-  wallHeader: {
-    minHeight: isTV ? 70 : 62,
-    paddingHorizontal: isTV ? 24 : 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 14,
-    backgroundColor: colors.canvasDeep,
-    borderBottomColor: colors.line,
-    borderBottomWidth: 1,
-  },
-  wallHeading: { flex: 1 },
-  wallTitle: { color: colors.ink, fontSize: isTV ? 20 : 16, fontWeight: "900" },
-  wallMeta: { color: colors.muted, fontSize: 11, marginTop: 2 },
-  wallGrid: {
-    flex: 1,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 2,
-    backgroundColor: colors.line,
-  },
-  wallGridSingle: { flexWrap: "nowrap" },
-  tile: {
-    width: isTV ? "49.9%" : "100%",
-    height: isTV ? "49.8%" : "50%",
-    backgroundColor: "#000",
-    overflow: "hidden",
-  },
-  tileSingle: { width: "100%", height: "100%" },
-  tileWebview: { flex: 1, backgroundColor: "#000" },
-  tileTop: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    right: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  liveBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: radii.pill,
-    backgroundColor: "rgba(1,17,13,.9)",
-  },
-  liveDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.danger,
-  },
-  liveText: { color: colors.ink, fontSize: 9, fontWeight: "900" },
-  tileTitle: {
-    flex: 1,
-    color: colors.ink,
-    fontSize: isTV ? 13 : 11,
-    fontWeight: "900",
-    textShadowColor: "#000",
-    textShadowRadius: 5,
-  },
-  tileControls: {
-    position: "absolute",
-    left: 8,
-    right: 8,
-    bottom: 8,
-    maxHeight: isTV ? 54 : 50,
-  },
-  tileControlsInner: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    paddingRight: 20,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    intro: { padding: isTV ? 28 : 20, paddingBottom: 16, gap: 6 },
+    eyebrow: {
+      color: colors.mint,
+      fontWeight: "900",
+      fontSize: 11,
+      letterSpacing: 1.6,
+    },
+    title: {
+      color: colors.ink,
+      fontSize: isTV ? 36 : 30,
+      fontWeight: "900",
+      letterSpacing: -1,
+    },
+    description: {
+      color: colors.muted,
+      maxWidth: 760,
+      fontSize: isTV ? 15 : 14,
+      lineHeight: isTV ? 22 : 21,
+    },
+    builder: {
+      marginHorizontal: isTV ? 28 : 18,
+      padding: isTV ? 20 : 16,
+      backgroundColor: colors.panel,
+      borderColor: colors.line,
+      borderWidth: 1,
+      borderRadius: radii.lg,
+      gap: 16,
+    },
+    builderHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 16,
+    },
+    builderTitle: {
+      color: colors.ink,
+      fontSize: isTV ? 22 : 19,
+      fontWeight: "900",
+    },
+    builderMeta: {
+      color: colors.muted,
+      fontSize: 12,
+      fontWeight: "700",
+      marginTop: 3,
+    },
+    slots: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+    slot: {
+      width: isTV ? "49%" : "100%",
+      height: isTV ? 72 : 64,
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: colors.canvasDeep,
+      borderColor: colors.line,
+      borderWidth: 1,
+      borderRadius: radii.md,
+      overflow: "hidden",
+    },
+    slotImage: { width: 104, height: isTV ? 72 : 64, resizeMode: "cover" },
+    slotMark: {
+      width: 76,
+      height: isTV ? 72 : 64,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: colors.panelRaised,
+    },
+    slotCopy: { flex: 1, paddingHorizontal: 12, gap: 3 },
+    slotNumber: {
+      color: colors.mint,
+      fontSize: 9,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+    slotTitle: { color: colors.ink, fontSize: 14, fontWeight: "800" },
+    remove: {
+      width: 42,
+      height: 42,
+      alignItems: "center",
+      justifyContent: "center",
+      marginRight: 6,
+      borderRadius: 21,
+      backgroundColor: colors.panel,
+    },
+    search: {
+      marginHorizontal: isTV ? 28 : 18,
+      marginTop: 22,
+      height: 54,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 10,
+      paddingHorizontal: 16,
+      borderRadius: radii.md,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: colors.panel,
+    },
+    searchInput: { flex: 1, color: colors.ink, fontSize: 15 },
+    pickerHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginHorizontal: isTV ? 28 : 18,
+      marginTop: 18,
+      marginBottom: 10,
+    },
+    pickerTitle: { color: colors.ink, fontSize: 19, fontWeight: "900" },
+    pickerGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 10,
+      paddingHorizontal: isTV ? 28 : 18,
+    },
+    pickButton: {
+      width: isTV ? "32%" : "100%",
+      justifyContent: "flex-start",
+      paddingHorizontal: 14,
+    },
+    wall: { flex: 1, backgroundColor: "#000" },
+    wallHeader: {
+      minHeight: isTV ? 70 : 62,
+      paddingHorizontal: isTV ? 24 : 12,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 14,
+      backgroundColor: colors.canvasDeep,
+      borderBottomColor: colors.line,
+      borderBottomWidth: 1,
+    },
+    wallHeading: { flex: 1 },
+    wallTitle: {
+      color: colors.ink,
+      fontSize: isTV ? 20 : 16,
+      fontWeight: "900",
+    },
+    wallMeta: { color: colors.muted, fontSize: 11, marginTop: 2 },
+    wallGrid: {
+      flex: 1,
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 2,
+      backgroundColor: colors.line,
+    },
+    wallGridSingle: { flexWrap: "nowrap" },
+    tile: {
+      width: isTV ? "49.7%" : "100%",
+      height: isTV ? "49.8%" : "50%",
+      backgroundColor: "#000",
+      overflow: "hidden",
+    },
+    tileSingle: { width: "100%", height: "100%" },
+    tileHidden: { position: "absolute", width: 0, height: 0, opacity: 0 },
+    tileWebview: { flex: 1, backgroundColor: "#000" },
+    tileTop: {
+      position: "absolute",
+      top: 8,
+      left: 8,
+      right: 8,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    liveBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 5,
+      paddingHorizontal: 8,
+      paddingVertical: 5,
+      borderRadius: radii.pill,
+      backgroundColor: "rgba(1,17,13,.9)",
+    },
+    liveDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: colors.danger,
+    },
+    liveText: { color: "#F4FFF9", fontSize: 9, fontWeight: "900" },
+    tileTitle: {
+      flex: 1,
+      color: "#F4FFF9",
+      fontSize: isTV ? 13 : 11,
+      fontWeight: "900",
+      textShadowColor: "#000",
+      textShadowRadius: 5,
+    },
+    tileControls: {
+      position: "absolute",
+      left: 8,
+      right: 8,
+      bottom: 8,
+      maxHeight: isTV ? 54 : 50,
+    },
+    tileControlsInner: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 7,
+      paddingRight: 20,
+    },
+  });

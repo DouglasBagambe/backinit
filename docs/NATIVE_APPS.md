@@ -1,11 +1,11 @@
-# BackInIt Android apps
+# backinit Android apps
 
-BackInIt ships from one Expo/React Native codebase with two Android products:
+backinit ships from one Expo/React Native codebase with two Android products:
 
-- **BackInIt Mobile** (`live.backinit.mobile`): portrait-first touch UI with bottom navigation.
-- **BackInIt TV** (`live.backinit.tv`): landscape Android TV UI with D-pad focus, large type and content rails.
+- **backinit Mobile** (`live.backinit.mobile`): portrait-first touch UI with bottom navigation.
+- **backinit TV** (`live.backinit.tv`): landscape Android TV UI with D-pad focus, responsive content grids, rails and remote controls.
 
-Both apps consume the existing BackInIt API and include live channels, events, replays, saved channels, source switching and deep links for `backinit.live/watch`.
+Both apps consume the existing backinit API and include live channels, events, replays, saved channels, source switching and deep links for `backinit.live/watch`.
 
 ## Development
 
