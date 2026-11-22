@@ -198,9 +198,11 @@ test("Watch applies one sport and live filter to both streams and tracker-only m
   );
   await page.goto("/watch");
   await expect(page.locator(".broadcast-card")).toHaveCount(3);
+  await page.getByRole("button", { name: "Sport All sports" }).click();
   await page
-    .getByRole("combobox", { name: "Sport", exact: true })
-    .selectOption("Tennis");
+    .getByRole("listbox", { name: "Sport", exact: true })
+    .getByRole("option", { name: "Tennis", exact: true })
+    .click();
   await expect(page.locator(".broadcast-card")).toHaveCount(2);
   await expect(page.locator(".broadcast-grid")).not.toContainText("Liverpool");
   await page.getByRole("button", { name: "Live now", exact: true }).click();
@@ -210,8 +212,8 @@ test("Watch applies one sport and live filter to both streams and tracker-only m
   );
   await page.reload();
   await expect(
-    page.getByRole("combobox", { name: "Sport", exact: true }),
-  ).toHaveValue("Tennis");
+    page.getByRole("button", { name: "Sport Tennis" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Live now", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");

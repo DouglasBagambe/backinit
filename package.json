@@ -24,7 +24,8 @@
   "type": "module",
   "pnpm": {
     "overrides": {
-      "multer": "2.5.0"
+      "multer": "2.5.0",
+      "minimatch": "11.0.9"
     },
     "onlyBuiltDependencies": [
       "esbuild"

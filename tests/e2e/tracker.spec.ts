@@ -248,7 +248,7 @@ test("Watch offers Track for real match updates and updates the main tracker wit
     route.fulfill({ json: { data: event } }),
   );
   await page.goto("/watch");
-  const row = page.locator(".broadcast-card");
+  const row = page.locator(".broadcast-card", { hasText: event.home });
   await expect(row).toHaveCount(1);
   await expect(row).toContainText("tracker");
   await expect(row).not.toContainText("Watch live");

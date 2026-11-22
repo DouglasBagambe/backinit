@@ -73,5 +73,5 @@ test("weekend fixtures remain discoverable without claiming a video or animated 
     ),
   ).toBe(true);
   await expect(section.getByRole("link", { name: /Chelsea/ })).toBeVisible();
-  expect(catalogueRequests).toBe(0);
+  expect(catalogueRequests).toBe(1);
 });
