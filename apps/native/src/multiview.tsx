@@ -302,7 +302,6 @@ function MultiviewWall({
                 <ControllableWebView
                   ref={(ref: WebViewHandle | null) => {
                     refs.current[item.id] = ref;
-                    if (!ref) nativeTags.current[item.id] = null;
                   }}
                   onLoadStart={(event: { nativeEvent: { target: number } }) => {
                     nativeTags.current[item.id] = event.nativeEvent.target;
