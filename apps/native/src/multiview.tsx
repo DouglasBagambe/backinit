@@ -196,6 +196,7 @@ function MultiviewWall({
   const [audible, setAudible] = useState<string | null>(initial[0]?.id || null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const refs = useRef<Record<string, WebViewHandle | null>>({});
+  const [wallSize, setWallSize] = useState({ width: 0, height: 0 });
 
   const shown = initial;
   useEffect(() => {
@@ -239,8 +240,7 @@ function MultiviewWall({
           <View style={styles.wallHeading}>
             <Text style={styles.wallTitle}>Multiview</Text>
             <Text style={styles.wallMeta}>
-              {initial.length} live views ·{" "}
-              {audible ? "one audio feed" : "muted"}
+              {initial.length} views · {audible ? "one audio feed" : "muted"}
             </Text>
           </View>
           <FocusButton icon="close" onPress={onClose}>
@@ -248,6 +248,14 @@ function MultiviewWall({
           </FocusButton>
         </View>
         <View
+          onLayout={(event) => {
+            const { width, height } = event.nativeEvent.layout;
+            setWallSize((current) =>
+              current.width === width && current.height === height
+                ? current
+                : { width, height },
+            );
+          }}
           style={[
             styles.wallGrid,
             (expanded !== null || shown.length === 1) && styles.wallGridSingle,
@@ -265,6 +273,18 @@ function MultiviewWall({
                 key={`${item.id}-${reloads[item.id] || 0}`}
                 style={[
                   styles.tile,
+                  wallSize.width > 0 && {
+                    width:
+                      expanded === item.id || shown.length === 1 || !isTV
+                        ? wallSize.width
+                        : (wallSize.width - 2) / 2,
+                    height:
+                      expanded === item.id ||
+                      shown.length === 1 ||
+                      (isTV && shown.length === 2)
+                        ? wallSize.height
+                        : (wallSize.height - 2) / 2,
+                  },
                   (expanded === item.id || shown.length === 1) &&
                     styles.tileSingle,
                   expanded !== null &&
@@ -307,7 +327,13 @@ function MultiviewWall({
                 <View style={styles.tileTop} pointerEvents="none">
                   <View style={styles.liveBadge}>
                     <View style={styles.liveDot} />
-                    <Text style={styles.liveText}>LIVE</Text>
+                    <Text style={styles.liveText}>
+                      {item.channel ||
+                      item.live ||
+                      (item.start <= Date.now() && item.end >= Date.now())
+                        ? "LIVE"
+                        : "UPCOMING"}
+                    </Text>
                   </View>
                   <Text style={styles.tileTitle} numberOfLines={1}>
                     {item.title}
@@ -518,7 +544,7 @@ const createStyles = (colors: ThemeColors) =>
     },
     wallGridSingle: { flexWrap: "nowrap" },
     tile: {
-      width: isTV ? "49.9%" : "100%",
+      width: isTV ? "49.7%" : "100%",
       height: isTV ? "49.8%" : "50%",
       backgroundColor: "#000",
       overflow: "hidden",
