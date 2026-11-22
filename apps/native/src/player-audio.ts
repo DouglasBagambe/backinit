@@ -7,9 +7,10 @@ export function playerAudioScript(muted: boolean) {
     const muted = ${muted ? "true" : "false"};
     window.__backinitMuted = muted;
     const apply = () => {
+      const muted = window.__backinitMuted;
       document.querySelectorAll('video,audio').forEach((media) => {
         if (muted) {
-          if (!media.dataset.backinitVolume) {
+          if (media.dataset.backinitVolume === undefined) {
             media.dataset.backinitVolume = String(media.volume);
           }
           media.muted = true;
@@ -17,7 +18,7 @@ export function playerAudioScript(muted: boolean) {
         } else {
           media.muted = false;
           const volume = Number(media.dataset.backinitVolume);
-          media.volume = Number.isFinite(volume) ? volume : 1;
+          if (Number.isFinite(volume)) media.volume = volume;
           delete media.dataset.backinitVolume;
         }
       });
