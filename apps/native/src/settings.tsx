@@ -1,4 +1,5 @@
 import { Modal, Platform, ScrollView, Text, View } from "react-native";
+import * as Application from "expo-application";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Brand, FocusButton } from "./components";
 import { useTheme, type AppearanceChoice } from "./appearance";
@@ -80,7 +81,9 @@ export function Settings({
             ))}
           </View>
         </View>
-        <Text style={{ color: colors.muted }}>backinit · 1.0.3</Text>
+        <Text style={{ color: colors.muted }}>
+          backinit · {Application.nativeApplicationVersion || "Development"}
+        </Text>
       </ScrollView>
     </Modal>
   );
