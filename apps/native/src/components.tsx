@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   ImageBackground,
@@ -9,10 +9,13 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  StatusBar,
+  useTVEventHandler,
   Text,
   View,
   type PressableProps,
 } from "react-native";
+import * as NavigationBar from "expo-navigation-bar";
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Defs, G, Mask, Path } from "react-native-svg";
@@ -320,6 +323,52 @@ export function Player({
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [muted, setMuted] = useState(false);
   const [theater, setTheater] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(false);
+  const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealControls = useCallback(() => {
+    if (!visible || !theater) return;
+    setControlsVisible(true);
+    if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current);
+    hideControlsTimer.current = setTimeout(
+      () => setControlsVisible(false),
+      4000,
+    );
+  }, [visible, theater]);
+  useTVEventHandler(
+    useCallback(
+      (event) => {
+        if (
+          [
+            "up",
+            "down",
+            "left",
+            "right",
+            "select",
+            "playPause",
+            "menu",
+            "longSelect",
+          ].includes(event.eventType)
+        ) {
+          revealControls();
+        }
+      },
+      [revealControls],
+    ),
+  );
+  useEffect(() => {
+    setControlsVisible(false);
+    return () => {
+      if (hideControlsTimer.current) clearTimeout(hideControlsTimer.current);
+    };
+  }, [theater, visible]);
+  useEffect(() => {
+    if (!visible || !theater || Platform.OS !== "android" || Platform.isTV)
+      return;
+    void NavigationBar.setVisibilityAsync("hidden").catch(() => undefined);
+    return () => {
+      void NavigationBar.setVisibilityAsync("visible").catch(() => undefined);
+    };
+  }, [theater, visible]);
   const webview = useRef<{ injectJavaScript: (script: string) => void } | null>(
     null,
   );
@@ -344,15 +393,21 @@ export function Player({
     <Modal
       visible={visible}
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={() => (theater ? setTheater(false) : onClose())}
+      statusBarTranslucent
+      navigationBarTranslucent
       supportedOrientations={["portrait", "landscape"]}
     >
       <View
         style={[
           styles.playerPage,
-          { paddingTop: insets.top, paddingBottom: insets.bottom },
+          {
+            paddingTop: theater ? 0 : insets.top,
+            paddingBottom: theater ? 0 : insets.bottom,
+          },
         ]}
       >
+        <StatusBar hidden={theater} />
         {!theater && (
           <View style={styles.playerHeader}>
             <Brand compact />
@@ -448,10 +503,30 @@ export function Player({
             </View>
           )}
         </View>
-        {sources.length > 0 && (
+        {theater && !controlsVisible && (
+          <Pressable
+            style={StyleSheet.absoluteFill}
+            accessibilityRole="button"
+            accessibilityLabel="Show playback controls"
+            hasTVPreferredFocus={Platform.isTV}
+            onPress={revealControls}
+          />
+        )}
+        {sources.length > 0 && (!theater || controlsVisible) && (
           <ScrollView
             horizontal
+            accessibilityLabel="Playback controls"
+            onTouchStart={revealControls}
             style={{
+              ...(theater
+                ? {
+                    position: "absolute",
+                    bottom: insets.bottom,
+                    left: 0,
+                    right: 0,
+                    backgroundColor: "rgba(1,17,13,0.92)",
+                  }
+                : {}),
               flexGrow: 0,
               flexShrink: 0,
               height: Platform.isTV ? 78 : 72,
@@ -462,6 +537,10 @@ export function Player({
             {sources.map((source, sourceIndex) => (
               <FocusButton
                 key={source.id}
+                onFocus={revealControls}
+                hasTVPreferredFocus={
+                  Platform.isTV && theater && sourceIndex === 0
+                }
                 selected={index === sourceIndex}
                 onPress={() => setIndex(sourceIndex)}
               >
@@ -469,6 +548,7 @@ export function Player({
               </FocusButton>
             ))}
             <FocusButton
+              onFocus={revealControls}
               icon={muted ? "volume-mute" : "volume-high"}
               selected={muted}
               onPress={() => setMuted((value) => !value)}
@@ -477,6 +557,7 @@ export function Player({
               {muted ? "Unmute" : "Mute"}
             </FocusButton>
             <FocusButton
+              onFocus={revealControls}
               icon={theater ? "contract" : "expand"}
               selected={theater}
               onPress={() => setTheater((value) => !value)}
@@ -487,6 +568,7 @@ export function Player({
               {theater ? "Exit theater" : "Theater"}
             </FocusButton>
             <FocusButton
+              onFocus={revealControls}
               icon="refresh"
               onPress={() => {
                 setState("loading");
@@ -495,7 +577,11 @@ export function Player({
             >
               Reload
             </FocusButton>
-            <FocusButton icon="close" onPress={onClose}>
+            <FocusButton
+              onFocus={revealControls}
+              icon="close"
+              onPress={onClose}
+            >
               Close
             </FocusButton>
           </ScrollView>
