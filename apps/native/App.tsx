@@ -14,6 +14,7 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import {
@@ -24,9 +25,11 @@ import {
   Player,
   ReplayCard,
 } from "./src/components";
-import { colors, radii } from "./src/theme";
+import { radii, type ThemeColors } from "./src/theme";
+import { ThemeProvider, useTheme } from "./src/appearance";
 import type { Broadcast, Section, Video } from "./src/types";
 import { useCatalogue } from "./src/use-catalogue";
+import { Settings } from "./src/settings";
 import { Multiview } from "./src/multiview";
 
 const isTV = Platform.isTV;
@@ -44,6 +47,16 @@ const sections: {
 ];
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <NativeApp />
+    </ThemeProvider>
+  );
+}
+
+function NativeApp() {
+  const { colors, dark } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const {
     catalogue,
     savedSet,
@@ -53,8 +66,10 @@ export default function App() {
     refresh,
     toggleSaved,
   } = useCatalogue();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [section, setSection] = useState<Section>("home");
   const [query, setQuery] = useState("");
+  const [channelSport, setChannelSport] = useState("All sports");
   const [player, setPlayer] = useState<{
     title: string;
     sources: { id: string; label: string; url: string }[];
@@ -63,7 +78,7 @@ export default function App() {
   useEffect(() => {
     if (Platform.OS !== "android") return;
     void SystemUI.setBackgroundColorAsync(colors.canvasDeep);
-  }, []);
+  }, [colors.canvasDeep]);
 
   const channels = useMemo(
     () => catalogue.broadcasts.filter((item) => item.channel),
@@ -87,14 +102,18 @@ export default function App() {
       section === "saved"
         ? channels.filter((item) => savedSet.has(item.id))
         : channels;
+    const sportSource =
+      channelSport === "All sports"
+        ? source
+        : source.filter((item) => item.category === channelSport);
     return term
-      ? source.filter((item) =>
+      ? sportSource.filter((item) =>
           `${item.title} ${item.category} ${item.competition}`
             .toLowerCase()
             .includes(term),
         )
-      : source;
-  }, [channels, query, savedSet, section]);
+      : sportSource;
+  }, [channels, query, savedSet, section, channelSport]);
   const hero = live[0] || matches[0] || channels[0];
 
   const playBroadcast = (item: Broadcast) =>
@@ -118,11 +137,15 @@ export default function App() {
         style={styles.safe}
         edges={["top", "bottom", "left", "right"]}
       >
-        <StatusBar style="light" />
+        <StatusBar style={dark ? "light" : "dark"} />
         {!isTV && <NavigationBar.NavigationBar style="dark" />}
         {!player && (
           <>
-            <Header section={section} setSection={setSection} />
+            <Header
+              section={section}
+              setSection={setSection}
+              onSettings={() => setSettingsOpen(true)}
+            />
             <ScrollView
               style={styles.scroll}
               contentContainerStyle={styles.content}
@@ -183,6 +206,11 @@ export default function App() {
                             : `${channels.length} live sports networks across football, tennis, motorsport, combat sports and more.`
                         }
                       />
+                      <SportFilters
+                        items={channels}
+                        selected={channelSport}
+                        onChange={setChannelSport}
+                      />
                       <Search value={query} onChange={setQuery} />
                       <Grid
                         items={filteredChannels}
@@ -218,6 +246,10 @@ export default function App() {
             {!isTV && <MobileNav section={section} onChange={setSection} />}
           </>
         )}
+        <Settings
+          visible={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+        />
         <Player
           title={player?.title || ""}
           sources={player?.sources || []}
@@ -232,10 +264,14 @@ export default function App() {
 function Header({
   section,
   setSection,
+  onSettings,
 }: {
   section: Section;
   setSection: (section: Section) => void;
+  onSettings: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.header}>
       <Brand compact={isTV} />
@@ -246,6 +282,7 @@ function Header({
               key={item.key}
               icon={item.icon}
               selected={section === item.key}
+              hasTVPreferredFocus={section === item.key}
               onPress={() => setSection(item.key)}
               style={styles.tvNavButton}
             >
@@ -257,13 +294,14 @@ function Header({
           ))}
         </View>
       )}
-      <View style={styles.profile}>
-        <Ionicons
-          name="person-outline"
-          color={colors.ink}
-          size={isTV ? 25 : 21}
-        />
-      </View>
+      <FocusButton
+        icon="person-outline"
+        onPress={onSettings}
+        accessibilityLabel="Profile and appearance settings"
+        style={{ marginLeft: "auto", paddingHorizontal: 12 }}
+      >
+        Settings
+      </FocusButton>
     </View>
   );
 }
@@ -275,6 +313,8 @@ function MobileNav({
   section: Section;
   onChange: (section: Section) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.mobileNav}>
       {sections.map((item) => {
@@ -338,6 +378,8 @@ function Home({
   onSave: (id: string) => void;
   onSection: (section: Section) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const sports = new Set(channels.map((item) => item.category)).size;
   return (
     <>
@@ -414,6 +456,8 @@ function Hero({
   onSave: (id: string) => void;
   saved: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [posterFailed, setPosterFailed] = useState(false);
   return (
     <ImageBackground
@@ -435,7 +479,12 @@ function Hero({
         <View style={styles.heroLive}>
           <View style={styles.heroLiveDot} />
           <Text style={styles.heroLiveText}>
-            {item.channel ? "LIVE 24/7" : "LIVE NOW"}
+            {item.channel
+              ? "LIVE 24/7"
+              : item.live ||
+                  (item.start <= Date.now() && item.end >= Date.now())
+                ? "LIVE NOW"
+                : "UPCOMING"}
           </Text>
         </View>
         <Text style={styles.heroEyebrow}>
@@ -445,7 +494,7 @@ function Hero({
           {item.title}
         </Text>
         <Text style={styles.heroDescription}>
-          {item.sources.length} verified stream option
+          {item.sources.length} stream option
           {item.sources.length === 1 ? "" : "s"}. Switch sources without leaving
           the player.
         </Text>
@@ -476,6 +525,8 @@ function Rail({
   onAction?: () => void;
   children: React.ReactNode;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.rail}>
       <View style={styles.railHeader}>
@@ -516,11 +567,32 @@ function Collection({
   onPlay: (item: Broadcast) => void;
   onSave: (id: string) => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+  const [sport, setSport] = useState("All sports");
+  const [term, setTerm] = useState("");
+  const filtered = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          (sport === "All sports" || item.category === sport) &&
+          `${item.title} ${item.competition}`
+            .toLowerCase()
+            .includes(term.toLowerCase()),
+      ),
+    [items, sport, term],
+  );
   return (
     <>
       <PageIntro eyebrow={eyebrow} title={title} description={description} />
+      <SportFilters items={items} selected={sport} onChange={setSport} />
+      <Search
+        value={term}
+        onChange={setTerm}
+        placeholder="Search matches, teams or competitions…"
+      />
       <Grid
-        items={items}
+        items={filtered}
         savedSet={savedSet}
         onPlay={onPlay}
         onSave={onSave}
@@ -537,6 +609,11 @@ function ReplayCollection({
   items: Video[];
   onPlay: (item: Video) => void;
 }) {
+  const { width } = useWindowDimensions();
+  const columns = isTV ? (width >= 900 ? 4 : 3) : width >= 700 ? 2 : 1;
+  const cardWidth = (width - (isTV ? 56 : 36) - 16 * (columns - 1)) / columns;
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [query, setQuery] = useState("");
   const batch = isTV ? 36 : 18;
   const [limit, setLimit] = useState(batch);
@@ -571,7 +648,7 @@ function ReplayCollection({
               key={item.id}
               item={item}
               onPlay={onPlay}
-              fullWidth={!isTV}
+              cardWidth={cardWidth}
             />
           ))}
           {visible.length < filtered.length && (
@@ -606,6 +683,11 @@ function Grid({
   onSave: (id: string) => void;
   empty: string;
 }) {
+  const { width } = useWindowDimensions();
+  const columns = isTV ? (width >= 900 ? 4 : 3) : width >= 700 ? 2 : 1;
+  const cardWidth = (width - (isTV ? 56 : 36) - 16 * (columns - 1)) / columns;
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const batch = isTV ? 48 : 24;
   const [limit, setLimit] = useState(batch);
   useEffect(() => setLimit(batch), [items, batch]);
@@ -620,7 +702,7 @@ function Grid({
           saved={savedSet.has(item.id)}
           onPlay={onPlay}
           onSave={onSave}
-          fullWidth={!isTV}
+          cardWidth={cardWidth}
         />
       ))}
       {visible.length < items.length && (
@@ -641,12 +723,52 @@ function PageIntro({
   title: string;
   description: string;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.pageIntro}>
-      <Text style={styles.eyebrow}>{eyebrow}</Text>
+      {!isTV && <Text style={styles.eyebrow}>{eyebrow}</Text>}
       <Text style={styles.pageTitle}>{title}</Text>
-      <Text style={styles.pageDescription}>{description}</Text>
+      {!isTV && <Text style={styles.pageDescription}>{description}</Text>}
     </View>
+  );
+}
+
+function SportFilters({
+  items,
+  selected,
+  onChange,
+}: {
+  items: Broadcast[];
+  selected: string;
+  onChange: (value: string) => void;
+}) {
+  const options = [
+    "All sports",
+    ...Array.from(new Set(items.map((item) => item.category))).sort(),
+  ];
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ flexGrow: 0 }}
+      contentContainerStyle={{
+        paddingHorizontal: isTV ? 28 : 18,
+        paddingVertical: 6,
+        paddingBottom: 16,
+        gap: 8,
+      }}
+    >
+      {options.map((sport) => (
+        <FocusButton
+          key={sport}
+          selected={selected === sport}
+          onPress={() => onChange(sport)}
+        >
+          {sport}
+        </FocusButton>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -659,6 +781,8 @@ function Search({
   onChange: (value: string) => void;
   placeholder?: string;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.search}>
       <Ionicons name="search" size={20} color={colors.muted} />
@@ -674,6 +798,8 @@ function Search({
 }
 
 function Empty({ message }: { message: string }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.empty}>
       <Ionicons name="sparkles-outline" size={38} color={colors.mint} />
@@ -684,6 +810,8 @@ function Empty({ message }: { message: string }) {
 }
 
 function Loading() {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.loading}>
       <View style={styles.loadingMark}>
@@ -704,6 +832,8 @@ function ErrorBanner({
   message: string;
   onRetry: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.error}>
       <Ionicons name="cloud-offline-outline" size={22} color={colors.gold} />
@@ -713,258 +843,259 @@ function ErrorBanner({
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.canvasDeep },
-  header: {
-    minHeight: isTV ? 72 : 72,
-    paddingHorizontal: isTV ? 24 : 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: isTV ? 12 : 24,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    backgroundColor: colors.canvas,
-    zIndex: 20,
-    elevation: 20,
-  },
-  tvNav: { flex: 1, flexDirection: "row", justifyContent: "center", gap: 8 },
-  tvNavButton: { minHeight: 44, paddingHorizontal: 12 },
-  profile: {
-    width: isTV ? 44 : 42,
-    height: isTV ? 44 : 42,
-    borderRadius: 30,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: "auto",
-  },
-  scroll: { flex: 1 },
-  content: { paddingBottom: isTV ? 70 : 28 },
-  hero: {
-    minHeight: isTV ? 315 : 410,
-    justifyContent: "flex-end",
-    backgroundColor: colors.panel,
-  },
-  heroImage: { resizeMode: "cover", opacity: 0.74 },
-  heroFallback: {
-    position: "absolute",
-    inset: 0,
-    alignItems: "center",
-    justifyContent: "center",
-    opacity: 0.18,
-  },
-  heroCopy: {
-    maxWidth: isTV ? 720 : 620,
-    paddingHorizontal: isTV ? 34 : 22,
-    paddingBottom: isTV ? 24 : 30,
-    gap: isTV ? 10 : 10,
-  },
-  heroLive: {
-    alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "rgba(1,17,13,.82)",
-    borderRadius: radii.pill,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-  },
-  heroLiveDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: colors.danger,
-  },
-  heroLiveText: {
-    color: colors.ink,
-    fontSize: 11,
-    fontWeight: "900",
-    letterSpacing: 1,
-  },
-  heroEyebrow: {
-    color: colors.mint,
-    fontSize: isTV ? 14 : 13,
-    fontWeight: "900",
-    textTransform: "uppercase",
-    letterSpacing: 1.5,
-  },
-  heroTitle: {
-    color: colors.ink,
-    fontSize: isTV ? 38 : 36,
-    lineHeight: isTV ? 42 : 40,
-    fontWeight: "900",
-    letterSpacing: -1.8,
-  },
-  heroDescription: {
-    color: colors.muted,
-    fontSize: isTV ? 16 : 15,
-    lineHeight: isTV ? 23 : 22,
-    maxWidth: 650,
-  },
-  heroActions: { flexDirection: "row", gap: 12, marginTop: 7 },
-  catalogueSummary: {
-    paddingHorizontal: isTV ? 28 : 18,
-    paddingTop: isTV ? 22 : 20,
-    gap: 4,
-  },
-  catalogueSummaryLead: {
-    color: colors.ink,
-    fontSize: isTV ? 22 : 18,
-    fontWeight: "900",
-  },
-  catalogueSummaryMeta: {
-    color: colors.muted,
-    fontSize: isTV ? 15 : 13,
-    fontWeight: "700",
-  },
-  rail: { marginTop: isTV ? 22 : 26 },
-  railHeader: {
-    paddingHorizontal: isTV ? 28 : 18,
-    marginBottom: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  railTitle: {
-    color: colors.ink,
-    fontSize: isTV ? 24 : 21,
-    fontWeight: "900",
-    letterSpacing: -0.6,
-  },
-  railAction: {
-    color: colors.mint,
-    fontSize: isTV ? 17 : 14,
-    fontWeight: "800",
-  },
-  railContent: { paddingHorizontal: isTV ? 28 : 18, paddingBottom: 18 },
-  pageIntro: {
-    paddingHorizontal: isTV ? 40 : 20,
-    paddingTop: isTV ? 36 : 34,
-    paddingBottom: isTV ? 24 : 24,
-    maxWidth: isTV ? 980 : undefined,
-  },
-  eyebrow: {
-    color: colors.mint,
-    fontSize: 12,
-    fontWeight: "900",
-    letterSpacing: 1.8,
-  },
-  pageTitle: {
-    color: colors.ink,
-    fontSize: isTV ? 36 : 34,
-    fontWeight: "900",
-    letterSpacing: -1.5,
-    marginTop: 7,
-  },
-  pageDescription: {
-    color: colors.muted,
-    fontSize: isTV ? 16 : 15,
-    lineHeight: isTV ? 23 : 23,
-    marginTop: 8,
-  },
-  search: {
-    marginHorizontal: isTV ? 40 : 20,
-    minHeight: isTV ? 50 : 52,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 18,
-    gap: 10,
-    marginBottom: 26,
-  },
-  searchInput: {
-    flex: 1,
-    color: colors.ink,
-    fontSize: isTV ? 15 : 15,
-    fontWeight: "600",
-  },
-  grid: {
-    paddingHorizontal: isTV ? 40 : 20,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: isTV ? 18 : 16,
-    paddingBottom: 34,
-  },
-  mobileNav: {
-    height: 68,
-    marginHorizontal: 12,
-    marginTop: 6,
-    marginBottom: 8,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.canvas,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    shadowColor: "#000",
-    shadowOpacity: 0.4,
-    shadowRadius: 16,
-    elevation: 18,
-  },
-  mobileNavItem: {
-    flex: 1,
-    height: 62,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 3,
-  },
-  mobileNavText: { color: colors.muted, fontSize: 10, fontWeight: "800" },
-  mobileNavTextActive: { color: colors.mint },
-  empty: {
-    margin: isTV ? 58 : 20,
-    minHeight: 230,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 30,
-    gap: 9,
-  },
-  emptyTitle: { color: colors.ink, fontSize: 21, fontWeight: "900" },
-  emptyCopy: {
-    color: colors.muted,
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 21,
-  },
-  loading: {
-    minHeight: 480,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 13,
-    paddingHorizontal: 28,
-  },
-  loadingMark: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 6,
-  },
-  loadingTitle: { color: colors.ink, fontSize: 22, fontWeight: "900" },
-  error: {
-    marginHorizontal: isTV ? 58 : 20,
-    marginTop: 20,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: "#7E6431",
-    backgroundColor: "#332A16",
-    padding: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  errorText: { flex: 1, color: colors.ink, fontSize: 14, fontWeight: "700" },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    safe: { flex: 1, backgroundColor: colors.canvasDeep },
+    header: {
+      minHeight: isTV ? 72 : 72,
+      paddingHorizontal: isTV ? 24 : 18,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: isTV ? 12 : 24,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.line,
+      backgroundColor: colors.canvas,
+      zIndex: 20,
+      elevation: 3,
+    },
+    tvNav: { flex: 1, flexDirection: "row", justifyContent: "center", gap: 8 },
+    tvNavButton: { minHeight: 44, paddingHorizontal: 12 },
+    profile: {
+      width: isTV ? 44 : 42,
+      height: isTV ? 44 : 42,
+      borderRadius: 30,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: colors.panel,
+      alignItems: "center",
+      justifyContent: "center",
+      marginLeft: "auto",
+    },
+    scroll: { flex: 1 },
+    content: { paddingBottom: isTV ? 70 : 28 },
+    hero: {
+      minHeight: isTV ? 315 : 410,
+      justifyContent: "flex-end",
+      backgroundColor: colors.panel,
+    },
+    heroImage: { resizeMode: "cover", opacity: 0.74 },
+    heroFallback: {
+      position: "absolute",
+      inset: 0,
+      alignItems: "center",
+      justifyContent: "center",
+      opacity: 0.18,
+    },
+    heroCopy: {
+      maxWidth: isTV ? 720 : 620,
+      paddingHorizontal: isTV ? 34 : 22,
+      paddingBottom: isTV ? 24 : 30,
+      gap: isTV ? 10 : 10,
+    },
+    heroLive: {
+      alignSelf: "flex-start",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      backgroundColor: "rgba(1,17,13,.82)",
+      borderRadius: radii.pill,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
+    },
+    heroLiveDot: {
+      width: 8,
+      height: 8,
+      borderRadius: 4,
+      backgroundColor: colors.danger,
+    },
+    heroLiveText: {
+      color: "#F4FFF9",
+      fontSize: 11,
+      fontWeight: "900",
+      letterSpacing: 1,
+    },
+    heroEyebrow: {
+      color: "#62E2B2",
+      fontSize: isTV ? 14 : 13,
+      fontWeight: "900",
+      textTransform: "uppercase",
+      letterSpacing: 1.5,
+    },
+    heroTitle: {
+      color: "#F4FFF9",
+      fontSize: isTV ? 38 : 36,
+      lineHeight: isTV ? 42 : 40,
+      fontWeight: "900",
+      letterSpacing: -1.8,
+    },
+    heroDescription: {
+      color: "#BFD5CC",
+      fontSize: isTV ? 16 : 15,
+      lineHeight: isTV ? 23 : 22,
+      maxWidth: 650,
+    },
+    heroActions: { flexDirection: "row", gap: 12, marginTop: 7 },
+    catalogueSummary: {
+      paddingHorizontal: isTV ? 28 : 18,
+      paddingTop: isTV ? 22 : 20,
+      gap: 4,
+    },
+    catalogueSummaryLead: {
+      color: colors.ink,
+      fontSize: isTV ? 22 : 18,
+      fontWeight: "900",
+    },
+    catalogueSummaryMeta: {
+      color: colors.muted,
+      fontSize: isTV ? 15 : 13,
+      fontWeight: "700",
+    },
+    rail: { marginTop: isTV ? 22 : 26 },
+    railHeader: {
+      paddingHorizontal: isTV ? 28 : 18,
+      marginBottom: 16,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    railTitle: {
+      color: colors.ink,
+      fontSize: isTV ? 24 : 21,
+      fontWeight: "900",
+      letterSpacing: -0.6,
+    },
+    railAction: {
+      color: colors.mint,
+      fontSize: isTV ? 17 : 14,
+      fontWeight: "800",
+    },
+    railContent: { paddingHorizontal: isTV ? 28 : 18, paddingBottom: 18 },
+    pageIntro: {
+      paddingHorizontal: isTV ? 28 : 18,
+      paddingTop: isTV ? 22 : 24,
+      paddingBottom: isTV ? 16 : 18,
+      maxWidth: isTV ? 980 : undefined,
+    },
+    eyebrow: {
+      color: colors.mint,
+      fontSize: 12,
+      fontWeight: "900",
+      letterSpacing: 1.8,
+    },
+    pageTitle: {
+      color: colors.ink,
+      fontSize: isTV ? 30 : 30,
+      fontWeight: "900",
+      letterSpacing: -1.5,
+      marginTop: 7,
+    },
+    pageDescription: {
+      color: colors.muted,
+      fontSize: isTV ? 16 : 15,
+      lineHeight: isTV ? 23 : 23,
+      marginTop: 8,
+    },
+    search: {
+      marginHorizontal: isTV ? 40 : 20,
+      minHeight: isTV ? 50 : 52,
+      borderRadius: radii.pill,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: colors.panel,
+      flexDirection: "row",
+      alignItems: "center",
+      paddingHorizontal: 18,
+      gap: 10,
+      marginBottom: 16,
+    },
+    searchInput: {
+      flex: 1,
+      color: colors.ink,
+      fontSize: isTV ? 15 : 15,
+      fontWeight: "600",
+    },
+    grid: {
+      paddingHorizontal: isTV ? 28 : 18,
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: 16,
+      paddingBottom: 34,
+    },
+    mobileNav: {
+      height: 68,
+      marginHorizontal: 12,
+      marginTop: 6,
+      marginBottom: 8,
+      borderRadius: 24,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: colors.canvas,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-around",
+      shadowColor: "#000",
+      shadowOpacity: 0.4,
+      shadowRadius: 16,
+      elevation: 18,
+    },
+    mobileNavItem: {
+      flex: 1,
+      height: 62,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 3,
+    },
+    mobileNavText: { color: colors.muted, fontSize: 10, fontWeight: "800" },
+    mobileNavTextActive: { color: colors.mint },
+    empty: {
+      margin: isTV ? 58 : 20,
+      minHeight: 230,
+      borderRadius: radii.lg,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: colors.panel,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 30,
+      gap: 9,
+    },
+    emptyTitle: { color: colors.ink, fontSize: 21, fontWeight: "900" },
+    emptyCopy: {
+      color: colors.muted,
+      fontSize: 14,
+      textAlign: "center",
+      lineHeight: 21,
+    },
+    loading: {
+      minHeight: 480,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 13,
+      paddingHorizontal: 28,
+    },
+    loadingMark: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: colors.panel,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 6,
+    },
+    loadingTitle: { color: colors.ink, fontSize: 22, fontWeight: "900" },
+    error: {
+      marginHorizontal: isTV ? 58 : 20,
+      marginTop: 20,
+      borderRadius: radii.md,
+      borderWidth: 1,
+      borderColor: "#7E6431",
+      backgroundColor: "#332A16",
+      padding: 14,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    errorText: { flex: 1, color: colors.ink, fontSize: 14, fontWeight: "700" },
+  });

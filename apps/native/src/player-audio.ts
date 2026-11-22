@@ -22,6 +22,11 @@ export function playerAudioScript(muted: boolean) {
         }
       });
     };
+    document.querySelectorAll('iframe').forEach((frame) => {
+      try {
+        frame.contentWindow.postMessage(JSON.stringify({event:'command',func:muted?'mute':'unMute',args:[]}), '*');
+      } catch (_) {}
+    });
     apply();
     if (!window.__backinitAudioObserver) {
       window.__backinitAudioObserver = new MutationObserver(apply);

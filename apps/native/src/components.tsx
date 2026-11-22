@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   Image,
   ImageBackground,
@@ -16,9 +16,11 @@ import {
 import { WebView } from "react-native-webview";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Defs, G, Mask, Path } from "react-native-svg";
-import { colors, radii } from "./theme";
+import { radii, type ThemeColors } from "./theme";
+import { useTheme } from "./appearance";
 import type { Broadcast, Source, Video } from "./types";
 import { isPlayerNavigationAllowed } from "./player-navigation";
+import { nativePlayerDocument } from "./player-embed";
 import { playerAudioScript } from "./player-audio";
 import { playerHardeningScript } from "./player-hardening";
 
@@ -27,6 +29,8 @@ import { playerHardeningScript } from "./player-hardening";
 const ControllableWebView = WebView as any;
 
 export function Brand({ compact = false }: { compact?: boolean }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <View style={styles.brand} accessibilityLabel="backinit">
       <View style={[styles.brandBall, compact && { width: 30, height: 30 }]}>
@@ -41,6 +45,8 @@ export function Brand({ compact = false }: { compact?: boolean }) {
 }
 
 export function BrandMark({ size }: { size: number }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   return (
     <Svg
       width={size}
@@ -85,9 +91,12 @@ export function FocusButton({
   icon?: keyof typeof Ionicons.glyphMap;
   selected?: boolean;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
+      accessibilityRole="button"
       {...props}
       onFocus={(event) => {
         setFocused(true);
@@ -102,6 +111,7 @@ export function FocusButton({
         selected && styles.focusButtonSelected,
         focused && styles.focusButtonFocused,
         pressed && styles.pressed,
+        props.disabled && { opacity: 0.45 },
         style as object,
       ]}
     >
@@ -109,13 +119,18 @@ export function FocusButton({
         <Ionicons
           name={icon}
           size={Platform.isTV ? 23 : 20}
-          color={selected || focused ? colors.canvasDeep : colors.ink}
+          color={
+            focused ? "#01110D" : selected ? colors.canvasDeep : colors.ink
+          }
         />
       )}
       <Text
+        numberOfLines={2}
         style={[
           styles.focusButtonText,
-          (selected || focused) && styles.focusButtonTextActive,
+          { flexShrink: 1 },
+          selected && styles.focusButtonTextActive,
+          focused && { color: "#01110D" },
         ]}
       >
         {children}
@@ -131,6 +146,7 @@ export const BroadcastCard = memo(function BroadcastCard({
   onSave,
   large = false,
   fullWidth = false,
+  cardWidth,
 }: {
   item: Broadcast;
   saved: boolean;
@@ -138,10 +154,14 @@ export const BroadcastCard = memo(function BroadcastCard({
   onSave: (id: string) => void;
   large?: boolean;
   fullWidth?: boolean;
+  cardWidth?: number;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [focused, setFocused] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
-  const width = Platform.isTV ? (large ? 350 : 270) : large ? 330 : 244;
+  const width =
+    cardWidth ?? (Platform.isTV ? (large ? 350 : 270) : large ? 330 : 244);
   return (
     <Pressable
       onPress={() => onPlay(item)}
@@ -153,7 +173,7 @@ export const BroadcastCard = memo(function BroadcastCard({
         styles.card,
         {
           width: fullWidth ? "100%" : width,
-          marginRight: fullWidth ? 0 : styles.card.marginRight,
+          marginRight: fullWidth || cardWidth ? 0 : styles.card.marginRight,
         },
         focused && styles.cardFocused,
       ]}
@@ -161,8 +181,20 @@ export const BroadcastCard = memo(function BroadcastCard({
       <ImageBackground
         source={item.poster && !posterFailed ? { uri: item.poster } : undefined}
         onError={() => setPosterFailed(true)}
-        style={[styles.cardArtwork, { height: Platform.isTV ? 145 : 138 }]}
-        imageStyle={styles.cardImage}
+        style={[
+          styles.cardArtwork,
+          {
+            height: cardWidth
+              ? (cardWidth * 9) / 16
+              : Platform.isTV
+                ? 145
+                : 138,
+          },
+        ]}
+        imageStyle={[
+          styles.cardImage,
+          item.channel && { resizeMode: "contain" },
+        ]}
       >
         {(!item.poster || posterFailed) && <BrandMark size={64} />}
         <LinearGradient
@@ -172,7 +204,12 @@ export const BroadcastCard = memo(function BroadcastCard({
         <View style={styles.livePill}>
           <View style={styles.liveDot} />
           <Text style={styles.liveText}>
-            {item.channel ? "LIVE 24/7" : "LIVE"}
+            {item.channel
+              ? "LIVE 24/7"
+              : item.live ||
+                  (item.start <= Date.now() && item.end >= Date.now())
+                ? "LIVE"
+                : "UPCOMING"}
           </Text>
         </View>
         <Pressable
@@ -186,7 +223,7 @@ export const BroadcastCard = memo(function BroadcastCard({
           <Ionicons
             name={saved ? "bookmark" : "bookmark-outline"}
             size={21}
-            color={saved ? colors.lime : colors.ink}
+            color={saved ? "#C8FF73" : "#F4FFF9"}
           />
         </Pressable>
       </ImageBackground>
@@ -209,11 +246,15 @@ export const ReplayCard = memo(function ReplayCard({
   item,
   onPlay,
   fullWidth = false,
+  cardWidth,
 }: {
   item: Video;
   onPlay: (item: Video) => void;
   fullWidth?: boolean;
+  cardWidth?: number;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const [focused, setFocused] = useState(false);
   return (
     <Pressable
@@ -223,6 +264,7 @@ export const ReplayCard = memo(function ReplayCard({
       style={[
         styles.replayCard,
         fullWidth && { width: "100%", marginRight: 0 },
+        cardWidth !== undefined && { width: cardWidth, marginRight: 0 },
         focused && styles.cardFocused,
       ]}
       accessibilityLabel={`Play ${item.name}`}
@@ -230,10 +272,19 @@ export const ReplayCard = memo(function ReplayCard({
       {item.catalog?.thumbnail ? (
         <Image
           source={{ uri: item.catalog.thumbnail }}
-          style={styles.replayArtwork}
+          style={[
+            styles.replayArtwork,
+            cardWidth !== undefined && { height: (cardWidth * 9) / 16 },
+          ]}
         />
       ) : (
-        <View style={[styles.replayArtwork, styles.fallback]}>
+        <View
+          style={[
+            styles.replayArtwork,
+            cardWidth !== undefined && { height: (cardWidth * 9) / 16 },
+            styles.fallback,
+          ]}
+        >
           <Ionicons name="play-circle" size={44} color={colors.mint} />
         </View>
       )}
@@ -261,6 +312,8 @@ export function Player({
   visible: boolean;
   onClose: () => void;
 }) {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const insets = useSafeAreaInsets();
   const [index, setIndex] = useState(0);
   const [reloadKey, setReloadKey] = useState(0);
@@ -310,7 +363,7 @@ export function Player({
               <ControllableWebView
                 ref={webview}
                 key={`${active.url}-${reloadKey}`}
-                source={{ uri: active.url }}
+                source={nativePlayerDocument(active.url)}
                 style={styles.webview}
                 javaScriptEnabled
                 domStorageEnabled
@@ -327,7 +380,12 @@ export function Player({
                 allowsBackForwardNavigationGestures={false}
                 injectedJavaScriptBeforeContentLoaded={playerHardeningScript}
                 onOpenWindow={() => undefined}
-                onShouldStartLoadWithRequest={(request: { url: string }) =>
+                onShouldStartLoadWithRequest={(request: {
+                  url: string;
+                  isTopFrame?: boolean;
+                }) =>
+                  request.isTopFrame === false ||
+                  request.url === "https://backinit.live/" ||
                   isPlayerNavigationAllowed(active.url, request.url)
                 }
                 onLoadStart={() => setState("loading")}
@@ -379,6 +437,11 @@ export function Player({
         {sources.length > 0 && (
           <ScrollView
             horizontal
+            style={{
+              flexGrow: 0,
+              flexShrink: 0,
+              height: Platform.isTV ? 78 : 72,
+            }}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.sourceBar}
           >
@@ -428,204 +491,206 @@ export function Player({
   );
 }
 
-const styles = StyleSheet.create({
-  brand: { flexDirection: "row", alignItems: "center", gap: 9 },
-  brandBall: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brandText: {
-    color: colors.ink,
-    fontSize: 27,
-    fontWeight: "900",
-    letterSpacing: -1.2,
-  },
-  brandAccent: { color: colors.mint },
-  focusButton: {
-    minHeight: Platform.isTV ? 44 : 44,
-    paddingHorizontal: Platform.isTV ? 15 : 16,
-    borderRadius: radii.pill,
-    borderWidth: 1,
-    borderColor: colors.line,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    backgroundColor: colors.panel,
-  },
-  focusButtonSelected: {
-    backgroundColor: colors.mint,
-    borderColor: colors.mint,
-  },
-  focusButtonFocused: {
-    backgroundColor: colors.lime,
-    borderColor: colors.ink,
-    transform: [{ scale: 1.035 }],
-    shadowColor: colors.lime,
-    shadowOpacity: 0.5,
-    shadowRadius: 12,
-    elevation: 10,
-  },
-  focusButtonText: {
-    color: colors.ink,
-    fontSize: Platform.isTV ? 15 : 14,
-    fontWeight: "800",
-  },
-  focusButtonTextActive: { color: colors.canvasDeep },
-  pressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
-  card: {
-    borderRadius: radii.md,
-    overflow: "hidden",
-    backgroundColor: colors.panel,
-    borderWidth: 1,
-    borderColor: colors.line,
-    marginRight: Platform.isTV ? 22 : 14,
-  },
-  cardFocused: {
-    borderColor: colors.lime,
-    transform: [{ scale: 1.025 }],
-    shadowColor: colors.mint,
-    shadowOpacity: 0.45,
-    shadowRadius: 22,
-    elevation: 12,
-  },
-  cardArtwork: {
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#063128",
-  },
-  cardImage: { resizeMode: "cover" },
-  livePill: {
-    position: "absolute",
-    left: 12,
-    bottom: 11,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: radii.pill,
-    backgroundColor: "rgba(1,17,13,.88)",
-  },
-  liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.danger,
-  },
-  liveText: {
-    color: colors.ink,
-    fontWeight: "900",
-    fontSize: 10,
-    letterSpacing: 0.7,
-  },
-  saveButton: {
-    position: "absolute",
-    right: 10,
-    top: 10,
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(1,17,13,.72)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cardCopy: { padding: Platform.isTV ? 14 : 14, gap: 5 },
-  cardMeta: {
-    color: colors.mint,
-    fontSize: Platform.isTV ? 12 : 11,
-    fontWeight: "700",
-  },
-  cardTitle: {
-    color: colors.ink,
-    fontSize: Platform.isTV ? 18 : 16,
-    lineHeight: Platform.isTV ? 23 : 21,
-    fontWeight: "900",
-  },
-  cardSources: {
-    color: colors.muted,
-    fontSize: Platform.isTV ? 12 : 12,
-    fontWeight: "700",
-  },
-  replayCard: {
-    width: Platform.isTV ? 280 : 260,
-    marginRight: Platform.isTV ? 18 : 14,
-    borderWidth: 1,
-    borderColor: colors.line,
-    backgroundColor: colors.panel,
-    borderRadius: radii.md,
-    overflow: "hidden",
-  },
-  replayArtwork: {
-    width: "100%",
-    height: Platform.isTV ? 150 : 140,
-    resizeMode: "cover",
-  },
-  fallback: {
-    backgroundColor: colors.panelRaised,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  playerPage: { flex: 1, backgroundColor: colors.canvasDeep },
-  playerHeader: {
-    height: Platform.isTV ? 86 : 70,
-    paddingHorizontal: Platform.isTV ? 40 : 18,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 18,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  playerTitle: {
-    flex: 1,
-    color: colors.ink,
-    fontSize: Platform.isTV ? 22 : 16,
-    fontWeight: "800",
-  },
-  playerFrame: {
-    flex: 1,
-    margin: Platform.isTV ? 30 : 0,
-    borderRadius: Platform.isTV ? radii.lg : 0,
-    overflow: "hidden",
-    backgroundColor: "#000",
-  },
-  playerFrameTheater: {
-    margin: 0,
-    borderRadius: 0,
-  },
-  webview: { flex: 1, backgroundColor: "#000" },
-  playerStatus: {
-    position: "absolute",
-    inset: 0,
-    backgroundColor: "rgba(1,17,13,.94)",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-    padding: 28,
-  },
-  playerStatusTitle: {
-    color: colors.ink,
-    fontSize: Platform.isTV ? 26 : 20,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-  playerStatusCopy: {
-    color: colors.muted,
-    fontSize: Platform.isTV ? 17 : 14,
-    lineHeight: Platform.isTV ? 25 : 21,
-    textAlign: "center",
-    maxWidth: 520,
-  },
-  playerEmpty: { flex: 1, alignItems: "center", justifyContent: "center" },
-  emptyTitle: { color: colors.ink, fontSize: 22, fontWeight: "800" },
-  sourceBar: {
-    minHeight: Platform.isTV ? 90 : 72,
-    paddingHorizontal: 24,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 12,
-  },
-});
+const createStyles = (colors: ThemeColors) =>
+  StyleSheet.create({
+    brand: { flexDirection: "row", alignItems: "center", gap: 9 },
+    brandBall: {
+      width: 40,
+      height: 40,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    brandText: {
+      color: colors.ink,
+      fontSize: 27,
+      fontWeight: "900",
+      letterSpacing: -1.2,
+    },
+    brandAccent: { color: colors.mint },
+    focusButton: {
+      minHeight: Platform.isTV ? 44 : 44,
+      paddingHorizontal: Platform.isTV ? 15 : 16,
+      borderRadius: radii.pill,
+      borderWidth: 1,
+      borderColor: colors.line,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8,
+      backgroundColor: colors.panel,
+    },
+    focusButtonSelected: {
+      backgroundColor: colors.mint,
+      borderColor: colors.mint,
+    },
+    focusButtonFocused: {
+      backgroundColor: colors.lime,
+      borderColor: colors.ink,
+      transform: [{ scale: 1.035 }],
+      shadowColor: colors.lime,
+      shadowOpacity: 0.5,
+      shadowRadius: 12,
+      elevation: 10,
+    },
+    focusButtonText: {
+      color: colors.ink,
+      fontSize: Platform.isTV ? 15 : 14,
+      fontWeight: "800",
+    },
+    focusButtonTextActive: { color: colors.canvasDeep },
+    pressed: { opacity: 0.72, transform: [{ scale: 0.98 }] },
+    card: {
+      borderRadius: radii.md,
+      overflow: "hidden",
+      backgroundColor: colors.panel,
+      borderWidth: 1,
+      borderColor: colors.line,
+      marginRight: Platform.isTV ? 22 : 14,
+    },
+    cardFocused: {
+      borderColor: colors.lime,
+      transform: [{ scale: 1.025 }],
+      shadowColor: colors.mint,
+      shadowOpacity: 0.45,
+      shadowRadius: 22,
+      elevation: 12,
+    },
+    cardArtwork: {
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: "#063128",
+    },
+    cardImage: { resizeMode: "cover" },
+    livePill: {
+      position: "absolute",
+      left: 12,
+      bottom: 11,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+      borderRadius: radii.pill,
+      backgroundColor: "rgba(1,17,13,.88)",
+    },
+    liveDot: {
+      width: 7,
+      height: 7,
+      borderRadius: 4,
+      backgroundColor: colors.danger,
+    },
+    liveText: {
+      color: "#F4FFF9",
+      fontWeight: "900",
+      fontSize: 10,
+      letterSpacing: 0.7,
+    },
+    saveButton: {
+      position: "absolute",
+      right: 10,
+      top: 10,
+      width: 38,
+      height: 38,
+      borderRadius: 19,
+      backgroundColor: "rgba(1,17,13,.72)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    cardCopy: { padding: Platform.isTV ? 14 : 14, gap: 5 },
+    cardMeta: {
+      color: colors.mint,
+      fontSize: Platform.isTV ? 12 : 11,
+      fontWeight: "700",
+    },
+    cardTitle: {
+      minHeight: Platform.isTV ? 46 : 42,
+      color: colors.ink,
+      fontSize: Platform.isTV ? 18 : 16,
+      lineHeight: Platform.isTV ? 23 : 21,
+      fontWeight: "900",
+    },
+    cardSources: {
+      color: colors.muted,
+      fontSize: Platform.isTV ? 12 : 12,
+      fontWeight: "700",
+    },
+    replayCard: {
+      width: Platform.isTV ? 280 : 260,
+      marginRight: Platform.isTV ? 18 : 14,
+      borderWidth: 1,
+      borderColor: colors.line,
+      backgroundColor: colors.panel,
+      borderRadius: radii.md,
+      overflow: "hidden",
+    },
+    replayArtwork: {
+      width: "100%",
+      height: Platform.isTV ? 150 : 140,
+      resizeMode: "cover",
+    },
+    fallback: {
+      backgroundColor: colors.panelRaised,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    playerPage: { flex: 1, backgroundColor: colors.canvasDeep },
+    playerHeader: {
+      height: Platform.isTV ? 86 : 70,
+      paddingHorizontal: Platform.isTV ? 40 : 18,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 18,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.line,
+    },
+    playerTitle: {
+      flex: 1,
+      color: colors.ink,
+      fontSize: Platform.isTV ? 22 : 16,
+      fontWeight: "800",
+    },
+    playerFrame: {
+      flex: 1,
+      margin: Platform.isTV ? 12 : 0,
+      borderRadius: Platform.isTV ? radii.lg : 0,
+      overflow: "hidden",
+      backgroundColor: "#000",
+    },
+    playerFrameTheater: {
+      margin: 0,
+      borderRadius: 0,
+    },
+    webview: { flex: 1, backgroundColor: "#000" },
+    playerStatus: {
+      position: "absolute",
+      inset: 0,
+      backgroundColor: colors.panel,
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 12,
+      padding: 28,
+    },
+    playerStatusTitle: {
+      color: colors.ink,
+      fontSize: Platform.isTV ? 26 : 20,
+      fontWeight: "900",
+      textAlign: "center",
+    },
+    playerStatusCopy: {
+      color: colors.muted,
+      fontSize: Platform.isTV ? 17 : 14,
+      lineHeight: Platform.isTV ? 25 : 21,
+      textAlign: "center",
+      maxWidth: 520,
+    },
+    playerEmpty: { flex: 1, alignItems: "center", justifyContent: "center" },
+    emptyTitle: { color: colors.ink, fontSize: 22, fontWeight: "800" },
+    sourceBar: {
+      minHeight: Platform.isTV ? 78 : 72,
+      paddingHorizontal: 24,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 12,
+    },
+  });
